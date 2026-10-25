@@ -1,0 +1,355 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/akopichin/afm/main/schema/flow.schema.json
+# Install this complete package at pipelines/refactor/ in the target project.
+# Run: AFM_COLLABORATION=1 AFM_BROWSER=1 afm run pipelines/refactor/flow.yaml --idle-timeout 24h
+name: refactor
+description: "Explore architecture, discuss changes in a live 3D map, and approve a refactoring plan"
+worktrees: true
+collaboration:
+  mode: team
+team:
+  - id: pipeline-refactor-architect-a
+    profile: pipeline-refactor-architect-a
+    title: Refactor architect A
+    instruction: >-
+      You are the primary architect for independent analysis, joint synthesis and
+      final packet review. Follow the coordinator's absolute artifact paths and
+      scope/toolkit/contracts/analysis-contract.md. Write only your assigned artifacts;
+      never change target source or the other architect's report/approval.
+  - id: pipeline-refactor-architect-b
+    profile: pipeline-refactor-architect-b
+    title: Refactor architect B
+    instruction: >-
+      You are the second architect for independent analysis and critical review of
+      the shared recommendation. Follow the coordinator's absolute artifact paths
+      and scope/toolkit/contracts/analysis-contract.md. Write only your assigned artifacts;
+      never change target source or the other architect's report/approval.
+
+prompt: |
+  This flow produces a USER-APPROVED REFACTORING PLAN. Read the target project;
+  do not modify its source, configuration, dependencies or Git history. Write all
+  analysis, HTML and checkpoints under the absolute AFM stage directories. The
+  final export stage also saves the approved package in the run's Git worktree.
+  This is a planning prototype, not permission to execute the refactoring.
+
+  The scope hook freezes the toolkit at <run-dir>/scope/toolkit/. Resolve it as
+  "$(dirname "$AFM_STAGE_DIR")/scope/toolkit" before changing directories. Read
+  its docs/workshop.md and examples/example.json for the data contract and CDP protocol. Analyze
+  the effective run worktree, not the main checkout or another external project.
+  Use the user's language in explanations, findings, proposals and the final plan.
+  Preserve exact source evidence. Distinguish observed facts, metric signals and
+  inferred architectural relationships. Do not fabricate metrics or future scores.
+  Treat strictacode thresholds as investigation signals, not proof that code must
+  be rewritten. Missing analysis is unknown, never healthy. Keep alternative
+  solutions separate and expose their dependencies and incompatibilities.
+
+hooks:
+  - id: refactor-preview-cleanup
+    events: [flow_finished, flow_failed, flow_interrupted]
+    command: 'if [ -f "$AFM_RUN_DIR/scope/toolkit/scripts/workbench.mjs" ]; then node "$AFM_RUN_DIR/scope/toolkit/scripts/workbench.mjs" stop --session "$AFM_RUN_DIR/workshop"; fi'
+
+stages:
+  - id: scope
+    name: "Agree on the refactoring objective"
+    agents: [implementation]
+    interactive: true
+    browser: false
+    script_before: |
+      set -eu
+      toolkit="$AFM_STAGE_DIR/toolkit"
+      if [ -f "$toolkit/scripts/freeze.mjs" ]; then
+        node "$toolkit/scripts/freeze.mjs" --stage "$AFM_STAGE_DIR"
+      else
+        package=pipelines/refactor
+        if [ ! -f "$package/scripts/freeze.mjs" ]; then
+          common=$(git rev-parse --path-format=absolute --git-common-dir)
+          package="$(dirname "$common")/pipelines/refactor"
+        fi
+        test -f "$package/scripts/freeze.mjs" || {
+          echo "Install the complete refactor package at pipelines/refactor/ in the target Git project." >&2
+          exit 1
+        }
+        node "$package/scripts/freeze.mjs" --stage "$AFM_STAGE_DIR"
+      fi
+      node "$toolkit/scripts/workbench.mjs" --help
+      sh "$toolkit/scripts/setup-strictacode.sh" "$AFM_STAGE_DIR"
+    prompt: |
+      Inspect the current project instructions and manifests. Through AFM's
+      implementation.qN.question.json / answer.json protocol confirm the target
+      worktree (current directory), the actual refactoring goal, scope,
+      compatibility constraints and areas to leave alone. Reuse context already
+      supplied by the user. Ask one compact question about remaining uncertainties.
+      Do not silently substitute an example project or perform any refactoring.
+
+      Set root to this run's effective Git worktree. Explain that uncommitted
+      changes from the main checkout are not automatically part of this snapshot.
+      Write $AFM_STAGE_DIR/scope.json:
+        {"root":"absolute project path","goal":"...","constraints":["..."],
+         "analysis_scopes":[{"path":"relative source scope","language":"golang"}]}
+      Exclude pipelines/refactor/ from architectural conclusions and source scopes;
+      it is installed tooling, not part of the application. If scanning the project
+      root includes it, report this coverage limitation and scan application paths.
+      Choose a bounded first review (roughly 10–40 architectural components).
+      For a mixed-language project list separate analysis scopes. Confirm that
+      strictacode supports each chosen language; document uncovered areas.
+      Write brief.md with the confirmed goal, boundaries and acceptance criteria.
+      Finish according to the AFM implementation completion protocol.
+    artifacts:
+      - {name: scope, path: ./scope.json}
+      - {name: brief, path: ./brief.md}
+
+  - id: analyze
+    name: "Two architects: independent findings and agreed priorities"
+    depends_on: [scope]
+    agents: [auto]
+    browser: false
+    inputs: [scope.scope, scope.brief]
+    prompt: |
+      Read the scope, applicable project instructions and the bundled
+      <run-dir>/scope/toolkit/skills/strictacode/SKILL.md. Set TOOL to the absolute
+      <run-dir>/scope/toolkit/scripts/workbench.mjs path. On FIRST entry only, record the source;
+      on resume check the existing receipt instead of overwriting it:
+        node "$TOOL" fingerprint --root "<scope.root>" \
+          --exclude "$(dirname "$AFM_STAGE_DIR")" \
+          --exclude "<scope.root>/pipelines/refactor" \
+          --exclude "<scope.root>/docs/superpowers/refactors/<run-directory-name>" \
+          --output "$AFM_STAGE_DIR/source.json"
+
+      Read the executable path from <run-dir>/scope/strictacode-command.txt. Use
+      that absolute executable for every strictacode invocation below; it may be
+      installed in this run's container-only Python environment. Do not use a
+      host Python path or install anything into the target project's dependencies.
+
+      Reuse successful raw reports from this receipt on continuation; do not rerun
+      scans merely because a peer reply resumed you. Record failures explicitly.
+      Read existing .strictacode.yml/.yaml/.json without changing them. For each
+      confirmed language/scope run the bundled skill's analysis command:
+        strictacode analyze <path> --details --format json --top-packages 5 \
+          --top-modules 5 --top-classes 10 --top-methods 15 --top-functions 15
+      Save each raw JSON report in this stage directory. Confirm the reported
+      language matches the scope. A failed/partial scan must be recorded and
+      resolved or explicitly surfaced; do not invent successful analyzer output.
+
+      You coordinate TWO required architects; you do not substitute your own
+      analysis for either. Read <run-dir>/scope/toolkit/contracts/analysis-contract.md.
+      Read <run-dir>/scope/toolkit/bindings.json for this run's role IDs,
+      profiles, clients, models and reasoning settings. Resolve BOTH independent
+      participants with afm agent list using their configured profile/title.
+      architect_a is the merger; architect_b independently challenges the result.
+      If either is unavailable or its configuration disagrees with the bindings,
+      report the infrastructure blocker through AFM's interactive question protocol
+      and wait. Do not substitute models or complete with only one architect.
+
+      Reconcile on EVERY continuation BEFORE dispatching: read team-progress.json,
+      <your_requests>, afm agent inbox --all and afm agent wait-status. Persist
+      absolute paths, phase, participants, request/reply IDs, batch IDs, outcome,
+      accepted artifact hashes and correction count via atomic rename. Recover
+      missing ledger entries from AFM records. Never resend pending/completed
+      requests, overwrite source.json/reports on resume, or confuse a mere
+      acknowledgement/cancelled wait with a complete result. Confirm the original
+      source receipt still matches before reusing any analysis.
+
+      1. Send separate independent-analysis requests to BOTH architects in the
+         same turn. Each request includes absolute ANALYZE_DIR, scope/brief,
+         receipt, raw-report paths and toolkit/contracts/analysis-contract.md, expected
+         model, no-target-edits rule and file ownership. architect_a owns only
+         architect_a-findings.json; architect_b owns only architect_b-findings.json. They must not
+         read one another's conclusions until both have finished. Record each
+         returned message_id immediately. Use stable --request-id values per
+         request so delivery recovery is idempotent.
+           afm agent send --to <actual-participant> --kind request --request-id <id> --body <instruction>
+         Do not interpolate instructions as shell code; use safely quoted text.
+         Register one durable batch for the returned IDs:
+           afm agent wait --condition reply_to_all --message-ids <id1,id2> --deadline-seconds 3600
+         On yield, end this turn without execution_summary.md. No shell polling.
+         On continuation inspect each wait item and actual reply; ready can include
+         cancelled/expired items. Validate both reports against the same receipt,
+         identities and requested scope. Infrastructure failures do not count as
+         consensus; surface them and wait for resolution.
+
+      2. After BOTH independent reports are complete, authorize architect_a to write
+         architecture.json, consensus.json and analysis.md using the contract.
+         Include both reports in a dedicated merge request; record its ID, use a
+         durable reply_to wait and yield until its completed result arrives.
+         No other agent writes these common files. architect_b's review in step 3 must
+         challenge the synthesis, not just concatenate findings.
+         Record every accepted/rejected/deferred original finding,
+         counterevidence, alternatives and unresolved questions. Rank findings
+         AND proposals by expected benefit descending, then ease descending,
+         with an explicit reason for each estimate. Dependencies govern execution
+         order separately. Preserve the independent reports as evidence.
+
+      3. Freeze the complete packet. Compute:
+           node "<run-dir>/scope/toolkit/scripts/consensus.cjs" digest --stage "$AFM_STAGE_DIR"
+         Send that SAME hash and all packet paths to BOTH architects for explicit
+         full-list and ranking approval. Each owns only its <reviewer>-approval.json
+         and replies to its own review request. Register a reply_to_all batch and
+         yield. Nobody edits packet files while reviewers are active. Check the
+         actual reviewer identities, reply hashes and verdicts against the files;
+         never author their approvals yourself or infer agreement from silence.
+
+      4. If either requests corrections, collect BOTH outcomes first. Route the
+         evidence and objections to architect_a as the sole merger, then ask BOTH to
+         review the revised packet. Any packet change invalidates both signoffs.
+         At most two correction rounds; after that ask the human about unresolved
+         points through AFM's question protocol and wait, without completing.
+         Agreement may explicitly defer a disputed item, but cannot falsely mark
+         it accepted. Both must approve the resulting exclusions and ranking too.
+
+      5. Only after two pass replies for the same current packet, run:
+           node "$TOOL" validate --input "$AFM_STAGE_DIR/architecture.json"
+           node "$TOOL" check-source --receipt "$AFM_STAGE_DIR/source.json"
+           node "<run-dir>/scope/toolkit/scripts/consensus.cjs" check --stage "$AFM_STAGE_DIR"
+         Write execution_summary.md with model identities, independent report
+         paths, review request/reply IDs, agreed packet hash and actual checks.
+         Do not silently mark incomplete review as done.
+    artifacts:
+      - {name: architecture, path: ./architecture.json, inline: false}
+      - {name: source, path: ./source.json, inline: false}
+      - {name: analysis, path: ./analysis.md}
+      - {name: architect_a-findings, path: ./architect_a-findings.json, inline: false}
+      - {name: architect_b-findings, path: ./architect_b-findings.json, inline: false}
+      - {name: consensus, path: ./consensus.json, inline: false}
+      - {name: architect_a-approval, path: ./architect_a-approval.json, inline: false}
+      - {name: architect_b-approval, path: ./architect_b-approval.json, inline: false}
+  - id: validate-analysis
+    name: "Validate source and both architects' agreement"
+    depends_on: [analyze]
+    browser: false
+    script_timeout: 1m
+    script: |
+      set -eu
+      run_dir=$(dirname "$AFM_STAGE_DIR")
+      toolkit="$run_dir/scope/toolkit/scripts"
+      node "$toolkit/workbench.mjs" check-source --receipt "$run_dir/analyze/source.json"
+      node "$toolkit/consensus.cjs" check --stage "$run_dir/analyze"
+  - id: workshop
+    name: "Explore, discuss and approve in the browser"
+    depends_on: [analyze, validate-analysis]
+    agents: [implementation]
+    interactive: true
+    inputs: [analyze.architecture, analyze.source, analyze.analysis, analyze.consensus]
+    script_before: |
+      set -eu
+      node "$(dirname "$AFM_STAGE_DIR")/scope/toolkit/scripts/consensus.cjs" check \
+        --stage "$(dirname "$AFM_STAGE_DIR")/analyze"
+      node "$(dirname "$AFM_STAGE_DIR")/scope/toolkit/scripts/workbench.mjs" validate \
+        --input "$(dirname "$AFM_STAGE_DIR")/analyze/architecture.json"
+      node "$(dirname "$AFM_STAGE_DIR")/scope/toolkit/scripts/workbench.mjs" check-source \
+        --receipt "$(dirname "$AFM_STAGE_DIR")/analyze/source.json" \
+        --document "$(dirname "$AFM_STAGE_DIR")/analyze/architecture.json"
+    buttons:
+      Read browser feedback: "Read window.refactor.readEvents through CDP, save a checkpoint, and address the user's feedback."
+      Explain selection: "Explain the selected stages and their tradeoffs; do not change or approve the user's selection."
+    prompt: |
+      You own the one live visual workshop. Use the afm_chrome MCP through CDP.
+      Never simulate user selection, feedback, approval or checkbox clicks. Do not
+      call the model's approve/select functions. Only the human chooses the plan.
+      If browser tools are unavailable, tell the user the concrete prerequisite
+      and wait through AFM's interactive dialog; do not claim a visual review occurred.
+
+      Set TOOL to the absolute <run-dir>/scope/toolkit/scripts/workbench.mjs path. On first start
+      copy the upstream architecture.json into this stage, then build the page:
+        node "$TOOL" build --input "$AFM_STAGE_DIR/architecture.json" \
+          --output "$AFM_STAGE_DIR/workbench.html"
+      Start the STATIC HTML transport (no state API, no backend logic):
+        node "$TOOL" start --session "$AFM_STAGE_DIR" --port "$AFM_BROWSER_APP_PORT"
+      Open AFM_BROWSER_APP_URL with afm_chrome. In Docker the helper binds 0.0.0.0;
+      on the native host it binds loopback. All interaction is through CDP.
+      Check window.refactor.status(), the visible UI and console errors. Invite
+      the user to explore levels, relation types, neighborhoods and selected stages.
+      Start with the full-page Current view and 3D graph layout. Show the stages/discussion side panel
+      when needed. Current / Future / Both switch views; comparison cameras are
+      synchronized. Future glows mark the selected changes, including removed
+      elements as red ghosts. Hierarchy levels follow parent relationships.
+      3D graph / Hierarchy selects luminous spheres or structured cards. The bottom
+      legend toggles visual emphasis only; it never selects refactoring stages.
+      The Diagram view groups real component boundaries and labels dependency
+      arrows. Invite the human to use Review stage before selecting proposals:
+      this previews one stage without approving it. Explain the exact responsibility
+      change, tradeoff and verification rather than comparing rectangle counts.
+      Future metrics are deliberately unknown. Initial findings and proposals
+      were jointly approved by two architects; read consensus.json for exclusions
+      and uncertainty. Priority is an ordinal estimate of benefit and ease, not
+      a measured gain. The Stages tab can sort by benefit or ease without selecting
+      anything. If subsequent feedback materially changes the agreed proposals or
+      priorities, say that the earlier architect agreement covers the initial
+      packet only; do not claim new changes were reviewed by both automatically.
+
+      Protocol (use evaluate_script, returning JSON values rather than console logs):
+        () => window.refactor.status()
+        () => window.refactor.readEvents(<saved_cursor>)
+        () => window.refactor.checkpoint()
+      Read the page checkpoint before any reload/rebuild. Save its EXACT JSON to
+      checkpoint.pending.json, validate and atomically replace the disk checkpoint:
+        node "$TOOL" checkpoint --input "$AFM_STAGE_DIR/checkpoint.pending.json" \
+          --output "$AFM_STAGE_DIR/checkpoint.json"
+      Only AFTER saving call window.refactor.acknowledge(last_saved_event_id).
+      Browser storage survives ordinary reloads, but disk checkpoints are the
+      recovery source across AFM restarts and browser-profile loss. Never clear
+      browser storage or replay a stale checkpoint over newer browser decisions.
+
+      Loop while waiting for human approval. Read events every 5–10 seconds with
+      bounded shell waits between CDP calls; do not end the stage or create .done
+      merely because there is no new feedback. Save after each new event batch.
+      Selection and plans events do not need a proposal rewrite. Preserve plan_groups
+      exactly in checkpoints: the Plans tab assigns selected stages to named plans;
+      export writes each plan separately with dependencies and snapshots. Comments need a concrete
+      answer and, when requested, adjusted alternatives and graph changes.
+
+      For an update: keep session_id, baseline and source identical; increment
+      revision; set addressed_event_id to the last event you actually addressed;
+      put your response in reply. Write and validate architecture.json first.
+      Publish its parsed object via window.refactor.publish(document). The page
+      automatically clears selection and approval so the human reviews that exact
+      revision again. Save a fresh checkpoint immediately. Do not alter the camera
+      unsolicited. Explain material tradeoffs in the proposal cards and reply.
+
+      On retry/resume, recover checkpoint.json. If the browser already has newer
+      events, save those instead. When a fresh page is needed, build with
+      --checkpoint checkpoint.json, then open it. A sealed approved checkpoint
+      can be reused without asking for the same approval again ONLY if its source
+      fingerprint matches the upstream receipt. If analysis produced a different
+      source fingerprint, preserve old checkpoints separately and start the new
+      session from the new architecture document; explain why new approval is needed.
+
+      When status.approval is present, first check-source using the upstream
+      source.json. If source changed, stop planning and arrange a new analysis;
+      do not attach old approval to a new baseline. Seal the exact approved revision:
+        () => window.refactor.seal(<revision>, <approval.event_id>)
+      A stale approval fails: reread user events, never overwrite them. Save the
+      returned JSON through the checkpoint command with --require-approved to
+      $AFM_STAGE_DIR/approved.json. Keep a matching checkpoint.json as well.
+      Build a portable read-only report with --checkpoint approved.json to
+      $AFM_STAGE_DIR/report.html. The report embeds all JS and data; no CDN needed.
+      Record review-summary.md with selected/deferred stages and unresolved risks.
+      Tell the user the final plan will also be exported into this worktree at
+      docs/superpowers/refactors/<run-directory-name>/, ready for a Git commit.
+      Only now finish using AFM's implementation completion protocol.
+    artifacts:
+      - {name: approved, path: ./approved.json, inline: false}
+      - {name: report, path: ./report.html, inline: false}
+      - {name: review, path: ./review-summary.md}
+  - id: plan
+    name: "Write the agreed refactoring plan"
+    depends_on: [analyze, workshop]
+    browser: false
+    script: |
+      set -eu
+      run_dir=$(dirname "$AFM_STAGE_DIR")
+      toolkit="$run_dir/scope/toolkit/scripts/workbench.mjs"
+      node "$toolkit" check-source --receipt "$run_dir/analyze/source.json" \
+        --checkpoint "$run_dir/workshop/approved.json"
+      node "$toolkit" checkpoint --input "$run_dir/workshop/approved.json" --require-approved
+      node "$toolkit" plan \
+        --checkpoint "$run_dir/workshop/approved.json" \
+        --output "$AFM_STAGE_DIR/refactoring-plan.md" \
+        --target "$AFM_STAGE_DIR/target.json"
+      test -s "$AFM_STAGE_DIR/refactoring-plan.md"
+      test -s "$AFM_STAGE_DIR/target.json"
+      node "$toolkit" export \
+        --checkpoint "$run_dir/workshop/approved.json" \
+        --plan "$AFM_STAGE_DIR/refactoring-plan.md" \
+        --output "$(pwd)/docs/superpowers/refactors/$(basename "$run_dir")"
+    artifacts:
+      - {name: plan, path: ./refactoring-plan.md, inline: false}
+      - {name: target, path: ./target.json, inline: false}

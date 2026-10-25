@@ -1,0 +1,1252 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Refactor workshop</title>
+<style>
+  :root{color-scheme:dark;--bg:#10161c;--panel:#19222b;--line:#303d49;--text:#e8eef4;--muted:#a5b6c5;--accent:#9ae7c1}
+  *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 system-ui,sans-serif}
+  button,select,input,textarea{font:inherit;color:inherit;background:#202d38;border:1px solid #435260;border-radius:7px;padding:7px 10px}
+  button{cursor:pointer}button:hover:not(:disabled){border-color:var(--accent)}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  button:disabled{opacity:.45;cursor:default}button.primary{background:var(--accent);color:#10281e;border:0;font-weight:650}
+  header{padding:18px 24px;display:flex;gap:18px;align-items:center;border-bottom:1px solid var(--line)}
+  header h1{font-size:20px;margin:0}header p{margin:2px 0;color:var(--muted)}header .actions{margin-left:auto;display:flex;gap:8px}
+  .badge{font-size:11px;letter-spacing:.1em;color:var(--accent);text-transform:uppercase}
+  body{height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+  header{padding:12px 20px;flex-shrink:0}header>div:first-child{min-width:0}header p{max-width:900px;max-height:42px;overflow:auto;font-size:12px}
+  label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+  .toolbar{display:flex;flex-direction:column;gap:10px;padding:10px 20px;border-bottom:1px solid var(--line);flex-shrink:0;min-width:0}
+  .toolbar-primary{display:flex;align-items:end;gap:16px;overflow-x:auto;padding:2px;min-width:0}
+  .toolbar label,.control-group{display:flex;flex-direction:column;gap:4px;min-width:0;font-size:11px;color:var(--muted)}
+  .control-group{flex-shrink:0}.toolbar-actions{display:flex;gap:8px;margin-left:auto;flex-shrink:0}
+  .toolbar button,.toolbar select,.toolbar input[type=search]{height:36px;font-size:13px;line-height:20px;padding:6px 10px;border-radius:7px;white-space:nowrap}
+  .toolbar select,.toolbar input[type=search]{width:100%;min-width:0;text-overflow:ellipsis}
+  .toolbar button{display:inline-flex;align-items:center;justify-content:center;gap:10px}
+  .toolbar .mode-switch{gap:2px;margin:0;padding:1px;background:#0d151d;border:1px solid var(--line);border-radius:9px}
+  .toolbar .mode-switch button{height:32px;border-color:transparent;width:88px}
+  .toolbar .mode-switch[aria-label="Graph layout"] button{width:104px}
+  .toolbar-actions #reset{width:104px}.toolbar-actions #panel-toggle{width:190px}
+  kbd{font:10px/16px system-ui;min-width:16px;border:1px solid currentColor;border-radius:3px;opacity:.6}
+  main{position:relative;flex:1;min-height:0;display:flex}
+  .workspace{position:relative;flex:1;min-width:0;display:flex;flex-direction:column;padding:8px}.views{flex:1;min-height:0;display:grid;grid-template-columns:1fr;gap:8px}.views[data-mode="both"]{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.views[data-mode="current"] .view:last-child,.views[data-mode="future"] .view:first-child{display:none}
+  .view{position:relative;background:#111b24;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .view h2{position:absolute;top:12px;left:14px;margin:0;z-index:1;font-size:13px;pointer-events:none;color:var(--muted)}
+  .graph{width:100%;height:100%;position:absolute;inset:0}canvas{display:block;touch-action:none}.view h2{background:#101923dc;border:1px solid #314556;padding:5px 10px;border-radius:6px}.view{min-height:0}.mode-switch{display:flex;gap:2px;margin-right:8px}.mode-switch button[aria-pressed="true"]{background:var(--accent);color:#10281e}.view-note{position:absolute;bottom:18px;left:20px;right:20px;pointer-events:none;color:var(--muted);text-align:center;font-size:13px}
+  .legend{color:var(--muted);font-size:12px;padding:10px 2px}.legend span{margin-right:12px}
+  .legend b{color:#c4a2ff}.legend i{color:var(--accent);font-style:normal}
+  aside{position:relative;flex:0 0 390px;min-width:0;max-width:36%;margin:8px 8px 8px 0;padding:18px;border:1px solid var(--line);border-radius:12px;background:#141d25;overflow:auto;overscroll-behavior:contain}
+  aside[hidden]{display:none}.panel-heading{position:sticky;top:-18px;z-index:2;background:#141d25;padding:8px 0;display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}.legend{padding:5px 8px;flex-shrink:0}.legend .added{color:#70f4b4}.legend .changed{color:#ffd079}.legend .removed{color:#ff8e9f}.legend .affected{color:#84deff}.legend .finding-key{color:#c4a2ff}.legend{display:flex;align-items:center;flex-wrap:wrap;gap:4px}.legend button{font-size:12px;padding:3px 7px;background:transparent;border:1px solid transparent}.legend button[aria-pressed="true"]{border-color:currentColor;background:#263548;box-shadow:0 0 12px #8faccc33}.legend .navigation{margin-left:auto}
+  h2{font-size:15px;margin:0 0 10px}h3{font-size:14px;margin:0 0 6px}p{margin:6px 0 10px}
+  .card{border:1px solid var(--line);border-radius:10px;padding:13px;margin-bottom:12px;background:var(--panel)}
+  .card.selected{border-color:var(--accent)}.muted,small{color:var(--muted)}small{display:block}
+  .card .actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.card button{font-size:12px}
+  .card label.choice{display:flex;flex-direction:row;align-items:start;color:var(--text);font-size:14px;gap:9px}
+  .choice input{margin-top:5px}.choice span{font-weight:650}ul,ol{padding-left:20px;margin:6px 0}
+  textarea{width:100%;min-height:85px;resize:vertical}#message{margin:0 24px;color:#ffc69b;white-space:pre-wrap}#message:empty{display:none}
+  #detail{min-height:100px}.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  #chat{max-height:240px;overflow:auto}#chat p{border-left:2px solid var(--line);padding-left:9px;white-space:pre-wrap}
+  #stats{font-size:12px;color:var(--muted)}#source{overflow-wrap:anywhere}.finding{border-left:3px solid #c4a2ff;padding-left:9px;margin:10px 0}
+  #node-list{display:flex;gap:5px;flex-wrap:wrap;max-height:110px;overflow:auto;margin-bottom:12px}#node-list button{font-size:11px}
+  #approval{color:var(--accent);white-space:pre-wrap}#node-list{max-height:180px}.detail-grid{display:block}#stats{margin-left:auto}.view-empty{position:absolute;top:65px;left:20px;right:20px;color:var(--muted);pointer-events:none}
+  @media(max-width:1100px){header h1{font-size:16px}header p{display:none}header{padding:9px 12px;gap:8px}header .actions{gap:5px}header button{font-size:12px}.toolbar{padding:8px 10px;gap:8px}.legend{font-size:10px}#stats{display:none}}
+  @media(max-width:760px){main{flex-direction:column}aside{flex:0 0 42%;width:auto;max-width:none;margin:0 8px 8px}.views[data-mode="both"]{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) minmax(0,1fr)}header{flex-wrap:wrap}header .actions{margin-left:0}.toolbar-primary{gap:12px}.legend .navigation{display:none}.legend button{font-size:10px;padding:2px 4px}}
+  .graph-layer{position:absolute;inset:0}.graph-layer[hidden]{display:none}.graph-layer svg{width:100%;height:100%;touch-action:none;cursor:grab}.graph-layer svg [role=button]{cursor:pointer}.graph-layer svg [role=button]:focus{outline:none;filter:drop-shadow(0 0 4px #9ae7c1)}
+  .review-nav{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 18px;padding:10px 16px 12px;border:1px solid #344955;border-radius:12px;background:#17232b;min-width:0}
+  .review-topline{display:flex;align-items:center;gap:12px;margin-bottom:6px}.review-eyebrow{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:#99c5b7}.review-topline #review-position{font-size:11px;color:#94aab8}
+  .review-main{min-width:0}.review-main h2{font-size:16px;line-height:20px;font-weight:600;margin:0;min-height:40px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .review-tools{display:flex;align-items:center;gap:6px}.toolbar .review-tools button{background:#1e2e39;border-color:#3b505e;padding:6px 10px}
+  .review-side{display:flex;align-items:center;justify-content:flex-end}.review-scores{display:flex;gap:8px}.review-score{display:flex;align-items:center;gap:10px;padding:4px 10px;border:1px solid #385248;background:#1c302b;border-radius:8px;font-size:11px;color:#b1c8be}.review-score strong{font-size:17px;font-weight:600;color:#b0e8cb}.review-score.difficulty{background:#302b22;border-color:#514735;color:#c9bc9f}.review-score.difficulty strong{color:#e9cb94}
+  #step[hidden],#review-scope[hidden]{display:none}
+  .plan-icon-row{display:flex;gap:5px}.plan-tool{display:inline-flex}.toolbar .plan-tool button{width:36px;padding:7px}.plan-tool svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}.toolbar #review-plan-pick[data-assigned=true]{background:#263f36;border-color:#527d68;color:#c1efd6}
+  .filter-icon-row{display:flex;gap:5px}.toolbar .filter-icon-row button{position:relative;width:36px;padding:7px}.filter-icon-row svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+  .filter-icon-row button[data-active=true]{color:#b9ebd1;border-color:#577f6b;background:#243b31}.filter-icon-row button[data-active=true]::after{content:"";position:absolute;right:3px;top:3px;width:4px;height:4px;border-radius:50%;background:var(--accent)}.filter-icon-row button[aria-expanded=true]{border-color:var(--accent)}
+  #graph-filter-popover{position:fixed;inset:auto;margin:0;width:min(280px,calc(100vw - 24px));padding:14px;border:1px solid #47616e;border-radius:12px;background:#17232e;color:var(--text);box-shadow:0 12px 40px #0008}
+  #graph-filter-popover .filter-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:12px;font-size:13px}#filter-close{padding:0;width:24px;height:24px;background:transparent;border:0;font-size:18px}#graph-filter-popover label{gap:7px}#graph-filter-popover label[hidden]{display:none}#graph-filter-popover input,#graph-filter-popover select{width:100%;height:36px;min-width:0;font-size:13px}#graph-filter-popover .filter-reset{margin-top:10px;font-size:12px;padding:4px 8px;background:transparent}
+  .review-metrics{display:flex;gap:8px;align-items:center;margin:8px 0}.review-score,.toolbar #review-list-open{height:36px;min-width:106px;box-sizing:border-box}.toolbar #review-list-open{padding:6px 12px;font-size:13px;margin:0;background:#21313d;border-color:#435968}
+  .review-message{grid-column:1/-1;margin:0;font-size:12px;color:#f0c88c;display:flex;gap:7px;align-items:center;flex-wrap:wrap}.review-message:empty{display:none}.review-message button{font-size:12px!important;max-width:100%;white-space:normal!important;height:auto!important;text-align:left}
+  .review-progress{height:2px;position:absolute;bottom:0;left:18px;right:18px;background:#2c3d42;border-radius:3px;overflow:hidden}.review-progress span{display:block;height:100%;background:#83bca4;width:0;transition:width .15s}
+  .toolbar #play-transition{color:#b4e8cd;border-color:#527b65;background:#223b30}
+  .transition-view{position:absolute;left:8px;right:8px;z-index:8;display:flex;flex-direction:column;border:1px solid #507464;border-radius:12px;background:#111b24;overflow:hidden}.transition-view[hidden]{display:none}.transition-header{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #30463e;flex-shrink:0}.transition-header strong{color:#a9e7c4;white-space:nowrap}.transition-header span{flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:12px}.transition-header button{font-size:12px;white-space:nowrap}.transition-canvas{flex:1;min-height:0}.transition-canvas svg{width:100%;height:100%;pointer-events:none}.transition-track{height:3px;flex-shrink:0;background:#293b32}.transition-track span{display:block;height:100%;background:#9ae7c1;width:0}
+  @media(max-width:760px){.transition-header{gap:5px;padding:7px}.transition-header span{display:none}.transition-header strong{flex:1}.review-tools{flex-wrap:wrap}}
+  .review-dialog{width:min(650px,calc(100vw - 24px));max-height:min(640px,calc(100dvh - 40px));padding:0;border:1px solid #47616e;border-radius:16px;background:#17232e;color:var(--text);box-shadow:0 25px 90px #0009}.review-dialog::backdrop{background:#07101888;backdrop-filter:blur(3px)}
+  .review-dialog[open]{display:flex;flex-direction:column}.review-dialog-head{display:flex;justify-content:space-between;align-items:center;padding:18px 20px 12px;gap:12px}.review-dialog-head h2{font-size:17px;margin:0}.review-dialog-head button{background:transparent;border:0;padding:3px 8px;font-size:20px}.review-dialog-search{margin:0 20px 12px}.review-dialog-search input{width:100%;background:#101c26}
+  .review-dialog-tabs{display:flex;gap:5px;margin:0 20px 12px}.review-dialog-tabs button{font-size:12px;background:transparent}.review-dialog-tabs button[aria-pressed=true]{background:#2b433a;border-color:#6f9e86;color:#c1ead1}
+  .review-options{overflow:auto;min-height:0;padding:0 10px 12px;overscroll-behavior:contain}.review-option{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;width:100%;align-items:center;text-align:left;border:1px solid transparent;background:transparent;border-radius:9px;padding:12px 10px;margin-bottom:3px}.review-option:hover,.review-option:focus-visible{background:#243641;border-color:#496675}.review-option[aria-current=true]{background:#213c32;border-color:#5d9478}.review-option .number{font-size:12px;color:#8ba0af}.review-option strong{font-size:13px;display:block;font-weight:550}.review-option small{font-size:11px;margin-top:4px;color:#8ea7b6}.review-option .option-state{font-size:10px;color:#a7daba;max-width:110px;overflow-wrap:anywhere}
+  .review-dialog-foot{padding:12px 20px;border-top:1px solid #32444e;color:#95aab9;font-size:11px}.review-dialog-foot kbd{padding:0 4px}.review-plan-context{padding:0 20px 14px;font-size:13px;color:#b3c4d0;margin:0}.review-plan-form{border-top:1px solid #33454f;padding:16px 20px;display:grid;gap:9px}.review-plan-form>div{display:flex;gap:8px}.review-plan-form input{flex:1;min-width:0}.review-plan-form button{font-size:12px}.review-plan-error{color:#f0c88c;white-space:pre-wrap;font-size:12px;margin:0}.review-plan-error:empty{display:none}
+  @media(max-width:760px){.review-nav{grid-template-columns:minmax(0,1fr);gap:8px;padding:10px}.review-side{flex-direction:row;align-items:center;flex-wrap:wrap}.review-main h2{font-size:14px;line-height:19px;min-height:38px}.review-eyebrow{font-size:9px}.review-topline{gap:7px}.review-topline #review-position{font-size:10px}.review-score{font-size:10px;padding:3px 6px;gap:5px}.review-score strong{font-size:13px}.review-tools button span{display:none}.toolbar .review-tools button{height:28px;padding:2px 7px}.review-score,.toolbar #review-list-open{height:32px;min-width:0}.review-metrics{gap:6px}.toolbar #review-list-open{font-size:12px;padding:4px 8px}.review-option{grid-template-columns:22px minmax(0,1fr)}.review-option .option-state{grid-column:2}.review-plan-form>div{flex-wrap:wrap}}
+  .stage-controls{display:flex;gap:3px;min-width:0}.toolbar .stage-controls button{width:30px;padding:0;flex-shrink:0}.stage-controls select{flex:1}
+  .analysis-area{position:relative;display:flex;flex:1;min-width:0;min-height:0;overflow:hidden}
+  .explanation-dock{position:relative;flex:0 0 var(--explanation-width,320px);width:var(--explanation-width,320px);min-width:0;display:flex;flex-direction:column;margin:8px 0 8px 8px;background:#17232e;border:1px solid #365267;border-radius:10px;overflow:hidden}
+  .explanation-dock[hidden]{display:none}.explanation-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:1px solid #30434f;flex-shrink:0}.explanation-heading strong{font-size:13px;color:#b7d9ca}.explanation-heading button{padding:0;width:28px;height:28px;font-size:22px;line-height:1}
+  .review-note{flex:1;min-height:0;margin:0 8px 0 0;padding:14px 10px 18px 14px;overflow:auto;overscroll-behavior:contain;overflow-wrap:anywhere;font-size:13px;scrollbar-gutter:stable}.review-note>strong{display:block;margin-bottom:12px;font-size:14px;line-height:1.5}.review-note p{margin:8px 0 12px}.review-note small{font-size:11px;margin:8px 0}.review-note summary{cursor:pointer;color:#b9cddb;margin:14px 0}.scope-note{color:#a5b6c5}
+  #explanation-resize{position:absolute;inset:0 0 0 auto;width:8px;cursor:col-resize;touch-action:none;outline-offset:-3px}#explanation-resize::after{content:"";position:absolute;top:45%;bottom:45%;left:3px;width:2px;background:#729687;border-radius:2px}#explanation-resize:hover,#explanation-resize:focus-visible{background:#9ae7c133}
+  .explanation-dock[data-open=false]{flex-basis:34px;width:34px;border:0;background:transparent}.explanation-dock[data-open=false] .explanation-heading{padding:0;border:0}.explanation-dock[data-open=false] .explanation-heading strong,.explanation-dock[data-open=false] #review-note,.explanation-dock[data-open=false] #explanation-resize{display:none}.explanation-dock[data-open=false] .explanation-heading button{width:34px;height:auto;min-height:110px;padding:10px 7px;writing-mode:vertical-rl;font-size:12px;letter-spacing:.02em}
+  body.resizing-explanation,body.resizing-explanation *{cursor:col-resize!important;user-select:none!important}
+  @media(max-width:760px){.explanation-dock[data-open=true]{position:absolute;inset:0 auto 0 0;z-index:9;box-shadow:10px 0 30px #0008}.explanation-dock[data-open=false]{align-self:stretch}}
+
+  aside{display:flex;flex-direction:column;padding:0;overflow:hidden;min-height:0}
+  .panel-heading{position:static;flex-shrink:0;margin:0;padding:12px 14px 8px}.panel-heading button{width:32px;height:32px;padding:0}
+  .panel-tabs{display:flex;gap:4px;padding:0 12px 10px;border-bottom:1px solid var(--line);flex-shrink:0}
+  .panel-tabs button{flex:1;min-width:0;padding:7px 4px;font-size:12px;border-color:transparent;background:transparent;white-space:nowrap}
+  .panel-tabs button[aria-selected=true]{background:#293d49;color:var(--accent);border-color:#425e6c}
+  .panel-pane{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding:14px;overflow-wrap:anywhere}
+  .panel-pane[hidden]{display:none}#pane-discussion{padding:0;display:flex;flex-direction:column;overflow:auto}#pane-discussion[hidden]{display:none}
+  .panel-status{padding:8px 14px;margin:0;border-bottom:1px solid var(--line);font-size:12px;color:var(--muted);flex-shrink:0}
+  .panel-status:empty{display:none}.panel-notice{color:#ffe0a6;background:#342d22;padding:9px 11px;border-radius:6px;font-size:12px}.panel-notice[hidden]{display:none}
+  #chat{flex:1;min-height:64px;max-height:none;overflow:auto;padding:14px;overscroll-behavior:contain;scrollbar-gutter:stable}
+  #chat .chat-message{padding:12px;margin-bottom:12px;background:#1c2933;border:1px solid var(--line);border-radius:9px}
+  #chat .agent-reply{background:#19312c;border-color:#385b4d}#chat p{padding:0;border:0;white-space:pre-wrap;margin:8px 0}
+  #chat small{font-size:11px}#chat .message-author{font-size:12px;font-weight:650}#chat .message-status{color:#f0d39c}
+  .composer{padding:10px 14px 12px;border-top:1px solid var(--line);background:#141d25;flex-shrink:0;display:flex;flex-direction:column;gap:8px}
+  .composer select{width:100%;min-width:0;text-overflow:ellipsis}.composer textarea{min-height:64px;height:82px;max-height:22vh;resize:vertical;font-size:13px}
+  .composer-actions{display:flex;align-items:center;gap:8px}.composer-actions small{font-size:10px}.composer-actions button{margin-left:auto;flex-shrink:0}
+  #new-reply{margin:0 14px 8px;color:var(--accent);font-size:12px}.unread-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-left:4px}.unread-dot[hidden]{display:none}
+  .proposal-summary{font-size:13px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.proposal-details{font-size:12px}.proposal-details summary{cursor:pointer;color:var(--muted)}
+  .proposal-state{font-size:11px;color:var(--accent);margin:8px 0}.proposal-error{font-size:12px;color:#ffc69b}.proposal-error:empty{display:none}
+  #proposals .card{padding:12px}#proposals .actions{display:grid;grid-template-columns:1fr 1fr}#proposals .choice{font-size:13px}#proposals .choice input{flex-shrink:0;accent-color:var(--accent)}
+  .priority-scores{font-size:11px;color:#b8d5ed;margin:6px 0}.proposal-order{margin-bottom:12px}.proposal-order small{font-size:10px}
+  #approval{margin:0;padding:8px 14px;font-size:12px;border-top:1px solid var(--line);flex-shrink:0}#approval:empty{display:none}
+  .relation-selected>.edge-line{stroke:#a8e6cb;stroke-width:3}.relation-selected>rect{stroke:#a8e6cb;stroke-width:3}
+  .card.prerequisite-needed{border-color:#ffd079}.card.proposal-located{outline:3px solid #ffd079;outline-offset:2px;box-shadow:0 0 18px #ffd07944}
+  .pan-mode .edge-badge{pointer-events:none}.relation-selected{opacity:1}
+  .edge-hit{cursor:pointer}.edge-hit:hover~.edge-line{stroke:#b9ebd5;stroke-width:3}
+  .edge-badge{position:absolute;z-index:4;height:28px;padding:3px 9px;border-radius:14px;background:#193a34;color:#c0f4dc;border-color:#81c9ae;font-size:12px;box-shadow:0 2px 12px #0008;white-space:nowrap}
+  .edge-badge[hidden],.edge-popup[hidden]{display:none}
+  .edge-popup{position:fixed;z-index:100;width:min(420px,calc(100vw - 16px));max-height:min(520px,calc(100dvh - 16px));display:flex;flex-direction:column;background:#17232f;border:1px solid #639e8e;border-radius:14px;box-shadow:0 16px 60px #000a;overflow:hidden}
+  .edge-popup-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #354958;color:#b4e6d0}
+  .edge-popup-header button{padding:2px 9px;font-size:21px;background:transparent;border:0}
+  .edge-popup-body{padding:14px;overflow:auto;overscroll-behavior:contain;min-height:0}.edge-detail+.edge-detail{border-top:1px solid #354958;margin-top:14px;padding-top:14px}
+  .edge-detail h3{font-size:14px;line-height:1.5;margin:0 0 10px;overflow-wrap:anywhere}.edge-detail h4{font-size:11px;color:#9eb5c5;margin:14px 0 5px;text-transform:uppercase;letter-spacing:.04em}
+  .edge-detail p{font-size:13px;line-height:1.6;margin:6px 0;white-space:pre-wrap;overflow-wrap:anywhere}.edge-detail small{display:block;color:#93a9b9;font-size:11px}
+  .edge-tags,.edge-symbols{display:flex;flex-wrap:wrap;gap:5px}.edge-tags span,.edge-symbols code{font-size:11px;border:1px solid #3e5868;border-radius:5px;padding:2px 6px;overflow-wrap:anywhere}
+  .edge-delta{margin-top:14px;padding:10px;border-left:3px solid #8ac7b1;background:#203238;border-radius:5px}.edge-delta[data-change=removed]{border-color:#ff8e9f}.edge-delta[data-change=added]{border-color:#70f4b4}.edge-delta[data-change=changed]{border-color:#ffd079}
+  .dependency-link{display:block;width:100%;text-align:left;margin-top:6px;color:#ffd079}.plan-assignment{margin:12px 0;display:grid;gap:6px}.plan-assignment button{text-align:left}
+  .pan-mode .graph-layer,.pan-mode .graph-layer svg,.pan-mode .graph-layer svg [role=button],.pan-mode .graph-layer canvas{cursor:grab!important}.pan-mode .graph-layer:active{cursor:grabbing!important}
+</style>
+<style id="impeccable-refinement">
+/* Shared surface tokens keep review controls and reading panels visually consistent. */
+:root{
+  --bg:#10161a;--panel:#1a2329;--line:#33414a;--text:#e7edef;--muted:#a2b2bd;--accent:#acd7c0;
+  --surface:#141c22;--surface-raised:#1b272f;--surface-hover:#23313a;
+  --border-soft:#2b3942;--border-control:#4a5b67;--selected:#29453b;
+  --focus:#bcf1d7;--secondary:#bdcbd3;--radius:10px;
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
+::selection{background:#426e5a;color:#fff}input,textarea{caret-color:var(--accent)}
+button,select,input,textarea{border-color:var(--border-control);background:var(--surface-raised);border-radius:7px;transition:background-color 160ms ease-out,border-color 160ms ease-out,color 160ms ease-out}
+button:hover:not(:disabled){background:var(--surface-hover);border-color:#718c9a;color:#fff}
+button:active:not(:disabled){background:#2c404a}
+button:disabled{opacity:.48}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[role=separator]:focus-visible{outline:2px solid var(--focus);outline-offset:3px}
+input::placeholder,textarea::placeholder{color:#a1b2bd;opacity:1}
+button.primary{background:var(--accent);color:#122c22;border:1px solid transparent;font-weight:600}
+button.primary:hover:not(:disabled){background:#c2e7d3;color:#10271d;border-color:transparent}
+body>header{padding:16px 22px 14px;gap:28px;background:var(--surface);border-bottom:1px solid var(--border-soft)}
+body>header>div:first-child{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 20px;align-items:center;flex:1}
+header .badge{font-size:11px;letter-spacing:0;text-transform:none;font-weight:600;color:var(--accent);white-space:nowrap;border-right:1px solid var(--line);padding-right:20px}
+header h1{font-size:17px;line-height:1.35;font-weight:600;letter-spacing:-.02em;text-wrap:balance}
+header p{grid-column:1/-1;color:var(--muted);font-size:12px;line-height:1.5;max-height:36px;margin:0;max-width:100ch}
+header .actions{gap:8px;flex-shrink:0}header .actions button{font-size:12px;min-height:36px;padding:7px 12px}
+.ui-icon{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}.transition-header button,.panel-heading button{display:inline-flex;align-items:center;justify-content:center}
+#download{background:transparent;border-color:var(--line);color:var(--secondary)}
+.toolbar{padding:12px 20px 14px;gap:14px;background:var(--bg);border-bottom:1px solid var(--border-soft)}
+.toolbar-primary{gap:16px;padding:2px;scrollbar-width:thin}
+.control-group{gap:7px}.control-group>span{font-size:11px;color:var(--muted);font-weight:500;letter-spacing:0}
+.toolbar .mode-switch{background:#0d1419;border-color:var(--border-soft);border-radius:8px;padding:2px;gap:2px}
+.toolbar .mode-switch button{height:30px;border-radius:5px;background:transparent;color:var(--secondary);font-weight:500}
+.toolbar .mode-switch button:hover:not(:disabled){background:#202e35}
+.toolbar .mode-switch button[aria-pressed=true]{background:var(--selected);color:#c8edda;border:1px solid #527661}
+.toolbar button,.toolbar select,.toolbar input[type=search]{font-size:12px}
+.toolbar kbd{color:inherit;background:#0d171b44;border-color:#667c84;opacity:.85;border-radius:3px;font-size:9px;line-height:14px;min-width:14px}
+.toolbar .filter-icon-row button,.toolbar .plan-tool button{background:var(--surface);border-color:var(--border-soft);color:var(--secondary)}
+.toolbar .filter-icon-row button:hover:not(:disabled),.toolbar .plan-tool button:hover:not(:disabled){background:var(--surface-hover);border-color:#607a88}
+.toolbar .filter-icon-row button[data-active=true],.toolbar #review-plan-pick[data-assigned=true]{background:var(--selected);border-color:#527661;color:#c8edda}
+.filter-icon-row svg,.plan-tool svg{stroke-width:1.55;width:19px;height:19px}
+.toolbar-actions{gap:8px}.toolbar-actions #reset{background:transparent;border-color:var(--border-soft);color:var(--secondary)}
+.toolbar-actions #panel-toggle{background:var(--surface-raised);border-color:var(--border-control)}
+.toolbar-actions #panel-toggle[aria-expanded=true]{background:var(--selected);border-color:#527661;color:#c8edda}
+.review-nav{padding:14px 16px 15px;gap:12px 20px;background:var(--surface-raised);border:1px solid #3b505a;border-radius:12px;box-shadow:none}
+.review-main{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:18px;row-gap:11px;align-items:center}
+.review-main h2{grid-column:1/-1;grid-row:1;min-height:0;margin:0;font-size:18px;line-height:1.35;font-weight:600;letter-spacing:-.02em;-webkit-line-clamp:2;text-wrap:balance}
+.review-metrics{grid-column:1;grid-row:2;margin:0;gap:6px}
+.review-topline{grid-column:2;grid-row:2;display:flex;flex-wrap:wrap;gap:3px 8px;margin:0;align-items:center}
+.review-eyebrow{font-size:11px;letter-spacing:0;text-transform:none;color:var(--secondary)}
+.review-topline #review-position{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.review-scores{gap:6px}.review-score{background:#22382f;border-color:#466653;color:#c1d9cd;gap:8px;font-size:11px;padding:4px 10px;border-radius:7px;min-width:106px}
+.review-score strong{font-size:16px;font-weight:600;color:#c4eed8;font-variant-numeric:tabular-nums}
+.review-score.difficulty{background:#383227;border-color:#665a40;color:#dfd1b2}.review-score.difficulty strong{color:#f3d8a2}
+.toolbar #review-list-open{background:transparent;border-color:#526671;color:var(--text);font-size:12px;border-radius:7px}
+.review-side{align-items:center}.review-tools{gap:6px}.toolbar .review-tools button{background:transparent;border-color:#526671;font-size:12px}
+.toolbar #play-transition{background:#294539;border-color:#5b846c;color:#c9edda}
+.toolbar #play-transition:hover:not(:disabled){background:#355b47;border-color:#8ab89c}
+.toolbar #review-overview{border-color:transparent;color:var(--secondary)}
+.toolbar #review-overview:hover:not(:disabled){background:#2a3d46;border-color:transparent}
+.review-progress{left:16px;right:16px;bottom:0;height:2px;background:#2b4149}.review-progress span{background:#a4d1b9}
+.workspace{padding:10px 10px 6px}.views{gap:10px}
+.view{background:#0d151b;border-color:#33434d;border-radius:12px}
+.view h2{top:14px;left:16px;max-width:calc(100% - 32px);font-size:11px;line-height:1.5;font-weight:500;color:#becdd5;background:#0d151bf0;border:0;border-radius:0;padding:0 0 4px;white-space:normal}
+.view h2::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;border:1px solid #b2c7d3;margin-right:7px;vertical-align:1px}
+.view:last-child h2::before{background:var(--accent);border-color:var(--accent)}
+.view-note{color:#a1b4bf;font-size:12px;line-height:1.55;bottom:14px;left:18px;right:18px}
+.legend{padding:9px 2px 0;gap:2px 5px;font-size:11px;color:var(--muted)}
+.legend button{font-size:11px;padding:4px 6px;border-radius:5px;min-height:28px}
+.legend button[aria-pressed=true]{background:#23343e;box-shadow:none;border-color:currentColor}
+.legend .navigation{font-size:11px;color:var(--muted)}#stats{font-size:11px}
+.explanation-dock{margin:10px 0 6px 10px;background:var(--surface);border-color:var(--border-soft);border-radius:12px}
+.explanation-heading{padding:14px 16px 12px;border-bottom:1px solid var(--border-soft)}
+.explanation-heading strong{color:var(--text);font-size:13px;font-weight:600}
+.explanation-heading button{background:transparent;border-color:transparent;color:var(--muted)}
+.explanation-heading button:hover{background:var(--surface-hover)}
+.review-note{padding:16px 12px 24px 16px;font-size:13px;line-height:1.7;color:#cfdae0}
+.review-note>strong{font-size:15px;font-weight:600;line-height:1.5;color:var(--text);margin:0 0 16px;letter-spacing:-.01em;text-wrap:balance}
+.review-note p{margin:10px 0 18px}.review-note small{font-size:12px;line-height:1.65;color:#a8bbc7;margin:10px 0 16px}
+.review-note summary{font-size:12px;font-weight:600;color:#c5d8ce;margin:22px 0 12px;padding:10px 0;border-top:1px solid var(--border-soft)}
+.explanation-dock[data-open=false] .explanation-heading button{background:var(--surface);border:1px solid var(--border-soft);color:var(--secondary);border-radius:7px}
+#explanation-resize::after{background:#7f9a92}#explanation-resize:hover,#explanation-resize:focus-visible{background:#9ae7c125}
+aside{margin:10px 10px 6px 0;background:var(--surface);border-color:var(--border-soft);border-radius:12px}
+.panel-heading{background:transparent;padding:16px 16px 12px}.panel-heading strong{font-size:15px;font-weight:600}.panel-heading button{background:transparent;border-color:transparent;color:var(--muted)}
+.panel-tabs{gap:0;padding:0 12px;border-color:var(--border-soft)}
+.panel-tabs button{background:transparent;border-radius:0;padding:10px 4px 11px;color:var(--muted);font-size:12px;border:0;border-bottom:2px solid transparent}
+.panel-tabs button[aria-selected=true]{background:transparent;border:0;border-bottom:2px solid var(--accent);color:#d0ecde}
+.panel-tabs button:hover:not(:disabled){background:#1e2c33;border-color:transparent;border-bottom-color:#718f80}
+.panel-pane{padding:18px 16px}.panel-pane h2{font-size:14px;font-weight:600;margin-bottom:10px}
+#pane-stages>p{font-size:12px;color:var(--secondary);line-height:1.65}
+.proposal-order{gap:6px;margin:18px 0 16px}.proposal-order small{font-size:11px;color:var(--muted)}
+#proposals .card{padding:18px 0;margin:0;border:0;border-bottom:1px solid var(--border-soft);border-radius:0;background:transparent}
+#proposals .card.selected{background:#223b301f;border-color:#456451}
+#proposals .card .choice{font-size:14px;line-height:1.5;gap:10px}#proposals .choice span{font-weight:600}
+#proposals .choice input{width:16px;height:16px;margin:3px 0 0}
+.proposal-summary{font-size:13px;line-height:1.65;color:#bacbd4;margin:10px 0}
+.priority-scores{color:#bed7d0;font-size:11px;margin:12px 0;font-variant-numeric:tabular-nums}
+.proposal-details{font-size:12px;line-height:1.65}.proposal-details summary{color:#b3c6d1}
+#proposals .actions{margin-top:14px;gap:8px}#proposals .actions button{font-size:12px;background:transparent;border-color:#405762;padding:7px 8px}
+.proposal-state{color:#b8dbc5;font-size:11px;margin:8px 0}.proposal-error{font-size:12px;color:#f0cca0}
+.card{background:var(--surface-raised);border:1px solid var(--line);border-radius:12px;box-shadow:none}
+.card.selected{border-color:#789d88}.finding{border-left:1px solid #bba0dd;padding-left:12px;margin:18px 0}
+#chat{padding:16px}#chat .chat-message{border:0;border-radius:12px;background:#202c35;padding:14px;margin-bottom:14px}
+#chat .agent-reply{background:#233a30}#chat .agent-reply small{color:#bed4c7}#chat .message-author{font-size:12px;color:#d5e6dd}#chat p{font-size:13px;line-height:1.7}
+.composer{background:var(--surface);border-color:var(--border-soft);padding:14px}.composer textarea{background:#101a20;border-color:#4b626f;border-radius:8px}
+#graph-filter-popover,.review-dialog,.edge-popup{background:#1c2932;border:0;box-shadow:0 18px 60px #0009;border-radius:14px}
+.review-dialog::backdrop{background:#070d15a6;backdrop-filter:none}
+.review-dialog-head{padding:20px 22px 14px}.review-dialog-head h2{font-size:18px;letter-spacing:-.02em;font-weight:600}
+.review-dialog-search{margin:0 22px 16px}.review-dialog-search input{height:40px;background:#111d25;border-color:#526b7b}
+.review-dialog-tabs{margin:0 22px 14px;gap:4px}.review-dialog-tabs button{padding:7px 10px;font-size:12px;border:1px solid transparent}
+.review-dialog-tabs button[aria-pressed=true]{background:#304e40;border-color:#597e6a;color:#d1edde}
+.review-options{padding:0 12px 14px}.review-option{border:0;border-bottom:1px solid #334652;border-radius:0;padding:14px 10px;margin:0}
+.review-option:hover,.review-option:focus-visible{background:#293e4b;border-color:#334652}
+.review-option[aria-current=true]{background:#284236;border-color:#456751}.review-option[aria-current=true] small{color:#bdd4c6}
+.review-option strong{font-size:13px;line-height:1.5;font-weight:600}.review-option small{font-size:11px;line-height:1.55;color:#b1c5d1}
+.review-option .number{color:#adbfca;font-size:12px;font-variant-numeric:tabular-nums}.review-option .option-state{color:#c0ddcc;font-size:11px}
+.review-dialog-foot,.review-plan-form{border-color:#405765}.review-dialog-foot{color:#b2c5d1;font-size:11px}.review-plan-context{color:#d1dfe7;line-height:1.6}
+.edge-popup-header{border-color:#405765;color:#d2e9dc}.edge-popup-body{color:#d1dfe7}.edge-detail h4,.edge-detail small{color:#b0c4d0}
+.edge-delta{background:#263e40;border-left-width:1px;border-radius:6px}.edge-delta p{color:#d4e3df}
+.edge-badge{background:#355a4a;border:0;color:#e3f3e9;box-shadow:0 4px 14px #0006}
+.transition-view{background:#0d151b;border-color:#4c6a5b;border-radius:12px}.transition-header{padding:12px 16px;background:#1a2a25;border-color:#3e584a}
+.transition-header strong{color:#c8ead6;font-size:13px}.transition-header span{color:#c4d9ce}.transition-header button{background:transparent;border-color:#63836f;color:#d8eddf}
+.transition-track{background:#2c4238}.transition-track span{background:var(--accent)}
+.graph-layer svg text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.graph-layer svg [data-node]>rect[fill="#142332"]{fill:#16232c}
+.graph-layer svg [data-node]>rect[fill="#20354a"]{fill:#233542}
+.graph-layer svg [data-node]>rect[stroke="#6f92b0"]{stroke:#88a6ba}
+.graph-layer svg [data-node]>text{font-weight:500}
+@media(max-width:1100px){
+  body>header{padding:12px 16px;gap:16px}header h1{font-size:15px}body>header>div:first-child{display:block}header .badge{display:none}
+  .toolbar{padding:10px 12px 12px}.review-main{grid-template-columns:1fr;row-gap:9px}.review-main h2{grid-row:1;font-size:16px}.review-metrics{grid-row:2}.review-topline{grid-column:1;grid-row:3;gap:8px}
+  .review-nav{gap:12px}.review-tools{flex-wrap:wrap;justify-content:flex-end;max-width:310px}.legend .navigation{display:none}
+}
+@media(max-width:760px){
+  body>header{padding:10px 12px;gap:10px;align-items:flex-start}body>header>div:first-child{flex:1 0 100%;width:100%}header h1{font-size:15px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}header .actions{width:100%;margin-left:0}header .actions button{font-size:11px;min-height:32px;padding:5px 9px}
+  .toolbar{padding:8px 10px 10px;gap:10px}.toolbar-primary{gap:12px}.review-nav{padding:12px;gap:12px;border-radius:10px}
+  .review-main h2{font-size:16px;line-height:1.4;min-height:0}.review-topline #review-position{font-size:11px}.review-metrics{gap:6px}.review-score,.toolbar #review-list-open{height:32px;min-width:0}
+  .review-tools{max-width:none;justify-content:flex-start;gap:6px}.toolbar .review-tools button{min-height:32px;padding:4px 8px}.review-side{justify-content:flex-start}
+  .workspace{padding:8px}.explanation-dock{margin:8px 0 8px 8px}.view h2{top:10px;left:12px;font-size:11px;max-width:calc(100% - 24px)}.view-note{font-size:12px}
+  .review-note{font-size:13px}.legend{padding:5px 0 0}.legend button{min-height:28px;font-size:11px}aside{margin:0 8px 8px}
+  .review-dialog-head{padding:16px}.review-dialog-search{margin:0 16px 12px}.review-dialog-tabs{margin:0 16px 12px}.review-option{padding:12px 8px}.review-option strong{font-size:12px}
+}
+@media(prefers-reduced-motion:reduce){button,select,input,textarea{transition:none}.review-progress span{transition:none}}
+
+
+.review-dialog-foot kbd{opacity:1;color:#c3d9e6;border-color:#7b97a8}.card.proposal-located{box-shadow:none;outline:2px solid #e3c68b;outline-offset:2px}
+</style>
+</head>
+<body>
+
+<dialog id="review-list-dialog" class="review-dialog" aria-labelledby="review-list-title">
+  <div class="review-dialog-head"><h2 id="review-list-title">Предложения по рефакторингу</h2><button data-close-dialog="review-list-dialog" aria-label="Закрыть список">×</button></div>
+  <label class="review-dialog-search"><input id="review-search" type="search" placeholder="Найти предложение…" aria-label="Поиск предложения"></label>
+  <div class="review-dialog-tabs"><button data-review-scope="all" aria-pressed="true">Все предложения</button><button data-review-scope="selected" aria-pressed="false">В планах</button></div>
+  <div id="review-options" class="review-options"></div>
+  <div class="review-dialog-foot"><kbd>↑</kbd> <kbd>↓</kbd> выбрать · <kbd>Enter</kbd> открыть · <kbd>Esc</kbd> закрыть</div>
+</dialog>
+<dialog id="review-plan-dialog" class="review-dialog" aria-labelledby="review-plan-title">
+  <div class="review-dialog-head"><h2 id="review-plan-title">В какой план добавить?</h2><button data-close-dialog="review-plan-dialog" aria-label="Закрыть выбор плана">×</button></div>
+  <p id="review-plan-context" class="review-plan-context"></p>
+  <div id="review-plan-options" class="review-options"></div>
+  <form id="review-plan-form" class="review-plan-form"><label for="review-plan-name">Новый план</label><div><input id="review-plan-name" placeholder="Например, упрощение запуска" maxlength="120" required><button class="primary" type="submit">Создать и добавить этап</button></div><p id="review-plan-error" class="review-plan-error" role="status"></p></form>
+</dialog>
+
+<header>
+  <div><div class="badge">AFM / Refactor workshop</div><h1 id="title">Architecture review</h1><p id="goal"></p></div>
+  <div class="actions"><button id="download" title="Скачать JSON с выбором, планами и перепиской; это не согласование">Скачать сессию</button><button id="approve" class="primary" title="Согласовать планы и сохранить их в worktree. Рефакторинг кода не запускается.">Approve selected stages</button></div>
+</header>
+<div class="toolbar">
+  <div class="toolbar-primary">
+    <div class="control-group"><span>Архитектура</span><div class="mode-switch" role="group" aria-label="Architecture view">
+      <button data-mode="current" aria-pressed="true" aria-keyshortcuts="1" title="Сейчас · клавиша 1">Сейчас <kbd>1</kbd></button>
+      <button data-mode="future" aria-pressed="false" aria-keyshortcuts="2" title="Будет · клавиша 2">Будет <kbd>2</kbd></button>
+      <button data-mode="both" aria-pressed="false" aria-keyshortcuts="3" title="Оба · клавиша 3">Оба <kbd>3</kbd></button>
+    </div></div>
+    <div class="control-group"><span>Раскладка</span><div class="mode-switch" role="group" aria-label="Graph layout"><button data-layout="diagram" aria-pressed="false" aria-keyshortcuts="4" title="Схема · клавиша 4">Схема <kbd>4</kbd></button><button data-layout="spatial" aria-pressed="true" aria-keyshortcuts="5" title="3D-граф · клавиша 5">3D-граф <kbd>5</kbd></button><button data-layout="hierarchy" aria-pressed="false" aria-keyshortcuts="6" title="Иерархия · клавиша 6">Иерархия <kbd>6</kbd></button></div></div>
+    <div class="control-group plan-controls"><span>План</span><div class="plan-icon-row" role="group" aria-label="План для текущего предложения">
+      <span class="plan-tool"><button id="review-plan-pick" aria-label="Выбрать план" aria-haspopup="dialog" aria-controls="review-plan-dialog" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7V5h7l2 2h9v13H3z"/><path d="m8 13 3 3 5-6"/></svg></button></span>
+      <span class="plan-tool"><button id="review-new-plan" aria-label="Создать план и добавить этап" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M12 11v6M9 14h6"/></svg></button></span>
+      <span class="plan-tool"><button id="review-remove" aria-label="Убрать этап из плана" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 14h8"/></svg></button></span>
+    </div></div>
+    <div class="control-group filter-controls"><span>Граф</span><div class="filter-icon-row" role="group" aria-label="Фильтры и поиск"><button id="filter-level" data-filter="level" aria-label="Уровень детализации" aria-haspopup="dialog" aria-controls="graph-filter-popover" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5zM3 12l9 5 9-5M3 16l9 5 9-5"/></svg></button><button id="filter-hops" data-filter="hops" aria-label="Соседние компоненты" aria-haspopup="dialog" aria-controls="graph-filter-popover" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="9" stroke-dasharray="3 3"/></svg></button><button id="filter-connections" data-filter="connections" aria-label="Видимость связей" aria-haspopup="dialog" aria-controls="graph-filter-popover" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h10M7 17h10M7 7l10 10"/><circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="5" cy="18" r="2"/><circle cx="19" cy="18" r="2"/></svg></button><button id="filter-relation" data-filter="relation" aria-label="Тип связи" aria-haspopup="dialog" aria-controls="graph-filter-popover" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4"/></svg></button><button id="filter-search" data-filter="search" aria-label="Поиск компонента" aria-haspopup="dialog" aria-controls="graph-filter-popover" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></svg></button></div></div>
+    <div class="toolbar-actions"><button id="reset" title="Вместить граф · F" aria-keyshortcuts="F">Fit graph <kbd>F</kbd></button><button id="panel-toggle" aria-expanded="false" aria-controls="workshop-panel">Этапы и обсуждение</button></div>
+  </div>
+  <section id="review-nav" class="review-nav" aria-label="Разбор изменений">
+    <div class="review-main">
+      <div class="review-topline"><span class="review-eyebrow">Разбор изменений</span><span id="review-position">Общий вид</span></div>
+      <div class="review-metrics"><div id="review-scores" class="review-scores"></div><button id="review-list-open" aria-haspopup="dialog" aria-controls="review-list-dialog"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h12M9 12h12M9 18h12M3 6h1M3 12h1M3 18h1"/></svg>Список</button></div>
+      <h2 id="review-title">Все выбранные изменения</h2>
+      <select id="step" hidden aria-hidden="true" tabindex="-1"><option value="all">Все выбранные изменения</option></select>
+      <select id="review-scope" hidden aria-hidden="true" tabindex="-1"><option value="all">Все предложения</option><option value="selected">Выбранные этапы</option></select>
+    </div>
+    <div class="review-side"><div class="review-tools">
+      <button id="play-transition" title="Показать переход до → после на схеме" aria-label="Проиграть изменение" disabled><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7z"/></svg>До → После</button>
+      <button id="previous-step" title="Предыдущее предложение · ←" aria-label="Previous stage" aria-keyshortcuts="ArrowLeft"><kbd>←</kbd><span>Назад</span></button>
+      <button id="next-step" title="Следующее предложение · →" aria-label="Next stage" aria-keyshortcuts="ArrowRight"><span>Далее</span><kbd>→</kbd></button>
+      <button id="review-overview">Общий вид</button>
+    </div></div>
+
+    <p id="review-message" class="review-message" role="status"></p>
+    <div class="review-progress" aria-hidden="true"><span id="review-progress"></span></div>
+  </section>
+  <input id="dimension" type="hidden" value="3">
+</div>
+<div id="graph-filter-popover" popover="auto" role="dialog" aria-label="Настройки графа">
+  <div class="filter-heading"><strong id="filter-heading"></strong><button id="filter-close" aria-label="Закрыть настройки">×</button></div>
+    <label data-filter-field="level" hidden>Уровень детализации<select id="level"><option value="0">Overview</option><option value="1" selected>Components</option><option value="2">Details</option><option value="99">All levels</option></select></label>
+    <label data-filter-field="hops" hidden>Соседние компоненты<select id="hops"><option value="0">Entire graph</option><option value="1">1 hop</option><option value="2">2 hops</option></select></label>
+    <label data-filter-field="connections" hidden>Видимость связей<select id="connections"><option value="focus">For selected component</option><option value="all">All connections</option></select></label>
+    <label data-filter-field="relation" hidden>Тип связи<select id="relation"><option value="all">All relations</option></select></label>
+    <label data-filter-field="search" hidden>Поиск компонента<input id="search" type="search" placeholder="Name or path"></label>
+  <button id="filter-reset" class="filter-reset">Сбросить</button>
+</div>
+
+<p id="message" role="status" aria-live="polite"></p>
+<main>
+  <div class="analysis-area">
+    <section id="explanation-dock" class="explanation-dock" hidden aria-label="Описание изменения">
+      <div class="explanation-heading"><strong>Об изменении</strong><button id="explanation-toggle" aria-expanded="true" aria-controls="review-note" title="Свернуть описание">‹</button></div>
+      <section id="review-note" class="review-note" aria-live="polite"></section>
+      <div id="explanation-resize" role="separator" aria-orientation="vertical" aria-label="Ширина описания изменения" aria-controls="review-note" tabindex="0" title="Потяните для изменения ширины; ← / → с клавиатуры"></div>
+    </section>
+  <section class="workspace">
+    <div class="views" data-mode="current">
+      <div class="view"><h2>Сейчас · текущая архитектура</h2><div class="graph" id="before" role="img" aria-label="Current architecture graph"><div class="graph-layer" id="before-webgl"></div><div class="graph-layer" id="before-diagram" hidden></div></div><div class="view-empty" id="before-empty"></div></div>
+      <div class="view"><h2>Будет · выбранные изменения</h2><div class="graph" id="after" role="img" aria-label="Proposed architecture graph"><div class="graph-layer" id="after-webgl"></div><div class="graph-layer" id="after-diagram" hidden></div></div><div class="view-empty" id="after-empty"></div><div class="view-note" id="future-note"></div></div>
+    </div>
+    <section id="transition-view" class="transition-view" hidden aria-label="Анимация изменения">
+      <div class="transition-header"><strong id="transition-phase">До → После</strong><span id="transition-title"></span><button id="transition-toggle">Ⅱ Пауза</button><button id="transition-replay" title="Проиграть заново" aria-label="Проиграть заново"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10a9 9 0 1 1 2 9M3 4v6h6"/></svg></button><button id="transition-close" aria-label="Закрыть анимацию"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+      <div id="transition-canvas" class="transition-canvas"></div><div class="transition-track"><span id="transition-progress"></span></div>
+    </section>
+    <div class="legend" role="group" aria-label="Highlight categories">
+      <button data-highlight="added" aria-pressed="false" class="added">● Added</button>
+      <button data-highlight="changed" aria-pressed="false" class="changed">● Changed</button>
+      <button data-highlight="affected" aria-pressed="false" class="affected">● Links changed</button>
+      <button data-highlight="removed" aria-pressed="false" class="removed">◇ Removed</button>
+      <button data-highlight="finding" aria-pressed="false" class="finding-key">◆ Finding</button>
+      <button id="clear-highlights">Reset highlights</button>
+      <span id="stats"></span><span class="navigation">1–3 вид · 4–6 раскладка · Пробел + drag — двигать</span>
+    </div>
+  </section>
+  </div>
+  <aside id="workshop-panel" hidden>
+    <div class="panel-heading"><strong>Workshop</strong><button id="panel-close" aria-label="Close panel"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
+    <nav class="panel-tabs" role="tablist" aria-label="Workshop">
+      <button id="tab-stages" role="tab" aria-controls="pane-stages" aria-selected="true" data-tab="stages">Этапы</button>
+      <button id="tab-plans" role="tab" aria-controls="pane-plans" aria-selected="false" data-tab="plans">Планы</button>
+      <button id="tab-discussion" role="tab" aria-controls="pane-discussion" aria-selected="false" data-tab="discussion">Обсуждение <span id="reply-dot" class="unread-dot" hidden></span></button>
+      <button id="tab-details" role="tab" aria-controls="pane-details" aria-selected="false" data-tab="details">Детали</button>
+    </nav>
+    <div id="panel-status" class="panel-status" role="status" aria-live="polite"></div>
+    <section id="pane-stages" class="panel-pane" role="tabpanel" aria-labelledby="tab-stages">
+      <h2 id="proposal-heading">Этапы рефакторинга</h2>
+      <label class="proposal-order">Порядок списка<select id="proposal-order"><option value="benefit">Сначала больше пользы</option><option value="ease">Сначала проще сделать</option></select><small>Оценки архитекторов, 1–5. Зависимости задают порядок выполнения отдельно.</small></label>
+      <p class="muted"><small>«Разобрать» показывает изменения на схеме. Галочка включает этап в план.</small></p>
+      <p id="revision-notice" class="panel-notice" hidden></p>
+      <div id="proposals"></div>
+    </section>
+    <section id="pane-plans" class="panel-pane" role="tabpanel" aria-labelledby="tab-plans" hidden>
+      <h2>Планы выполнения</h2>
+      <p class="muted">Выбери этапы, затем распределяй их по планам. Порядок планов определяется зависимостями.</p>
+      <div id="plan-groups"></div>
+      <button id="add-plan">+ Добавить план</button>
+      <p id="plan-error" role="status" class="proposal-error"></p>
+      <small>После согласования: общий plan.md, отдельные plans/*.md и схемы до/после каждого плана. Всё сохраняется в worktree: docs/superpowers/refactors/…</small>
+    </section>
+    <section id="pane-discussion" class="panel-pane" role="tabpanel" aria-labelledby="tab-discussion" hidden>
+      <div id="chat" role="region" aria-label="Переписка с агентом" tabindex="0"></div>
+      <button id="new-reply" hidden>↓ К последнему ответу</button>
+      <div class="composer">
+        <label>Тема<select id="comment-target"><option value="">Архитектура в целом / свой вариант</option></select></label>
+        <label>Сообщение агенту<textarea id="comment" maxlength="20000" placeholder="Что непонятно или что предлагаете изменить…"></textarea></label>
+        <div class="composer-actions"><small>⌘ / Ctrl + Enter — отправить</small><button id="send" class="primary">Отправить</button></div>
+        <small id="send-status" role="status" aria-live="polite"></small>
+      </div>
+    </section>
+    <section id="pane-details" class="panel-pane" role="tabpanel" aria-labelledby="tab-details" hidden>
+      <section class="card" id="detail"><h2>Компонент или связь</h2><p class="muted">Выберите компонент на схеме, чтобы увидеть детали.</p></section>
+      <details class="card"><summary>Компоненты и границы анализа</summary><div id="node-list" aria-label="Visible components"></div><div id="source"></div></details>
+    </section>
+    <p id="approval" role="status"></p>
+  </aside>
+</main>
+<script id="bootstrap" type="application/json">__REFACTOR_DATA__</script>
+<script>
+/*__REFACTOR_GRAPHICS__*/
+</script>
+<script>
+/*__REFACTOR_MODEL__*/
+</script>
+<script>
+'use strict';
+const M = RefactorModel, boot = JSON.parse(document.getElementById('bootstrap').textContent);
+const $ = id => document.getElementById(id), clone = value => JSON.parse(JSON.stringify(value));
+const storageKey = 'afm-refactor-v1:' + boot.document.session_id;
+let state, focused = [], selectedNode = null, renderPending = false, viewMode = "current", graphLayout = "spatial", graphics, diagram;
+const highlights = new Set(), connectionPreferences = {spatial:'all',hierarchy:'focus',diagram:'all'};
+$('connections').value = 'all';
+let storageWarning = '';
+const uiKey = storageKey + ':panel';
+let ui = {tab:'stages', draft:'', target:'', readRevision:0, replies:[], order:'benefit'};
+try {const saved=JSON.parse(localStorage.getItem(uiKey));if(saved && typeof saved==='object')ui={...ui,...saved};}catch{}
+if(!['stages','plans','discussion','details'].includes(ui.tab))ui.tab='stages';
+if(!['benefit','ease'].includes(ui.order))ui.order='benefit';
+ui.replies=Array.isArray(ui.replies)?ui.replies.filter(r=>r && Number.isInteger(r.revision) && Number.isInteger(r.through) && typeof r.text==='string'):[];
+if(!Number.isInteger(ui.readRevision))ui.readRevision=0;
+let renderedDocument='', renderedSelection='', renderedPlans='', detailSignature='', selectionProblem=null, panMode=false;
+const proposalCards=new Map();
+function saveUI(){try{localStorage.setItem(uiKey,JSON.stringify(ui));}catch{storageWarning='Черновик не сохранён в браузере. Не закрывайте вкладку.';}}
+
+const elem = (tag, text, cls) => {const e = document.createElement(tag); if(text !== undefined) e.textContent = text; if(cls) e.className = cls; return e;};
+const error = value => {$('message').textContent = value?.message || value || storageWarning;};
+function persist(next) {
+  M.restore(next);
+  try { localStorage.setItem(storageKey, JSON.stringify(next)); storageWarning = ''; }
+  catch { storageWarning = 'Browser storage unavailable. Keep this tab open; save a checkpoint to preserve decisions.'; }
+  const previous=state;
+  state = next;
+  if(previous && next.document.revision>previous.document.revision && previous.selected.length){
+    $('revision-notice').hidden=false;
+    $('revision-notice').textContent=`Агент обновил предложения до версии ${next.document.revision}. Предыдущий выбор сброшен: проверьте этапы и выберите их заново.`;
+  }
+  render();
+  error('');
+}
+function action(fn) {try {persist(fn());} catch(e) {error(e);}}
+try {
+  state = boot.checkpoint ? M.restore(boot.checkpoint) : M.create(boot.document);
+  const saved = localStorage.getItem(storageKey);
+  if (saved) {
+    const recovered = M.restore(JSON.parse(saved));
+    if (recovered.document.revision >= state.document.revision && recovered.events.length >= state.events.length && (!state.sealed || recovered.sealed)) state = recovered;
+    else if (!boot.checkpoint && recovered.document.revision < boot.document.revision) state = M.publish(recovered, boot.document);
+  }
+} catch(e) {
+  if (!state) throw e;
+  storageWarning = 'Saved browser state could not be restored: ' + e.message + '. Use the last disk checkpoint if needed.';
+}
+
+let selectedEdges=[],edgeFraction=.5,edgePopupSide=null,edgePopupSignature='';
+const edgeBadges={};
+for(const key of ['before','after']){
+  const badge=elem('button',undefined,'edge-badge');badge.hidden=true;badge.dataset.edgeBadge=key;
+  badge.setAttribute('aria-haspopup','dialog');badge.setAttribute('aria-controls','edge-popup');
+  badge.onclick=()=>{edgePopupSide=key;edgePopupSignature='';updateEdgeOverlay();$('edge-popup-close').focus({preventScroll:true});};
+  $(key).append(badge);edgeBadges[key]=badge;
+}
+const edgePopup=elem('section',undefined,'edge-popup');edgePopup.id='edge-popup';edgePopup.hidden=true;edgePopup.setAttribute('role','dialog');edgePopup.setAttribute('aria-label','Подробности связи');
+const edgePopupHeader=elem('div',undefined,'edge-popup-header'),edgePopupHeading=elem('strong','Связь'),edgePopupClose=elem('button','×');
+edgePopupClose.id='edge-popup-close';edgePopupClose.setAttribute('aria-label','Закрыть подробности связи');
+edgePopupClose.onclick=()=>{edgePopupSide=null;edgePopup.hidden=true;};edgePopupHeader.append(edgePopupHeading,edgePopupClose);
+const edgePopupBody=elem('div',undefined,'edge-popup-body');edgePopup.append(edgePopupHeader,edgePopupBody);document.body.append(edgePopup);
+function selectEdge(edge,key,fraction=.5){
+  selectedEdges=RefactorGraphics.edgeIDs(edge);edgeFraction=fraction;edgePopupSide=null;edgePopupSignature='';
+  graphics?.setSelection(selectedEdges);diagram?.setSelection(selectedEdges);updateEdgeOverlay();
+}
+function clearEdge(){selectedEdges=[];edgePopupSide=null;graphics?.setSelection([]);diagram?.setSelection([]);updateEdgeOverlay();}
+function relationDetails(key){
+  const c=comparison(),before=new Map(c.before.edges.map(e=>[e.id,e])),after=new Map(c.after.edges.map(e=>[e.id,e]));
+  const nodes=new Map([...c.before.nodes,...c.after.nodes].map(n=>[n.id,n]));
+  return selectedEdges.map(id=>{
+    const old=before.get(id),next=after.get(id),edge=(key==='before'?old:next)||old;if(!edge)return null;
+    const change=!old?'added':!next?'removed':JSON.stringify(old)!==JSON.stringify(next)?'changed':'retained';
+    const stages=(c.proposal?[c.proposal]:state.document.proposals.filter(p=>state.selected.includes(p.id))).filter(p=>
+      p.changes.remove_edges.includes(id)||p.changes.add_edges.some(e=>e.id===id));
+    return {edge,old,next,change,source:nodes.get(edge.source)?.label||edge.source,target:nodes.get(edge.target)?.label||edge.target,stages};
+  }).filter(Boolean);
+}
+function fillEdgePopup(key){
+  const signature=JSON.stringify([key,selectedEdges,state.document.revision,state.selected,$('step').value]);if(signature===edgePopupSignature)return;
+  const details=relationDetails(key);edgePopupSignature=signature;edgePopupBody.replaceChildren();edgePopupHeading.textContent=(key==='before'?'До':'После')+' · '+(details.length>1?details.length+' связи':'связь');
+  for(const {edge,old,next,change,source,target,stages} of details){
+    const card=elem('article',undefined,'edge-detail');
+    card.append(elem('h3',source+' → '+target));
+    const tags=elem('div',undefined,'edge-tags');
+    tags.append(elem('span',RefactorGraphics.relationNames[edge.kind]||edge.kind),elem('span',edge.confidence==='confirmed'?'Подтверждена кодом':'Предполагаемая связь'));
+    card.append(tags);
+    if(edge.description)card.append(elem('p',edge.description));
+    if(edge.symbols?.length){card.append(elem('h4','Функции и символы'));const symbols=elem('div',undefined,'edge-symbols');for(const symbol of edge.symbols)symbols.append(elem('code',symbol));card.append(symbols);}
+    card.append(elem('h4','Что делает связь · основание'),elem('p',edge.evidence,'edge-evidence'));
+    if(!edge.symbols?.length)card.append(elem('small','Отдельный список символов в анализе не задан; выше — доступные сведения из кода.'));
+    const delta=elem('div',undefined,'edge-delta');delta.dataset.change=change;
+    delta.append(elem('strong',{added:'Добавится',removed:'Будет удалена',changed:'Изменится',retained:'Связь сохранена'}[change]));
+    if(change==='changed'){
+      const describe=e=>[RefactorGraphics.relationNames[e.kind]||e.kind,e.source+' → '+e.target,e.description,e.symbols?.length?'Символы: '+e.symbols.join(', '):'',e.evidence].filter(Boolean).join('\n');
+      delta.append(elem('p','До: '+describe(old)),elem('p','После: '+describe(next)));
+    }
+    if(change==='added'||change==='changed')delta.append(elem('small','Проектируемое изменение, ещё не реализовано.'));
+    for(const p of stages)delta.append(elem('p',p.title+': '+p.rationale));
+    card.append(delta);edgePopupBody.append(card);
+  }
+}
+function updateEdgeOverlay(){
+  const renderer=activeRenderer();let openAnchor;
+  for(const key of ['before','after']){
+    const badge=edgeBadges[key],rect=$(key).getBoundingClientRect(),anchor=selectedEdges.length?renderer?.edgeAnchor(key,selectedEdges,edgeFraction):null;
+    const visible=anchor&&rect.width&&anchor.x>=rect.left&&anchor.x<=rect.right&&anchor.y>=rect.top&&anchor.y<=rect.bottom;
+    badge.hidden=!visible;
+    if(visible){
+      const text=(RefactorGraphics.relationNames[anchor.edge.kind]||anchor.edge.kind)+' · ⓘ';if(badge.textContent!==text)badge.textContent=text;
+      badge.setAttribute('aria-label','Подробности связи: '+badge.textContent);
+      badge.style.left=Math.max(4,Math.min(rect.width-badge.offsetWidth-4,anchor.x-rect.left+10))+'px';
+      badge.style.top=Math.max(4,Math.min(rect.height-32,anchor.y-rect.top+8))+'px';
+      if(edgePopupSide===key)openAnchor=badge.getBoundingClientRect();
+    }
+  }
+  edgePopup.hidden=!openAnchor;
+  if(openAnchor){
+    fillEdgePopup(edgePopupSide);
+    const width=edgePopup.offsetWidth,height=edgePopup.offsetHeight;
+    edgePopup.style.left=Math.max(8,Math.min(innerWidth-width-8,openAnchor.left))+'px';
+    edgePopup.style.top=Math.max(8,Math.min(innerHeight-height-8,openAnchor.bottom+8))+'px';
+  }
+}
+function followEdgeOverlay(){if(selectedEdges.length)updateEdgeOverlay();requestAnimationFrame(followEdgeOverlay);}
+requestAnimationFrame(followEdgeOverlay);
+document.addEventListener('pointerdown',e=>{if(!e.target.closest('.edge-popup,.edge-badge')){edgePopupSide=null;edgePopup.hidden=true;}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.querySelector('dialog[open],#graph-filter-popover:popover-open')){if(playbackLayout){stopPlayback();return;}if(edgePopupSide){edgePopupSide=null;edgePopup.hidden=true;}else clearEdge();}});
+
+function summary() {
+  return {revision: state.document.revision, selected: state.selected, plan_groups:M.plans(state), approval: state.approval,
+    sealed: state.sealed, last_event_id: state.events.length, acknowledged: state.acknowledged};
+}
+window.refactor = Object.freeze({
+  version: 1,
+  view: () => ({mode: viewMode, layout: graphLayout, panMode, animation:playback?.inspect()||null, selectedEdges:[...selectedEdges], highlights:[...highlights], renderer: graphLayout==="diagram"?"ELK/SVG":"3d-force-graph", diagram:diagram?.inspect(), graphs: graphics?.inspect()}),
+  status: summary,
+  publish(doc) {persist(M.publish(state, doc)); return summary();},
+  readEvents(after = 0) {return clone(state.events.filter(e => e.id > after));},
+  checkpoint() {return clone(state);},
+  acknowledge(id) {
+    if (!Number.isInteger(id) || id < state.acknowledged || id > state.events.length) throw new Error('Invalid cursor');
+    persist({...clone(state), acknowledged: id}); return summary();
+  },
+  restore(checkpoint) {
+    if(checkpoint.document.session_id !== state.document.session_id) throw new Error('Different session');
+    if(checkpoint.events.length < state.events.length || checkpoint.document.revision < state.document.revision) throw new Error('Restore would discard newer browser work');
+    persist(M.restore(checkpoint)); return summary();
+  },
+  seal(revision, eventID) {persist(M.seal(state, revision, eventID)); return clone(state);},
+  focus(ids) {focused = [...ids]; selectedNode = ids[0] || null; renderDetail(); scheduleDraw(); return summary();}
+});
+
+function setTab(tab, focus=false) {
+  ui.tab=tab;saveUI();
+  for(const b of document.querySelectorAll('[data-tab]')){
+    const active=b.dataset.tab===tab;b.setAttribute('aria-selected',String(active));b.tabIndex=active?0:-1;
+    $('pane-'+b.dataset.tab).hidden=!active;
+  }
+  if(focus)$('tab-'+tab).focus();
+  if(tab==='discussion')requestAnimationFrame(()=>{markReplyRead();updateReplyBadge();});
+}
+function lastReply(){return ui.replies.at(-1);}
+function markReplyRead(){
+  const reply=lastReply(), card=reply && document.querySelector('[data-reply="'+reply.revision+'"]');
+  if(ui.tab!=='discussion' || $('workshop-panel').hidden || !card)return;
+  const r=card.getBoundingClientRect(),c=$('chat').getBoundingClientRect();
+  if(r.top<c.bottom && r.bottom>c.top && reply.revision>ui.readRevision){ui.readRevision=reply.revision;saveUI();}
+}
+function updateReplyBadge(){
+  const unread=Boolean(lastReply()?.revision>ui.readRevision);
+  $('reply-dot').hidden=!unread;
+  $('panel-toggle').textContent=unread?'Обсуждение · новый ответ':'Этапы и обсуждение';
+  $('tab-discussion').setAttribute('aria-label',unread?'Обсуждение: новый ответ агента':'Обсуждение');
+}
+function jumpToReply(){
+  setPanel(true);setTab('discussion');
+  requestAnimationFrame(()=>{
+    const reply=lastReply(),card=reply && document.querySelector('[data-reply="'+reply.revision+'"]');
+    if(card)$('chat').scrollTop=card.offsetTop-$('chat').offsetTop;else $('chat').scrollTop=$('chat').scrollHeight;
+    markReplyRead();updateReplyBadge();$('new-reply').hidden=true;
+  });
+}
+function editablePlans(){return state.plan_groups?clone(state.plan_groups):[{id:'plan-1',title:'План 1',proposal_ids:[...state.selected]}];}
+function jumpToProposal(id){
+  setPanel(true);setTab('stages');
+  const entry=proposalCards.get(id);if(!entry)return;
+  entry.card.scrollIntoView({block:'center',behavior:'instant'});
+  entry.checkbox.focus({preventScroll:true});entry.card.classList.add('proposal-located');
+  setTimeout(()=>entry.card.classList.remove('proposal-located'),2200);
+}
+function renderSelectionProblem(){
+  for(const entry of proposalCards.values()){entry.failure.replaceChildren();entry.card.classList.remove('prerequisite-needed');}
+  if(!selectionProblem)return;
+  const p=state.document.proposals.find(p=>p.id===selectionProblem.id),entry=proposalCards.get(p?.id);if(!entry)return;
+  const missing=selectionProblem.enabled?p.depends_on.filter(id=>!state.selected.includes(id)):state.document.proposals.filter(x=>state.selected.includes(x.id)&&x.depends_on.includes(p.id)).map(x=>x.id);
+  const conflicts=selectionProblem.enabled?state.document.proposals.filter(x=>state.selected.includes(x.id)&&(p.conflicts_with.includes(x.id)||x.conflicts_with.includes(p.id))).map(x=>x.id):[];
+  const related=missing.length?missing:conflicts;
+  if(related.length){
+    entry.failure.append(elem('span',missing.length?(selectionProblem.enabled?'Сначала выберите обязательный этап:':'Сначала снимите зависящие этапы:'):'Это альтернатива уже выбранному этапу:'));
+    for(const id of related){
+      const target=state.document.proposals.find(x=>x.id===id),button=elem('button','→ '+target.title,'dependency-link');button.dataset.prerequisite=id;button.onclick=()=>jumpToProposal(id);
+      entry.failure.append(button);proposalCards.get(id)?.card.classList.add('prerequisite-needed');
+    }
+  } else if(/prerequisite|Conflicting/.test(selectionProblem.message)){selectionProblem=null;}
+  else entry.failure.textContent=selectionProblem.message;
+}
+function renderPlans(){
+  const list=$('plan-groups'),scroll=$('pane-plans').scrollTop;
+  list.replaceChildren();
+  const groups=M.plans(state),nonempty=groups.filter(g=>g.proposal_ids.length);
+  for(const group of groups){
+    const box=elem('article',undefined,'card'),label=elem('label','Название плана'),name=document.createElement('input');
+    name.value=group.title;name.maxLength=120;name.dataset.planTitle=group.id;name.disabled=state.sealed;
+    name.onchange=()=>{const updated=editablePlans();updated.find(g=>g.id===group.id).title=name.value.trim();try{persist(M.setPlans(state,updated));$('plan-error').textContent='';}catch(e){$('plan-error').textContent=e.message;name.value=group.title;}};
+    label.append(name);box.append(label,elem('small',group.proposal_ids.length?`Порядок: ${nonempty.findIndex(g=>g.id===group.id)+1} · этапов: ${group.proposal_ids.length}`:'Пустой план — добавьте в него этапы'));
+    if(group.depends_on.length)box.append(elem('p','После: '+group.depends_on.map(id=>groups.find(g=>g.id===id).title).join(', ')));
+    for(const id of group.proposal_ids){const row=elem('div',undefined,'plan-assignment'),title=elem('button',state.document.proposals.find(p=>p.id===id).title);title.onclick=()=>jumpToProposal(id);const select=document.createElement('select');select.setAttribute('aria-label','План для '+title.textContent);select.dataset.planAssign=id;
+      select.append(...groups.map(g=>new Option(g.title,g.id)));select.value=group.id;select.disabled=state.sealed;
+      select.onchange=()=>{const updated=editablePlans();for(const g of updated)g.proposal_ids=g.proposal_ids.filter(p=>p!==id);updated.find(g=>g.id===select.value).proposal_ids.push(id);try{persist(M.setPlans(state,updated));$('plan-error').textContent='';}catch(e){$('plan-error').textContent=e.message;select.value=group.id;}};
+      row.append(title,select);box.append(row);
+    }
+    if(groups.length>1 && !group.proposal_ids.length){const remove=elem('button','Удалить пустой план');remove.disabled=state.sealed;remove.onclick=()=>action(()=>M.setPlans(state,editablePlans().filter(g=>g.id!==group.id)));box.append(remove);}
+    list.append(box);
+  }
+  $('add-plan').disabled=state.sealed;$('pane-plans').scrollTop=scroll;
+}
+$('add-plan').onclick=()=>{
+  const groups=editablePlans();let number=groups.length+1;while(groups.some(g=>g.id==='plan-'+number))number++;
+  groups.push({id:'plan-'+number,title:'План '+number,proposal_ids:[]});action(()=>M.setPlans(state,groups));
+  const input=document.querySelector('[data-plan-title="plan-'+number+'"]');input?.scrollIntoView({block:'nearest'});input?.focus();input?.select();
+};
+function renderProposals(doc){
+  const scroll=$('pane-stages').scrollTop, active=document.activeElement;
+  const activeProposal=active?.closest('[data-proposal]')?.dataset.proposal;
+  const activeRole=active?.dataset.control;
+  const ids=new Set(doc.proposals.map(p=>p.id));
+  $('empty-proposals')?.remove();
+  for(const [id,entry] of proposalCards)if(!ids.has(id)){entry.card.remove();proposalCards.delete(id);}
+  let index=0;
+  const ranked=[...doc.proposals].sort((a,b)=>{
+    const other=ui.order==='benefit'?'ease':'benefit';
+    return (b.priority?.[ui.order]||0)-(a.priority?.[ui.order]||0) ||
+      (b.priority?.[other]||0)-(a.priority?.[other]||0);
+  });
+  $('proposal-order').disabled=!doc.proposals.some(p=>p.priority);
+  $('proposal-order').parentElement.hidden=$('proposal-order').disabled;
+  for(const p of ranked){
+    const signature=JSON.stringify(p),existing=proposalCards.get(p.id);
+    let entry=existing;
+    if(!entry || entry.signature!==signature){
+      const card=elem('article',undefined,'card');card.dataset.proposal=p.id;
+      const choice=elem('label',undefined,'choice'),checkbox=document.createElement('input');
+      checkbox.type='checkbox';checkbox.dataset.control='select';checkbox.setAttribute('aria-label',`Select ${p.title}`);
+      const status=elem('div',undefined,'proposal-state'),failure=elem('p',undefined,'proposal-error');failure.setAttribute('role','status');
+      checkbox.onchange=()=>{
+        try{persist(M.select(state,p.id,checkbox.checked));selectionProblem=null;renderSelectionProblem();}
+        catch(e){selectionProblem={id:p.id,enabled:checkbox.checked,message:e.message};renderSelectionProblem();}
+        checkbox.checked=state.selected.includes(p.id);
+      };
+      choice.append(checkbox,elem('span',p.title));
+      card.append(choice,status,elem('p',p.rationale,'proposal-summary'));
+      if(p.priority)card.append(elem('div',`Польза ${p.priority.benefit}/5 · Простота ${p.priority.ease}/5`,'priority-scores'));
+      const details=elem('details',undefined,'proposal-details'),steps=elem('ol');
+      details.open=existing?.card.querySelector('details')?.open||false;
+      details.append(elem('summary','Обоснование, шаги и риски'),elem('p',p.rationale));
+      if(p.priority)details.append(elem('p','Оценка архитекторов: '+p.priority.reason));
+      p.steps.forEach(s=>steps.append(elem('li',s)));details.append(steps);
+      details.append(elem('p','Проверка: '+p.verification.join('; ')),elem('p','Риски: '+(p.risks.join('; ')||'Не указаны — уточните при планировании.')));
+      const names=ids=>ids.map(id=>doc.proposals.find(p=>p.id===id)?.title||id).join('; ');
+      if(p.depends_on.length)details.append(elem('small','Сначала: '+names(p.depends_on)));
+      if(p.conflicts_with.length)details.append(elem('small','Альтернатива: '+names(p.conflicts_with)));
+      const assignment=elem('label','План'),select=document.createElement('select');select.dataset.assign=p.id;
+      select.onchange=()=>{
+        const groups=editablePlans();for(const group of groups)group.proposal_ids=group.proposal_ids.filter(id=>id!==p.id);
+        groups.find(g=>g.id===select.value).proposal_ids.push(p.id);
+        try{persist(M.setPlans(state,groups));}catch(e){selectionProblem={id:p.id,enabled:true,message:e.message};renderProposals(state.document);}
+      };
+      assignment.append(select);card.append(details,assignment,failure);
+      const actions=elem('div',undefined,'actions'),inspect=elem('button','Разобрать'),discuss=elem('button','Обсудить');
+      inspect.dataset.review=p.id;inspect.dataset.control='review';inspect.onclick=()=>reviewProposal(p.id);
+      discuss.dataset.discuss=p.id;discuss.dataset.control='discuss';discuss.onclick=()=>{
+        $('comment-target').value=p.id;ui.target=p.id;saveUI();setTab('discussion');$('comment').focus({preventScroll:true});
+      };
+      actions.append(inspect,discuss);card.append(actions);
+      if(existing)existing.card.replaceWith(card);
+      entry={card,checkbox,status,signature,assignment,select,failure};proposalCards.set(p.id,entry);
+    }
+    const at=$('proposals').children[index++];if(at!==entry.card)$('proposals').insertBefore(entry.card,at||null);
+    entry.checkbox.checked=state.selected.includes(p.id);entry.checkbox.disabled=state.sealed;
+    entry.card.classList.toggle('selected',entry.checkbox.checked);
+    entry.assignment.hidden=!entry.checkbox.checked;
+    const groups=editablePlans(),options=JSON.stringify(groups.map(g=>[g.id,g.title]));
+    if(entry.select.dataset.options!==options){entry.select.replaceChildren(...groups.map(g=>new Option(g.title,g.id)));entry.select.dataset.options=options;}
+    entry.select.value=groups.find(g=>g.proposal_ids.includes(p.id))?.id||groups[0].id;entry.select.disabled=state.sealed;
+    const missing=p.depends_on.filter(id=>!state.selected.includes(id));
+    entry.status.textContent=entry.checkbox.checked?'✓ В плане':missing.length?'Сначала выберите предыдущие этапы':'Можно добавить в план';
+  }
+  if(!doc.proposals.length){const empty=elem('p','Пока нет предложений. Откройте «Обсуждение», чтобы попросить дополнительный анализ или предложить свой вариант.','muted');empty.id='empty-proposals';$('proposals').append(empty);}
+  renderSelectionProblem();
+  $('pane-stages').scrollTop=scroll;
+  if(activeProposal && activeRole && !active.isConnected)proposalCards.get(activeProposal)?.card.querySelector('[data-control="'+activeRole+'"]')?.focus({preventScroll:true});
+}
+function renderDiscussion(){
+  const doc=state.document,chat=$('chat'),scroll=chat.scrollTop;
+  const nearBottom=chat.scrollHeight-chat.clientHeight-scroll<40;
+  if(doc.reply && !ui.replies.some(r=>r.revision===doc.revision)){
+    ui.replies.push({revision:doc.revision,through:doc.addressed_event_id,text:doc.reply});saveUI();
+  }
+  const comments=state.events.filter(e=>e.kind==='comment');
+  const items=[...comments.map(e=>({key:'comment-'+e.id,at:e.id,event:e})),...ui.replies.map(r=>({key:'reply-'+r.revision,at:r.through,reply:r}))]
+    .sort((a,b)=>a.at-b.at || Boolean(a.reply)-Boolean(b.reply));
+  if(!items.length){
+    if(!chat.firstChild)chat.append(elem('p','Здесь будут ваши сообщения и ответы агента. Можно обсудить любой этап или предложить свой вариант.','muted'));
+  } else {
+    chat.querySelector(':scope > p')?.remove();
+    const hadReply=chat.querySelector('[data-reply="'+lastReply()?.revision+'"]');
+    for(const [index,item] of items.entries()){
+      let card=document.getElementById(item.key);
+      if(!card){
+        card=elem('article',undefined,'chat-message'+(item.reply?' agent-reply':''));card.id=item.key;
+        if(item.reply)card.dataset.reply=item.reply.revision;
+        card.append(elem('div',item.reply?'Агент · версия '+item.reply.revision:'Вы','message-author'));
+        if(item.event?.proposal_id)card.append(elem('small',doc.proposals.find(p=>p.id===item.event.proposal_id)?.title||item.event.proposal_id));
+        card.append(elem('p',item.reply?.text||item.event.text),elem('small',undefined,'message-status'));
+      }
+      if(item.event){
+        const id=item.event.id;
+        card.querySelector('.message-status').textContent=id<=doc.addressed_event_id
+          ? (ui.replies.some(r=>r.through>=id)?'Ответ агента ниже':'Учтено в новой версии предложений')
+          : id<=state.acknowledged?'Сохранено агентом · ждём ответ':'В очереди в браузере · ждём агента';
+      }else card.querySelector('.message-status').textContent='Ответ на сообщения до № '+item.reply.through;
+      if(chat.children[index]!==card)chat.insertBefore(card,chat.children[index]||null);
+    }
+    if(nearBottom && ui.tab==='discussion' && !$('workshop-panel').hidden)chat.scrollTop=chat.scrollHeight;
+    else chat.scrollTop=scroll;
+    if(lastReply() && !hadReply)$('new-reply').hidden=false;
+  }
+  const pending=comments.filter(e=>e.id>doc.addressed_event_id);
+  $('send-status').textContent=storageWarning || (state.sealed?'Обсуждение завершено.':pending.length
+    ? `${pending.length} сообщ. без ответа. Ответ появится здесь; если агент на паузе, ожидание продолжится.`
+    : comments.length?'Ответ агента — в переписке выше.':'Сообщение появится в переписке сразу после отправки.');
+  $('panel-status').textContent=pending.length?`Ожидают ответа: ${pending.length}`:lastReply()?`Агент ответил · версия ${lastReply().revision}`:'';
+  $('send').disabled=state.sealed||!$('comment').value.trim();$('comment').disabled=state.sealed;$('comment-target').disabled=state.sealed;
+  markReplyRead();updateReplyBadge();
+}
+function render() {
+  const doc = state.document,documentKey=JSON.stringify(doc),selectionKey=JSON.stringify(state.selected);
+  const documentChanged=renderedDocument!==documentKey,selectionChanged=renderedSelection!==selectionKey,plansKey=JSON.stringify(state.plan_groups),plansChanged=renderedPlans!==plansKey;
+  $('title').textContent = doc.title;
+  $('goal').textContent = doc.goal;
+  $('proposal-heading').textContent = `Выбрано ${state.selected.length} из ${doc.proposals.length} · версия ${doc.revision}`;
+  if(documentChanged || selectionChanged || plansChanged || state.sealed){renderProposals(doc);renderPlans();}
+  if(documentChanged){
+    const target=$('comment-target').value||ui.target;
+    $('comment-target').replaceChildren(new Option('Архитектура в целом / свой вариант',''));
+    for(const p of doc.proposals)$('comment-target').append(new Option(p.title,p.id));
+    $('comment-target').value=doc.proposals.some(p=>p.id===target)?target:'';
+    ui.target=$('comment-target').value;
+    $('source').replaceChildren(elem('p','Исходная ревизия: '+doc.source.revision),elem('p','Метрики относятся к текущему коду, а не к прогнозу.'));
+    for(const note of [...doc.constraints,...doc.source.limitations])$('source').append(elem('p',note,'muted'));
+  }
+  if(documentChanged || selectionChanged){
+  const step = $('step').value;
+  $('step').replaceChildren(new Option('Все выбранные изменения', 'all'));
+  M.order(doc, state.selected).forEach((id, i) => $('step').append(new Option(`${i + 1}. ${doc.proposals.find(p => p.id === id).title}`, String(i + 1))));
+  const previews=document.createElement('optgroup');previews.label='Все предложения · предпросмотр';for(const p of doc.proposals)previews.append(new Option(p.title,'preview:'+p.id));$('step').append(previews);
+  if([...$('step').options].some(o => o.value === step)) $('step').value = step;
+  const relation = $('relation').value;
+  $('relation').replaceChildren(new Option('All relations', 'all'));
+  const relations = new Set([...doc.baseline.edges, ...doc.proposals.flatMap(p => p.changes.add_edges)].map(e => e.kind));
+  [...relations].sort().forEach(kind => $('relation').append(new Option(kind, kind)));
+  if(relations.has(relation)) $('relation').value = relation;
+  }
+  renderDiscussion();
+  $('approve').disabled = state.sealed || state.events.some(e => e.kind === 'comment' && e.id > doc.addressed_event_id);
+  $('approve').textContent = state.sealed ? 'Планы согласованы' : state.selected.length ? `Согласовать планы (${M.plans(state).filter(g=>g.proposal_ids.length).length})` : 'Завершить без изменений';
+  $('approval').textContent = state.sealed ? 'Approved selection saved for planning. This session is read-only.' :
+    state.approval ? 'Approved. Waiting for the agent to save the selection and write the plan.' : '';
+  if(documentChanged || selectionChanged){stopPlayback();renderDetail();scheduleDraw();}
+  else if(plansChanged||state.sealed)renderReviewNav(comparison());
+  if(documentChanged){reviewProblem=null;$('review-list-dialog').close();$('review-plan-dialog').close();}
+  renderedDocument=documentKey;renderedSelection=selectionKey;renderedPlans=plansKey;
+}
+
+function comparison() {
+  const doc=state.document, order=M.order(doc,state.selected), value=$('step').value;
+  let proposal, index;
+  if(value.startsWith('preview:'))proposal=doc.proposals.find(p=>p.id===value.slice(8));
+  else if(value!=='all')proposal=doc.proposals.find(p=>p.id===order[Number(value)-1]);
+  if(!proposal)return {before:doc.baseline,after:M.target(doc,order),proposal:null,index:0};
+  index=order.indexOf(proposal.id);
+  let previous;
+  if(index>=0)previous=order.slice(0,index);
+  else {
+    const required=new Set();
+    function add(id){for(const dep of doc.proposals.find(p=>p.id===id).depends_on)if(!required.has(dep)){required.add(dep);add(dep);}}
+    add(proposal.id);previous=M.order(doc,[...required]);
+  }
+  return {before:M.target(doc,previous),after:M.target(doc,[...previous,proposal.id]),proposal,index:index+1};
+}
+function currentTarget() {return comparison().after;}
+let reviewProblem=null,reviewPlanID=null;
+function reviewScoreText(p){return p.priority?`Польза ${p.priority.benefit}/5 · Сложность ${6-p.priority.ease}/5`:'Оценки пока не заданы';}
+function renderReviewActions(p){
+  const scores=$('review-scores'),signature=JSON.stringify(p?.priority||null);
+  if(scores.dataset.signature!==signature){
+    scores.dataset.signature=signature;scores.replaceChildren();
+    for(const [label,value,cls] of [['Польза',p?.priority?.benefit,''],['Сложность',p?.priority?6-p.priority.ease:null,'difficulty']]){
+      const score=elem('div',undefined,'review-score '+cls);score.append(elem('span',label),elem('strong',value?value+'/5':'—'));
+      score.title=p?.priority?(cls?'Сложность = 6 − простота. ':'')+p.priority.reason:'Архитекторы не указали оценку';scores.append(score);
+    }
+  }
+  const group=p&&M.plans(state).find(g=>g.proposal_ids.includes(p.id));
+  for(const [id,label,disabled] of [
+    ['review-plan-pick',group?'План «'+group.title+'» · перенести этап':'Выбрать план для этапа',!p||state.sealed],
+    ['review-new-plan','Создать план и добавить этап',!p||state.sealed],
+    ['review-remove',group?'Убрать этап из плана «'+group.title+'»':'Этап ещё не добавлен в план',!group||state.sealed]]){
+    const button=$(id),hint=!p?'Откройте предложение для работы с планом':state.sealed?'Планы уже согласованы':label;
+    button.disabled=disabled;button.title=hint;button.parentElement.title=hint;button.setAttribute('aria-label',label);
+  }
+  $('review-plan-pick').dataset.assigned=String(Boolean(group));
+  renderReviewProblem(p);
+}
+function renderReviewProblem(p){
+  const box=$('review-message');box.replaceChildren();if(!p||reviewProblem?.id!==p.id)return;
+  const enabled=reviewProblem.enabled;
+  const dependencies=enabled?p.depends_on.filter(id=>!state.selected.includes(id)):state.document.proposals.filter(q=>state.selected.includes(q.id)&&q.depends_on.includes(p.id)).map(q=>q.id);
+  const conflicts=enabled?state.document.proposals.filter(q=>state.selected.includes(q.id)&&(q.conflicts_with.includes(p.id)||p.conflicts_with.includes(q.id))).map(q=>q.id):[];
+  const related=dependencies.length?dependencies:conflicts;
+  box.append(elem('span',dependencies.length?(enabled?'Сначала добавьте обязательные этапы:':'Сначала уберите зависимые этапы:'):conflicts.length?'Выбрана несовместимая альтернатива:':reviewProblem.message));
+  for(const id of related){const q=state.document.proposals.find(q=>q.id===id),button=elem('button','→ '+q.title);button.dataset.reviewDependency=id;button.onclick=()=>reviewProposal(id);box.append(button);}
+}
+function renderReviewList(){
+  const list=$('review-options'),query=$('review-search').value.trim().toLowerCase(),ids=reviewIDs(),current=comparison().proposal?.id;
+  list.replaceChildren();
+  for(const button of document.querySelectorAll('[data-review-scope]'))button.setAttribute('aria-pressed',String(button.dataset.reviewScope===$('review-scope').value));
+  for(const [index,id] of ids.entries()){
+    const p=state.document.proposals.find(p=>p.id===id);if(query&&!`${p.title} ${p.id}`.toLowerCase().includes(query))continue;
+    const row=elem('button',undefined,'review-option'),body=elem('span'),group=M.plans(state).find(g=>g.proposal_ids.includes(id));
+    row.dataset.reviewOption=id;row.setAttribute('aria-current',String(current===id));
+    body.append(elem('strong',p.title),elem('small',reviewScoreText(p)));
+    row.append(elem('span',String(index+1).padStart(2,'0'),'number'),body,elem('span',group?'✓ '+group.title:'Не выбрано','option-state'));
+    row.onclick=()=>{$('review-list-dialog').close();reviewProposal(id);$('review-list-open').focus({preventScroll:true});};list.append(row);
+  }
+  if(!list.children.length)list.append(elem('p','Нет подходящих предложений.','muted'));
+}
+$('review-list-open').onclick=()=>{$('review-search').value='';renderReviewList();$('review-list-dialog').showModal();$('review-search').focus();};
+$('review-search').oninput=renderReviewList;
+for(const button of document.querySelectorAll('[data-review-scope]'))button.onclick=()=>{$('review-scope').value=button.dataset.reviewScope;renderReviewList();renderReviewNav(comparison());};
+for(const button of document.querySelectorAll('[data-close-dialog]'))button.onclick=()=>$(button.dataset.closeDialog).close();
+for(const dialog of document.querySelectorAll('.review-dialog')){
+  dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close();}});
+  dialog.addEventListener('keydown',e=>{
+    if(!['ArrowDown','ArrowUp'].includes(e.key))return;
+    const rows=[...dialog.querySelectorAll('.review-option:not(:disabled)')];if(!rows.length)return;
+    const index=rows.indexOf(document.activeElement);e.preventDefault();
+    rows[Math.max(0,Math.min(rows.length-1,index+(e.key==='ArrowDown'?1:-1)))].focus();
+  });
+}
+function assignReviewPlan(planID,newTitle){
+  const p=state.document.proposals.find(p=>p.id===reviewPlanID);if(!p||comparison().proposal?.id!==p.id)return;
+  try{
+    let groups=editablePlans(),next=state;
+    if(newTitle){let n=groups.length+1;while(groups.some(g=>g.id==='plan-'+n))n++;planID='plan-'+n;groups.push({id:planID,title:newTitle,proposal_ids:[]});}
+    if(!state.plan_groups||newTitle)next=M.setPlans(next,groups);
+    if(!next.selected.includes(p.id))next=M.select(next,p.id,true,planID);
+    groups=clone(next.plan_groups);for(const g of groups)g.proposal_ids=g.proposal_ids.filter(id=>id!==p.id);
+    groups.find(g=>g.id===planID).proposal_ids.push(p.id);
+    next=M.setPlans(next,groups);reviewProblem=null;persist(next);$('review-plan-dialog').close();renderReviewNav(comparison());
+  }catch(e){
+    reviewProblem={id:p.id,enabled:true,message:e.message};
+    const missing=p.depends_on.some(id=>!state.selected.includes(id)),conflicting=state.document.proposals.some(q=>state.selected.includes(q.id)&&(p.conflicts_with.includes(q.id)||q.conflicts_with.includes(p.id)));
+    if(missing||conflicting){$('review-plan-dialog').close();renderReviewProblem(p);}
+    else $('review-plan-error').textContent=e.message;
+  }
+}
+function openReviewPlans(create=false){
+  const p=comparison().proposal;if(!p||state.sealed)return;reviewPlanID=p.id;
+  $('review-plan-context').textContent=p.title;$('review-plan-title').textContent=state.selected.includes(p.id)?'Перенести этап в план':'Добавить этап в план';
+  $('review-plan-error').textContent='';$('review-plan-name').value='';const list=$('review-plan-options');list.replaceChildren();
+  for(const group of M.plans(state)){
+    const row=elem('button',undefined,'review-option'),body=elem('span'),current=group.proposal_ids.includes(p.id);
+    row.dataset.reviewPlan=group.id;body.append(elem('strong',group.title),elem('small',group.proposal_ids.length+' этапов'));
+    row.append(elem('span',current?'✓':'↳','number'),body,elem('span',current?'Текущий план':state.selected.includes(p.id)?'Перенести сюда':'Добавить сюда','option-state'));
+    row.setAttribute('aria-current',String(current));row.onclick=()=>assignReviewPlan(group.id);list.append(row);
+  }
+  $('review-plan-dialog').showModal();if(create)$('review-plan-name').focus();else list.querySelector('button')?.focus();
+}
+$('review-plan-pick').onclick=()=>openReviewPlans();$('review-new-plan').onclick=()=>openReviewPlans(true);
+$('review-plan-form').onsubmit=e=>{e.preventDefault();const title=$('review-plan-name').value.trim();if(!title){$('review-plan-error').textContent='Введите название плана.';return;}assignReviewPlan(null,title);};
+$('review-remove').onclick=()=>{
+  const p=comparison().proposal;if(!p)return;
+  try{reviewProblem=null;persist(M.select(state,p.id,false));renderReviewNav(comparison());}
+  catch(e){reviewProblem={id:p.id,enabled:false,message:e.message};renderReviewProblem(p);}
+};
+
+let playback=null,playbackRequest=0,playbackLayout=null;
+function positionPlayback(){const views=document.querySelector('.views');$('transition-view').style.top=views.offsetTop+'px';$('transition-view').style.height=views.offsetHeight+'px';}
+function stopPlayback(restore=true){
+  playbackRequest++;playback?.destroy();playback=null;$('transition-view').hidden=true;
+  const layout=playbackLayout;playbackLayout=null;
+  if(restore&&layout&&graphLayout!==layout)setLayout(layout);
+}
+async function startPlayback(){
+  if(!comparison().proposal)return;
+  if(playback){playback.replay();return;}
+  stopPlayback(false);const request=playbackRequest;playbackLayout=graphLayout;clearEdge();setLayout('diagram');
+  $('play-transition').disabled=true;
+  try{
+    await new Promise(requestAnimationFrame);await new Promise(requestAnimationFrame);
+    for(let i=0;!diagram?.ready&&i<600;i++){if(request!==playbackRequest)return;await new Promise(requestAnimationFrame);}
+    if(request!==playbackRequest)return;
+    if(!diagram?.ready)throw new Error('Схема ещё строится. Попробуйте воспроизведение через несколько секунд.');
+    $('transition-view').hidden=false;positionPlayback();$('transition-title').textContent=comparison().proposal.title;
+    playback=diagram.animate($('transition-canvas'),status=>{
+      $('transition-phase').textContent=status.progress===1?'После':status.progress===0?'До':status.phase==='nodes'?'1 / 2 · Компоненты':'2 / 2 · Связи';
+      $('transition-progress').style.width=(status.progress*100)+'%';
+      $('transition-toggle').textContent=status.progress===1?'▶ Повторить':status.playing?'Ⅱ Пауза':'▶ Продолжить';
+    });
+  }catch(e){stopPlayback();error(e);}finally{$('play-transition').disabled=!comparison().proposal;}
+}
+$('play-transition').onclick=startPlayback;$('transition-toggle').onclick=()=>playback?.toggle();$('transition-replay').onclick=()=>playback?.replay();$('transition-close').onclick=()=>stopPlayback();
+new ResizeObserver(()=>{if(playback)positionPlayback();}).observe(document.querySelector('.views'));
+
+function reviewIDs(){return $('review-scope').value==='selected'?M.order(state.document,state.selected):state.document.proposals.map(p=>p.id);}
+function renderReviewNav(c){
+  const ids=reviewIDs(),index=ids.indexOf(c.proposal?.id);
+  renderReviewActions(c.proposal);
+  $('play-transition').disabled=!c.proposal||Boolean(playbackLayout&&!playback);
+  $('play-transition').title=c.proposal?'Показать переход до → после на схеме':'Откройте предложение для воспроизведения';
+  $('review-title').textContent=c.proposal?.title||'Все выбранные изменения';$('review-title').title=$('review-title').textContent;$('step').title=$('review-title').textContent;
+  $('review-position').textContent=c.proposal?(index>=0?`${index+1} из ${ids.length} · `:'Вне выбранного списка · ')+(state.selected.includes(c.proposal.id)?'В плане':'Предпросмотр · не выбрано'):`Общий вид · ${state.selected.length} выбрано из ${state.document.proposals.length}`;
+  $('review-progress').style.width=ids.length&&index>=0?((index+1)/ids.length*100)+'%':'0%';
+  $('previous-step').disabled=!ids.length||index===0;$('next-step').disabled=!ids.length||index===ids.length-1;
+  $('review-overview').disabled=!c.proposal;
+}
+function renderExplanation(c) {
+  renderReviewNav(c);
+  syncExplanation();
+  const box=$('review-note'),signature=JSON.stringify([c.proposal,c.index,c.before,c.after,graphLayout==='diagram',state.document.revision,state.selected.length]);
+  if(box.dataset.signature===signature)return;box.dataset.signature=signature;
+  const sameProposal=box.dataset.proposal===(c.proposal?.id||''),scroll= sameProposal?box.scrollTop:0,expanded=sameProposal&&box.querySelector('details')?.open;
+  box.replaceChildren();box.dataset.proposal=c.proposal?.id||'';
+  if(graphLayout!=='diagram' && !c.proposal)return;
+  if(!c.proposal) {
+    box.append(elem('strong','Схема области анализа · '+state.document.title),elem('p','Контейнеры — границы компонентов; стрелки подписаны по типу связи. Клик по связи выделяет её; метка ⓘ открывает назначение, символы и изменения.'));
+    box.append(elem('small',state.selected.length ? 'Выбрано '+state.selected.length+' этапов. В навигаторе выберите все предложения или только выбранные; «Дальше» покажет следующее изменение.' : 'Откройте этапы и нажмите «Разобрать»: предпросмотр не выбирает и не согласовывает изменение.'));
+    return;
+  }
+  const p=c.proposal, diff=RefactorGraphics.difference(c.before,c.after);
+  box.append(elem('strong',(c.index?'Этап '+c.index+' · ':'Предпросмотр, этап не выбран · ')+p.title),elem('p',p.rationale));
+  box.append(elem('small','Фрагмент этапа: затронутые компоненты и изменяемые связи. Стрелки — зависимости, не порядок выполнения. Пунктир — предполагаемая связь.'));
+  const details=elem('details');details.open=Boolean(expanded);details.append(elem('summary','Что меняется, цена и проверка'));
+  for(const id of new Set([...p.changes.add_nodes.map(n=>n.id),...p.changes.update_nodes.map(n=>n.id),...p.changes.remove_nodes])){
+    const before=c.before.nodes.find(n=>n.id===id),after=c.after.nodes.find(n=>n.id===id);
+    const type=diff.nodes.get(id);
+    details.append(elem('p',(type==='added'?'Добавляется: ':type==='removed'?'Удаляется: ':'Меняется: ')+(after||before).label));
+    if(before?.description)details.append(elem('small','До: '+before.description));
+    if(after?.description)details.append(elem('small','После: '+after.description));
+    if(before?.parent!==after?.parent)details.append(elem('small','Граница: '+(before?.parent||'верхний уровень')+' → '+(after?.parent||'верхний уровень')));
+  }
+  details.append(elem('p','Цена и риски: '+(p.risks.join(' ')||'Не описаны — уточните до согласования.')),
+    elem('p','Проверка: '+p.verification.join(' ')),elem('small','Ожидаемый эффект — гипотеза плана. Новый блок сам по себе не доказывает улучшение.'));
+  box.append(details);box.scrollTop=scroll;
+}
+function reviewProposal(id) {
+  stopPlayback();
+  const p=state.document.proposals.find(p=>p.id===id),value='preview:'+id;
+  if(![...$('step').options].some(o=>o.value===value))$('step').append(new Option('Предпросмотр: '+p.title,value));
+  $('step').value=value;$('relation').value='all';$('hops').value='0';$('search').value='';focused=[];
+  setLayout('diagram');setViewMode('both');setPanel(false);renderDetail();scheduleDraw();
+}
+function renderDetail() {
+  const doc = state.document, node = currentTarget().nodes.find(n => n.id === selectedNode) || doc.baseline.nodes.find(n => n.id === selectedNode);
+  const signature=JSON.stringify([node,doc.revision,$('step').value]);
+  if(detailSignature===signature)return;detailSignature=signature;
+  $('detail').replaceChildren(elem('h2', node ? node.label : 'Компонент или связь'));
+  if(!node) {$('detail').append(elem('p', 'Выберите компонент или связь на схеме. Здесь появятся описание, источники и замечания.', 'muted')); return;}
+  $('detail').append(elem('p', node.description || node.kind));
+  const prior=comparison().before.nodes.find(n=>n.id===node.id);
+  if(prior && prior.description!==node.description)$('detail').append(elem('small','До этапа: '+(prior.description||prior.kind)));
+  if(node.source) $('detail').append(elem('small', `${node.source.file}:${node.source.start || '?'}–${node.source.end || '?'}`));
+  $('detail').append(elem('p', Object.entries(node.metrics || {}).map(([k,v]) => `${k}: ${v}`).join(' · ') || 'No measured metrics available.'));
+  for(const f of doc.findings.filter(f => f.node_ids.includes(node.id))) {
+    const box = elem('div', undefined, 'finding');
+    box.append(elem('h3', f.title), elem('p', f.detail), elem('small', f.evidence));
+    if(f.priority)box.append(elem('small',`Польза ${f.priority.benefit}/5 · Простота ${f.priority.ease}/5. ${f.priority.reason}`));
+    $('detail').append(box);
+  }
+  for(const e of doc.baseline.edges.filter(e => e.source === node.id || e.target === node.id))
+    $('detail').append(elem('small', `${e.kind} (${e.confidence}): ${e.evidence}`));
+}
+
+function viewGraph(graph) {
+  const c=comparison(), stageDetails=graphLayout==='diagram'&&c.proposal;
+  const level=stageDetails?99:Number($('level').value);
+  const nodes=new Map(graph.nodes.map(n=>[n.id,n]));
+  function representative(id) {
+    const chain=[], seen=new Set(); let n=nodes.get(id);
+    while(n && !seen.has(n.id)) {chain.unshift(n); seen.add(n.id); n=nodes.get(n.parent);}
+    return chain[Math.min(level, chain.length - 1)];
+  }
+  const reps=new Map(graph.nodes.map(n=>representative(n.id)).filter(Boolean).map(n=>[n.id,n]));
+  let edges=graph.edges.filter(e=>$('relation').value==='all'||e.kind===$('relation').value).map(e=>({...e,source:representative(e.source)?.id,target:representative(e.target)?.id})).filter(e=>e.source&&e.target&&e.source!==e.target);
+  const seeds=new Set(focused.map(id=>representative(id)?.id).filter(Boolean)), hops=Number($('hops').value);
+  let allowed=new Set(reps.keys());
+  if(stageDetails) {
+    const p=c.proposal,diff=RefactorGraphics.difference(c.before,c.after);
+    allowed=new Set([...p.node_ids,...diff.nodes.keys()].filter(id=>nodes.has(id)));
+    for(const id of [...allowed]){let n=nodes.get(id);while(n?.parent&&nodes.has(n.parent)){allowed.add(n.parent);n=nodes.get(n.parent);}}
+  }
+  if(hops && seeds.size) {allowed=new Set([...seeds].filter(id=>allowed.has(id))); for(let i=0;i<hops;i++){const expanded=new Set(allowed); for(const e of edges){if(allowed.has(e.source))expanded.add(e.target);if(allowed.has(e.target))expanded.add(e.source);}allowed=expanded;}}
+  const query=$('search').value.toLowerCase();
+  if(query) allowed=new Set([...allowed].filter(id=>{const n=reps.get(id);return [n.label,n.id,n.source?.file].join(' ').toLowerCase().includes(query);}));
+  edges=edges.filter(e=>allowed.has(e.source)&&allowed.has(e.target));
+  const findings=new Set(state.document.findings.flatMap(f=>f.node_ids).map(id=>representative(id)?.id).filter(Boolean));
+  return {nodes:[...allowed].map(id=>reps.get(id)),edges,all:nodes,findings,representative};
+}
+function displayGraph(graph, diff, future) {
+  const data = viewGraph(graph), nodes = new Map(data.nodes.map(n => [n.id, {...n, finding: data.findings.has(n.id), focused: focused.includes(n.id)}]));
+  if(future) for(const [id, change] of diff.nodes) {
+    const rep = data.representative(id), n = nodes.get(rep?.id);
+    if(n && (!n.change || n.id === id)) n.change = n.id === id ? change : 'affected';
+  }
+  for(const n of nodes.values()) {
+    let group=n; const seen=new Set();
+    while(data.all.has(group.parent) && data.all.get(group.parent).parent && !seen.has(group.id)) {seen.add(group.id);group=data.all.get(group.parent);}
+    n.group=group.id;
+    n.emphasized = highlights.has(n.change) || (n.finding && highlights.has('finding'));
+    n.muted = highlights.size > 0 && !n.emphasized;
+  }
+  const focusIDs = new Set(focused.map(id => data.representative(id)?.id));
+  let edges = data.edges.map(e => ({...e, change: future ? diff.edges.get(e.id) : null,
+    muted:highlights.size > 0 && !nodes.get(e.source)?.emphasized && !nodes.get(e.target)?.emphasized}));
+  if(graphLayout==='diagram'&&comparison().proposal)edges=edges.filter(e=>diff.edges.has(e.id));
+  edges = edges.filter(e => selectedEdges.includes(e.id) || $('connections').value === 'all' || e.change || focusIDs.has(e.source) || focusIDs.has(e.target));
+  for(const n of nodes.values()) if(nodes.has(n.parent)) edges.push({id:'containment:' + n.id,source:n.parent,target:n.id,containment:true});
+  return {nodes:[...nodes.values()], edges};
+}
+function scheduleDraw() {
+  if(renderPending)return;renderPending=true;
+  requestAnimationFrame(()=>{
+    renderPending=false;
+    try {
+      const c=comparison(),baseline=c.before,target=c.after,diff=RefactorGraphics.difference(baseline,target);
+      renderExplanation(c);
+      $('level').disabled=Boolean(graphLayout==='diagram'&&c.proposal);syncFilterIcons();
+      document.querySelector('.view:first-child h2').textContent=c.proposal?'До этапа · '+c.proposal.title:'Сейчас · текущая архитектура';
+      document.querySelector('.view:last-child h2').textContent=c.proposal?'После этапа · '+c.proposal.title:'Будет · выбранные изменения';
+      // Removed elements stay as ghosts so deletion is visible in the future view.
+      const future={nodes:[...target.nodes,...baseline.nodes.filter(n=>diff.nodes.get(n.id)==='removed')],
+        edges:[...target.edges,...baseline.edges.filter(e=>diff.edges.get(e.id)==='removed')]};
+      const a=displayGraph(baseline,diff,graphLayout==='diagram'),b=displayGraph(graphLayout==='diagram'?target:future,diff,true);
+      for(const key of ['before','after']){$(key+'-webgl').hidden=graphLayout==='diagram';$(key+'-diagram').hidden=graphLayout!=='diagram';}
+      const onNode=id=>{clearEdge();window.refactor.focus(id?[id]:[]);if(id){setPanel(true);setTab('details');$('pane-details').scrollTop=0;}};
+      if(graphLayout==='diagram') {
+        graphics?.resize();
+        if(!diagram)diagram=new RefactorGraphics.Diagram({before:$('before-diagram'),after:$('after-diagram')},onNode,selectEdge,error);
+        diagram.setSelection(selectedEdges);
+        diagram.setPanMode(panMode);diagram.render({before:a,after:b},JSON.stringify([a,b]));
+      } else {
+        if(!graphics)graphics=new RefactorGraphics.Workbench({before:$('before-webgl'),after:$('after-webgl')},onNode,selectEdge);
+        graphics.setSelection(selectedEdges);
+        const signature=JSON.stringify([a,b,graphLayout,$('dimension').value,state.document.revision]);
+        const place=graphLayout==='spatial'?RefactorGraphics.spatialPositions:RefactorGraphics.positions;
+        graphics.setPanMode(panMode);graphics.render({before:a,after:b},place(state.document.baseline,state.document.proposals,Number($('level').value)),Number($('dimension').value),signature,graphLayout);
+      }
+      $('stats').textContent=`${a.nodes.length} → ${b.nodes.length} components · ${state.selected.length} stages`;
+      $('future-note').textContent=c.proposal ? 'Показан эффект только этого этапа; выбор и согласование — отдельно.' : state.selected.length ? 'Design preview · future metrics are not measured' : 'Пока ничего не выбрано. Откройте «Этапы и обсуждение» и выберите изменения.';
+      for(const [key,data] of [['before',a],['after',b]]) $(key+'-empty').textContent=data.nodes.length?'':'No components at this filter';
+      $('node-list').replaceChildren();
+      const nodes=new Map([...a.nodes,...b.nodes].map(n=>[n.id,n]));
+      for(const node of nodes.values()){const button=elem('button',node.label);button.onclick=()=>{window.refactor.focus([node.id]);setPanel(true);setTab('details');};$('node-list').append(button);}
+    } catch(e) {error('3D view unavailable: '+e.message);}
+  });
+}
+function setPanel(open) {
+  document.querySelector('aside').hidden=!open;
+  $('panel-toggle').setAttribute('aria-expanded',String(open));
+  if(open)requestAnimationFrame(()=>{markReplyRead();updateReplyBadge();});
+}
+$('panel-toggle').onclick=()=>{
+  if(lastReply()?.revision>ui.readRevision)jumpToReply();else setPanel($('workshop-panel').hidden);
+};
+for(const button of document.querySelectorAll('[data-tab]')){
+  button.onclick=()=>setTab(button.dataset.tab);
+  button.onkeydown=e=>{
+    const tabs=['stages','plans','discussion','details'],i=tabs.indexOf(button.dataset.tab);
+    const next=e.key==='ArrowRight'?(i+1)%tabs.length:e.key==='ArrowLeft'?(i+tabs.length-1)%tabs.length:e.key==='Home'?0:e.key==='End'?tabs.length-1:null;
+    if(next!==null){e.preventDefault();setTab(tabs[next],true);}
+  };
+}
+$('new-reply').onclick=jumpToReply;
+$('chat').onscroll=()=>{markReplyRead();updateReplyBadge();if($('chat').scrollHeight-$('chat').clientHeight-$('chat').scrollTop<40)$('new-reply').hidden=true;};
+$('comment').value=typeof ui.draft==='string'?ui.draft:'';
+$('comment').oninput=()=>{ui.draft=$('comment').value;saveUI();$('send').disabled=state.sealed||!ui.draft.trim();};
+$('comment-target').onchange=()=>{ui.target=$('comment-target').value;saveUI();};
+$('proposal-order').value=ui.order;
+$('proposal-order').onchange=()=>{ui.order=$('proposal-order').value;saveUI();renderProposals(state.document);$('pane-stages').scrollTop=0;};
+$('comment').onkeydown=e=>{if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)&&!e.isComposing){e.preventDefault();$('send').click();}};
+setTab(ui.tab);
+$('panel-close').onclick=()=>setPanel(false);
+function explanationLimits(){const width=document.querySelector('.analysis-area').clientWidth;return {min:Math.min(240,Math.max(160,width-48)),max:Math.max(240,Math.min(640,width-(innerWidth<=760?48:360))) };}
+function syncExplanation(){
+  const dock=$('explanation-dock'),available=Boolean(comparison().proposal)||graphLayout==='diagram',open=ui.explanationOpen!==false;
+  dock.hidden=!available;dock.dataset.open=String(open);
+  const {min,max}=explanationLimits(),width=Math.max(min,Math.min(max,Number(ui.explanationWidth)||320));
+  dock.style.setProperty('--explanation-width',width+'px');
+  const toggle=$('explanation-toggle');toggle.setAttribute('aria-expanded',String(open));toggle.textContent=open?'‹':'Описание ›';toggle.title=open?'Свернуть описание':'Открыть описание изменения';toggle.setAttribute('aria-label',toggle.title);
+  const handle=$('explanation-resize');handle.setAttribute('aria-valuemin',min);handle.setAttribute('aria-valuemax',max);handle.setAttribute('aria-valuenow',Math.round(width));
+}
+$('explanation-toggle').onclick=()=>{ui.explanationOpen=ui.explanationOpen===false;saveUI();syncExplanation();};
+const explanationHandle=$('explanation-resize');let explanationDrag=null;
+explanationHandle.onpointerdown=e=>{
+  if(e.button!==0)return;e.preventDefault();e.stopPropagation();
+  explanationDrag={id:e.pointerId,x:e.clientX,width:$('explanation-dock').getBoundingClientRect().width};explanationHandle.setPointerCapture(e.pointerId);document.body.classList.add('resizing-explanation');
+};
+explanationHandle.onpointermove=e=>{
+  if(!explanationDrag||e.pointerId!==explanationDrag.id)return;
+  const {min,max}=explanationLimits();ui.explanationWidth=Math.max(min,Math.min(max,explanationDrag.width+e.clientX-explanationDrag.x));syncExplanation();
+};
+function finishExplanationResize(){if(!explanationDrag)return;explanationDrag=null;document.body.classList.remove('resizing-explanation');saveUI();}
+explanationHandle.onpointerup=finishExplanationResize;explanationHandle.onpointercancel=finishExplanationResize;explanationHandle.onlostpointercapture=finishExplanationResize;window.addEventListener('blur',finishExplanationResize);
+explanationHandle.onkeydown=e=>{
+  if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();e.stopPropagation();
+  const {min,max}=explanationLimits(),width=$('explanation-dock').getBoundingClientRect().width;
+  ui.explanationWidth=e.key==='Home'?min:e.key==='End'?max:Math.max(min,Math.min(max,width+(e.key==='ArrowRight'?24:-24)));syncExplanation();saveUI();
+};
+new ResizeObserver(syncExplanation).observe(document.querySelector('.analysis-area'));
+
+function setPanMode(value){panMode=value;document.body.classList.toggle('pan-mode',value);graphics?.setPanMode(value);diagram?.setPanMode(value);}
+window.addEventListener('keyup',e=>{if(e.code==='Space')setPanMode(false);});
+window.addEventListener('blur',()=>setPanMode(false));
+document.addEventListener('visibilitychange',()=>{if(document.hidden)setPanMode(false);});
+function setLayout(layout) {
+  connectionPreferences[graphLayout]=$('connections').value;
+  graphLayout=layout;$('connections').value=connectionPreferences[graphLayout];
+  for(const b of document.querySelectorAll('button[data-layout]'))b.setAttribute('aria-pressed',String(b.dataset.layout===layout));
+  scheduleDraw();
+}
+for(const button of document.querySelectorAll('button[data-layout]'))button.onclick=()=>{stopPlayback(false);setLayout(button.dataset.layout);};
+function activeRenderer(){return graphLayout==='diagram'?diagram:graphics;}
+function advanceStep(direction) {
+  const ids=reviewIDs();
+  if(!ids.length)return;
+  const current=comparison().proposal,index=ids.indexOf(current?.id);
+  reviewProposal(ids[index<0?(direction<0?ids.length-1:0):Math.max(0,Math.min(ids.length-1,index+direction))]);
+}
+$('review-scope').onchange=()=>renderReviewNav(comparison());
+$('review-overview').onclick=()=>{stopPlayback();$('step').value='all';clearEdge();renderDetail();scheduleDraw();};
+$('previous-step').onclick=()=>advanceStep(-1);$('next-step').onclick=()=>advanceStep(1);
+function updateHighlights() {
+  for(const button of document.querySelectorAll('button[data-highlight]')) button.setAttribute('aria-pressed',String(highlights.has(button.dataset.highlight)));
+  scheduleDraw();
+}
+for(const button of document.querySelectorAll('button[data-highlight]')) button.onclick=()=>{
+  const key=button.dataset.highlight;
+  if(highlights.has(key))highlights.delete(key);else highlights.add(key);
+  updateHighlights();
+};
+$('clear-highlights').onclick=()=>{highlights.clear();updateHighlights();};
+function setViewMode(mode) {
+  if(viewMode===mode)return;
+  stopPlayback(false);
+  viewMode=mode;
+  document.querySelector('.views').dataset.mode=mode;
+  for(const b of document.querySelectorAll('button[data-mode]')) b.setAttribute('aria-pressed',String(b.dataset.mode===mode));
+  requestAnimationFrame(()=>activeRenderer()?.resize());
+}
+for(const button of document.querySelectorAll('button[data-mode]')) button.onclick=()=>setViewMode(button.dataset.mode);
+document.addEventListener('keydown',event=>{
+  if(event.defaultPrevented || event.isComposing || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey)return;
+  if(event.target.closest('input,textarea,select,[contenteditable]:not([contenteditable="false"]),[role="textbox"]'))return;
+  if(document.querySelector('dialog[open],#graph-filter-popover:popover-open'))return;
+  if(event.code==='Space'){event.preventDefault();setPanMode(true);return;}
+  if(event.repeat)return;
+  if(event.code==='KeyF'){event.preventDefault();activeRenderer()?.fit();return;}
+  if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();advanceStep(event.key==='ArrowLeft'?-1:1);return;}
+  const layout={Digit4:'diagram',Digit5:'spatial',Digit6:'hierarchy',Numpad4:'diagram',Numpad5:'spatial',Numpad6:'hierarchy'}[event.code];
+  if(layout){event.preventDefault();stopPlayback(false);setLayout(layout);return;}
+  const mode={Digit1:'current',Digit2:'future',Digit3:'both',Numpad1:'current',Numpad2:'future',Numpad3:'both'}[event.code];
+  if(mode){event.preventDefault();setViewMode(mode);}
+});
+for(const id of ['level','hops','relation','connections','dimension','step','search']) $(id).addEventListener('input',()=>{
+  stopPlayback();renderDetail();scheduleDraw();
+  if(id==='dimension')requestAnimationFrame(()=>graphics?.fit());
+});
+const filterPopover=$('graph-filter-popover');
+let openFilter=null;
+function filterDefault(id){return {level:'1',hops:'0',connections:graphLayout==='hierarchy'?'focus':'all',relation:'all',search:''}[id];}
+function syncFilterIcons(){
+  for(const button of document.querySelectorAll('[data-filter]')){
+    const id=button.dataset.filter,control=$(id),label=control.closest('label').firstChild.textContent;
+    const value=id==='search'?(control.value.trim()||'Не задан'):control.selectedOptions[0]?.textContent;
+    button.title=control.disabled?'В разборе детализация выбирается автоматически':label+' · '+value;
+    button.setAttribute('aria-label',button.title);button.disabled=control.disabled;
+    button.dataset.active=String(control.value!==filterDefault(id));
+    button.setAttribute('aria-expanded',String(openFilter===id&&filterPopover.matches(':popover-open')));
+  }
+  if(openFilter)$('filter-reset').disabled=$(openFilter).value===filterDefault(openFilter);
+}
+function positionFilter(){
+  if(!openFilter||!filterPopover.matches(':popover-open'))return;
+  const r=$('filter-'+openFilter).getBoundingClientRect(),p=filterPopover.getBoundingClientRect();
+  filterPopover.style.left=Math.max(12,Math.min(r.left,innerWidth-p.width-12))+'px';
+  filterPopover.style.top=Math.max(12,Math.min(r.bottom+8,innerHeight-p.height-12))+'px';
+}
+for(const button of document.querySelectorAll('[data-filter]'))button.onclick=()=>{
+  const id=button.dataset.filter;
+  if(openFilter===id&&filterPopover.matches(':popover-open')){filterPopover.hidePopover();return;}
+  openFilter=id;
+  for(const label of filterPopover.querySelectorAll('[data-filter-field]'))label.hidden=label.dataset.filterField!==id;
+  $('filter-heading').textContent=$(id).closest('label').firstChild.textContent;
+  filterPopover.showPopover();syncFilterIcons();positionFilter();$(id).focus({preventScroll:true});
+};
+filterPopover.addEventListener('toggle',()=>{syncFilterIcons();positionFilter();});
+$('filter-close').onclick=()=>{filterPopover.hidePopover();$('filter-'+openFilter).focus({preventScroll:true});};
+$('filter-reset').onclick=()=>{const control=$(openFilter);control.value=filterDefault(openFilter);control.dispatchEvent(new Event('input'));control.focus();};
+window.addEventListener('resize',positionFilter);
+document.querySelector('.toolbar-primary').addEventListener('scroll',positionFilter);
+$('reset').onclick=()=>activeRenderer()?.fit();
+$('send').onclick=()=>{
+  try{
+    const next=M.comment(state,$('comment').value,$('comment-target').value||null);
+    persist(next);$('comment').value='';ui.draft='';saveUI();$('send').disabled=true;
+    $('chat').scrollTop=$('chat').scrollHeight;$('comment').focus({preventScroll:true});
+    $('send-status').textContent=storageWarning||'Сообщение добавлено в очередь. Ответ появится в этой переписке.';
+  }catch(e){$('send-status').textContent=e.message;error(e);}
+};
+$('approve').onclick=()=>action(()=>M.approve(state));
+$('download').onclick=()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));const a=elem('a');a.href=url;a.download='refactor-checkpoint.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+new ResizeObserver(scheduleDraw).observe(document.querySelector('.views'));
+render();error('');
+</script>
+</body>
+</html>

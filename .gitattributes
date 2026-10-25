@@ -1,0 +1,2 @@
+# Preserve upstream license text and embedded shader strings in generated bundles.
+pipelines/*/ui/vendor/* -whitespace linguist-generated=true

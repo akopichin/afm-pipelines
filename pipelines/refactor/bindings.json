@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "pipeline": "refactor",
+  "roles": {
+    "architect_a": {
+      "profile": "pipeline-refactor-architect-a",
+      "command": "pipeline-refactor-architect-a",
+      "client": "claude",
+      "model": "claude-opus-5-5",
+      "reasoning": "xhigh",
+      "execution": "docker"
+    },
+    "architect_b": {
+      "profile": "pipeline-refactor-architect-b",
+      "command": "pipeline-refactor-architect-b",
+      "client": "codex",
+      "model": "gpt-6.1-sol",
+      "reasoning": "xhigh",
+      "execution": "docker"
+    }
+  }
+}

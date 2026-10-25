@@ -1,0 +1,64 @@
+schema_version: 1
+name: refactor
+version: 0.2.0
+description: Two-architect analysis and an interactive, user-approved refactoring workshop.
+entrypoint: flow.yaml
+license: MIT
+
+installation:
+  project_path: pipelines/refactor
+  configuration_example: config.example.yaml
+  scope: project
+
+requirements:
+  node: ">=18"
+  git: true
+  afm_features: [worktrees, team, script_stages, managed_browser]
+  browser_capable_coordinator: true
+  analyzer:
+    name: strictacode
+    install_version: 0.0.12
+    container_setup: scripts/setup-strictacode.sh
+    host_setup: manual
+    installation_needs: [python3, venv, uv_or_pip, network]
+
+setup:
+  configuration:
+    collaboration_enabled: true
+    managed_browser_enabled: true
+    docker_auto_shim: true
+  models:
+    - role: architect_a
+      team_member: pipeline-refactor-architect-a
+      profile: pipeline-refactor-architect-a
+      command: pipeline-refactor-architect-a
+      client: claude
+      model: claude-opus-5-5
+      reasoning: xhigh
+    - role: architect_b
+      team_member: pipeline-refactor-architect-b
+      profile: pipeline-refactor-architect-b
+      command: pipeline-refactor-architect-b
+      client: codex
+      model: gpt-6.1-sol
+      reasoning: xhigh
+  model_policy: resolved_bindings
+  skills:
+    - name: strictacode
+      source: skills/strictacode
+      runtime_loading: explicit_package_path
+      offer_client_installation: true
+
+artifacts:
+  run_snapshot: scope/toolkit
+  export_path: docs/superpowers/refactors/<run-directory-name>
+  modifies_application_source: false
+  executes_refactoring: false
+
+development:
+  node: ">=22"
+  tests: npm test
+  browser_tests: npm run test:browser
+  build: npm run build
+tested_with:
+  afm: 2.0.0

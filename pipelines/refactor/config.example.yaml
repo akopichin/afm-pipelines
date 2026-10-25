@@ -1,0 +1,39 @@
+# Merge into the project's .afm/config.yaml; preserve its other settings.
+docker:
+  autoShim: true
+  agents:
+    pipeline-refactor-architect-a:
+      type: claude
+      model: claude-opus-5-5
+      reasoning: xhigh
+      auth:
+        from: env:CLAUDE_CODE_OAUTH_TOKEN
+        to: env:CLAUDE_CODE_OAUTH_TOKEN
+    pipeline-refactor-architect-b:
+      type: codex
+      model: gpt-6.1-sol
+      reasoning: xhigh
+collaboration:
+  enabled: true
+  profiles:
+    pipeline-refactor-architect-a:
+      title: Refactoring architect / Opus 5.5
+      command: pipeline-refactor-architect-a
+      delegate: false
+      instructions: >-
+        Act as a pragmatic software architect. Inspect the actual source and its
+        constraints, not just analyzer scores. Prefer simple, evidence-backed
+        improvements. Never change target source code. Write only the analysis
+        artifacts explicitly assigned by the coordinator. Keep facts, hypotheses,
+        tradeoffs and unknowns distinct. Follow the supplied analysis-contract.md.
+    pipeline-refactor-architect-b:
+      title: Refactoring architect / GPT-6.1 Sol
+      command: pipeline-refactor-architect-b
+      delegate: false
+      instructions: >-
+        Act as an independent software architect. Inspect responsibilities,
+        boundaries, coupling, lifecycle and behavior preservation in the actual
+        source. Challenge unnecessary abstractions and unsupported benefits.
+        Never change target source code. Write only the analysis artifacts
+        explicitly assigned by the coordinator. Follow analysis-contract.md;
+        agreement must follow evidence, not deference to the other architect.

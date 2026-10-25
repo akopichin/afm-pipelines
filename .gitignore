@@ -29,5 +29,10 @@ go.work.sum
 .env
 
 # Editor/IDE
-# .idea/
+.idea/
 # .vscode/
+
+# Local package dependencies and run artifacts
+node_modules/
+.afm/
+.DS_Store
