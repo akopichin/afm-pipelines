@@ -1,0 +1,196 @@
+{
+  "nodes": [
+    {
+      "id": "channels",
+      "label": "Каналы продаж",
+      "kind": "subsystem",
+      "description": "Каналы продаж · illustrative demo component"
+    },
+    {
+      "id": "orders",
+      "label": "Заказы",
+      "kind": "subsystem",
+      "description": "Заказы · illustrative demo component"
+    },
+    {
+      "id": "handler",
+      "label": "HTTP checkout",
+      "kind": "file",
+      "description": "HTTP validation, pricing delegation and saving.",
+      "parent": "channels"
+    },
+    {
+      "id": "worker",
+      "label": "CSV import",
+      "kind": "file",
+      "description": "CSV import · illustrative demo component",
+      "parent": "channels"
+    },
+    {
+      "id": "subscription",
+      "label": "Subscriptions",
+      "kind": "file",
+      "description": "Subscriptions · illustrative demo component",
+      "parent": "channels"
+    },
+    {
+      "id": "partner",
+      "label": "Partner API",
+      "kind": "file",
+      "description": "Partner API · illustrative demo component",
+      "parent": "channels"
+    },
+    {
+      "id": "import-price",
+      "label": "Import price",
+      "kind": "file",
+      "description": "Import price · illustrative demo component",
+      "parent": "orders"
+    },
+    {
+      "id": "renewal-price",
+      "label": "Renewal price",
+      "kind": "file",
+      "description": "Renewal price · illustrative demo component",
+      "parent": "orders"
+    },
+    {
+      "id": "partner-price",
+      "label": "Partner price",
+      "kind": "file",
+      "description": "Partner price · illustrative demo component",
+      "parent": "orders"
+    },
+    {
+      "id": "store",
+      "label": "Order store",
+      "kind": "file",
+      "description": "Order store · illustrative demo component",
+      "parent": "orders"
+    },
+    {
+      "id": "receipts",
+      "label": "Receipts",
+      "kind": "file",
+      "description": "Receipts · illustrative demo component",
+      "parent": "orders"
+    },
+    {
+      "id": "pricing",
+      "label": "CalculatePrice",
+      "kind": "file",
+      "parent": "orders",
+      "description": "Proposed pure pricing module; future metrics are not measured."
+    }
+  ],
+  "edges": [
+    {
+      "id": "handler-store",
+      "source": "handler",
+      "target": "store",
+      "kind": "calls",
+      "confidence": "confirmed",
+      "symbols": [
+        "SaveOrder"
+      ],
+      "description": "Вызывает SaveOrder.",
+      "evidence": "Illustrative example relationship; not a source scan."
+    },
+    {
+      "id": "worker-price",
+      "source": "worker",
+      "target": "import-price",
+      "kind": "calls",
+      "confidence": "confirmed",
+      "symbols": [
+        "ImportTotal"
+      ],
+      "description": "Вызывает ImportTotal.",
+      "evidence": "Illustrative example relationship; not a source scan."
+    },
+    {
+      "id": "sub-price",
+      "source": "subscription",
+      "target": "renewal-price",
+      "kind": "calls",
+      "confidence": "confirmed",
+      "symbols": [
+        "RenewalTotal"
+      ],
+      "description": "Вызывает RenewalTotal.",
+      "evidence": "Illustrative example relationship; not a source scan."
+    },
+    {
+      "id": "partner-price-link",
+      "source": "partner",
+      "target": "partner-price",
+      "kind": "calls",
+      "confidence": "confirmed",
+      "symbols": [
+        "PartnerTotal"
+      ],
+      "description": "Вызывает PartnerTotal.",
+      "evidence": "Illustrative example relationship; not a source scan."
+    },
+    {
+      "id": "worker-store",
+      "source": "worker",
+      "target": "store",
+      "kind": "calls",
+      "confidence": "confirmed",
+      "symbols": [
+        "SaveOrder"
+      ],
+      "description": "Вызывает SaveOrder.",
+      "evidence": "Illustrative example relationship; not a source scan."
+    },
+    {
+      "id": "sub-store",
+      "source": "subscription",
+      "target": "store",
+      "kind": "calls",
+      "confidence": "confirmed",
+      "symbols": [
+        "SaveOrder"
+      ],
+      "description": "Вызывает SaveOrder.",
+      "evidence": "Illustrative example relationship; not a source scan."
+    },
+    {
+      "id": "partner-store",
+      "source": "partner",
+      "target": "store",
+      "kind": "calls",
+      "confidence": "confirmed",
+      "symbols": [
+        "SaveOrder"
+      ],
+      "description": "Вызывает SaveOrder.",
+      "evidence": "Illustrative example relationship; not a source scan."
+    },
+    {
+      "id": "store-receipts",
+      "source": "store",
+      "target": "receipts",
+      "kind": "calls",
+      "confidence": "confirmed",
+      "symbols": [
+        "SendReceipt"
+      ],
+      "description": "Вызывает SendReceipt.",
+      "evidence": "Illustrative example relationship; not a source scan."
+    },
+    {
+      "id": "handler-pricing",
+      "source": "handler",
+      "target": "pricing",
+      "kind": "calls",
+      "confidence": "inferred",
+      "evidence": "Proposed extraction; not yet implemented.",
+      "symbols": [
+        "CalculatePrice"
+      ],
+      "description": "Передаёт товары и скидку; получает итог в копейках."
+    }
+  ]
+}

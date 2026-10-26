@@ -61,6 +61,7 @@ function validate(dir) {
     reports[reviewer] = report;
   }
   for (const item of [...doc.findings, ...doc.proposals]) priority(item.priority, item.id);
+  doc.proposals.forEach(M.explanation);
   const consensus = read(dir, 'consensus.json');
   check(consensus.schema_version === 2 && consensus.source_fingerprint === source.fingerprint &&
     consensus.ranking_policy === 'benefit_then_ease', 'Invalid consensus source or ranking policy');

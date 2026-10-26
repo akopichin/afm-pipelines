@@ -1,0 +1,1 @@
+AFM Refactor: inspect the change, ask about the risk, then split the work into named plans. This walkthrough turns duplicated pricing into one shared module and two reviewable implementation plans.

@@ -1,6 +1,6 @@
 # Pipeline roles and model bindings
 
-Installer protocol 1 supports per-pipeline model choices. Refactor 0.2.0 uses
+Installer protocol 1 supports per-pipeline model choices. Refactor 0.3.0 uses
 stable reviewer roles and configurable bindings instead of hard-coded model
 identities. Older runs retain their original frozen scripts and contracts.
 

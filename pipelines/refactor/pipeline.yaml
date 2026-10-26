@@ -1,6 +1,6 @@
 schema_version: 1
 name: refactor
-version: 0.2.0
+version: 0.3.0
 description: Two-architect analysis and an interactive, user-approved refactoring workshop.
 entrypoint: flow.yaml
 license: MIT

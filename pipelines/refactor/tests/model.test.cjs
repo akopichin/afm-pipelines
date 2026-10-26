@@ -49,8 +49,7 @@ test('comments block approval until addressed; stale approval cannot be sealed',
   assert.throws(() => M.approve(state), /address/);
   const doc = {...copy(example), revision: 2, addressed_event_id: 2, reply: 'Rounding is explicitly preserved.'};
   state = M.publish(state, doc);
-  assert.deepEqual(state.selected, []);
-  state = M.select(state, 'extract-pricing', true);
+  assert.deepEqual(state.selected, ['extract-pricing']);
   state = M.approve(state);
   const approved = copy(state.approval);
   const sealed = M.seal(state, 2, approved.event_id);
@@ -75,7 +74,9 @@ test('checkpoint restore detects forged or stale approval and retains unacknowle
 
 test('new proposals invalidate approval without losing comments; baseline is immutable', () => {
   const state = M.approve(M.select(M.create(example), 'extract-pricing', true));
-  const updated = M.publish(state, {...copy(example), revision: 2});
+  const revision = {...copy(example), revision: 2};
+  revision.proposals[0].steps.push('Check the updated contract before proceeding.');
+  const updated = M.publish(state, revision);
   assert.equal(updated.approval, null);
   assert.deepEqual(updated.selected, []);
   assert.deepEqual(updated.events, state.events);
@@ -219,7 +220,32 @@ test('named plans preserve approval, order dependencies and export cumulative sn
   const deselected=M.select(state,'reuse-pricing',false);
   assert.deepEqual(deselected.plan_groups[0].proposal_ids,[]);
   assert.deepEqual(M.select(deselected,'reuse-pricing',true,'reuse').plan_groups[0].proposal_ids,['reuse-pricing']);
-  assert(M.publish(state,{...copy(example),revision:2}).plan_groups.every(g=>!g.proposal_ids.length));
+  assert.deepEqual(M.publish(state,{...copy(example),revision:2}).plan_groups,state.plan_groups);
+  const revised={...copy(example),revision:2};revised.proposals[0].risks.push('A newly identified compatibility risk.');
+  assert(M.publish(state,revised).plan_groups.every(g=>!g.proposal_ids.length));
+});
+
+test('concise explanations validate without breaking older checkpoints',()=>{
+  const doc=copy(example);assert(M.validate(doc));
+  doc.proposals[0].explanation.before='';assert.throws(()=>M.validate(doc),/explanation.before/);
+  doc.proposals[0].explanation.before='x'.repeat(361);assert.throws(()=>M.validate(doc),/360/);
+  delete doc.proposals[0].explanation;assert(M.restore(M.create(doc)));
+  assert.throws(()=>M.publish(M.create(example),{...doc,revision:2}),/explanation/);
+});
+
+test('discussion replies are scoped, durable and preserve plans until the proposal changes',()=>{
+  let state=M.select(M.create(example),'extract-pricing',true);
+  state=M.setPlans(state,[{id:'one',title:'One',proposal_ids:['extract-pricing']},{id:'two',title:'Two',proposal_ids:[]}]);
+  state=M.comment(state,'Keep rounding?','extract-pricing');state=M.comment(state,'How about imports?','reuse-pricing');
+  const doc={...copy(example),revision:2,addressed_event_id:state.events.length,replies:[{proposal_id:'extract-pricing',text:'Rounding stays unchanged.'}]};
+  assert.throws(()=>M.publish(state,doc),/Missing reply.*reuse-pricing/);
+  doc.replies.push({proposal_id:'reuse-pricing',text:'Compare import fixtures first.'});
+  const next=M.publish(state,doc);assert.deepEqual(next.selected,state.selected);assert.deepEqual(next.plan_groups,state.plan_groups);
+  const recovered=M.restore(JSON.parse(JSON.stringify(next)));assert.equal(M.replies(recovered).length,2);
+  assert.equal(M.replies(recovered).find(r=>r.proposal_id==='reuse-pricing').text,'Compare import fixtures first.');
+  const revised={...copy(doc),revision:3,replies:[]};revised.proposals[0].explanation.after='Use a different extraction boundary.';
+  const changed=M.publish(recovered,revised);assert.deepEqual(changed.selected,[]);assert.equal(M.replies(M.restore(changed)).length,2);
+  const invalid=copy(changed);invalid.reply_history[0].through=999;assert.throws(()=>M.restore(invalid),/reply/);
 });
 
 test('grouping rejects missing, duplicate, unsafe and circular plan assignments atomically',()=>{
@@ -239,4 +265,14 @@ test('optional edge purpose and symbols remain backward compatible and validated
   assert.deepEqual(M.restore(M.create(doc)).document.baseline.edges[0].symbols,['SaveOrder']);
   doc.baseline.edges[0].symbols=[{name:'not a string'}];assert.throws(()=>M.validate(doc),/symbols/);
   delete doc.baseline.edges[0].symbols;doc.baseline.edges[0].description=42;assert.throws(()=>M.validate(doc),/description/);
+});
+
+test('a changed goal or constraint needs a new selection review',()=>{
+  const state=M.select(M.create(example),'extract-pricing',true);
+  for(const key of ['goal','constraints']){
+    const doc={...copy(example),revision:2};
+    if(key==='goal')doc.goal='A different intended outcome.';
+    else doc.constraints.push('Keep all exported function names.');
+    assert.deepEqual(M.publish(state,doc).selected,[]);
+  }
 });

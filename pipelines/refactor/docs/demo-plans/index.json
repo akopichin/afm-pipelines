@@ -1,0 +1,26 @@
+{
+  "source_revision": "illustrative-example-not-a-real-scan",
+  "approval_event": 8,
+  "plans": [
+    {
+      "id": "plan-2",
+      "title": "01 · Общий расчёт",
+      "proposal_ids": [
+        "extract-pricing"
+      ],
+      "depends_on": [],
+      "file": "01-plan-2.md"
+    },
+    {
+      "id": "plan-3",
+      "title": "02 · Подключение каналов",
+      "proposal_ids": [
+        "reuse-pricing"
+      ],
+      "depends_on": [
+        "plan-2"
+      ],
+      "file": "02-plan-3.md"
+    }
+  ]
+}

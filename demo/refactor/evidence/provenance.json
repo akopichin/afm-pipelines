@@ -1,0 +1,10 @@
+{
+  "recorded_on": "2026-10-26",
+  "client": "codex-cli 0.162.1",
+  "model": "gpt-6.1-sol",
+  "provider": "openai",
+  "sandbox": "read-only",
+  "input_files": ["../architecture.json", "question.txt"],
+  "response_file": "reply.txt",
+  "scope": "Real model response to a synthetic architecture fixture, replayed through window.refactor.publish during UI capture. No production source analysis or live AFM run is represented."
+}

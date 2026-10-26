@@ -36,6 +36,11 @@ prompt: |
   its docs/workshop.md and examples/example.json for the data contract and CDP protocol. Analyze
   the effective run worktree, not the main checkout or another external project.
   Use the user's language in explanations, findings, proposals and the final plan.
+  Every proposal must include explanation: {why, problem, before, after,
+  before_refs, after_refs}, following contracts/analysis-contract.md. Write short,
+  plain sentences: why it matters, the concrete problem, the current code and
+  the exact proposed change. Name real functions/files and evidence-backed counts.
+  Do not hide this information in rationale or jargon. Both architects review it.
   Preserve exact source evidence. Distinguish observed facts, metric signals and
   inferred architectural relationships. Do not fabricate metrics or future scores.
   Treat strictacode thresholds as investigation signals, not proof that code must
@@ -257,8 +262,8 @@ stages:
       on the native host it binds loopback. All interaction is through CDP.
       Check window.refactor.status(), the visible UI and console errors. Invite
       the user to explore levels, relation types, neighborhoods and selected stages.
-      Start with the full-page Current view and 3D graph layout. Show the stages/discussion side panel
-      when needed. Current / Future / Both switch views; comparison cameras are
+      Start with the full-page Current view and 3D graph layout. The left vertical
+      pills open Description, Discussion and Plan for the current stage. Current / Future / Both switch views; comparison cameras are
       synchronized. Future glows mark the selected changes, including removed
       elements as red ghosts. Hierarchy levels follow parent relationships.
       3D graph / Hierarchy selects luminous spheres or structured cards. The bottom
@@ -270,8 +275,8 @@ stages:
       Future metrics are deliberately unknown. Initial findings and proposals
       were jointly approved by two architects; read consensus.json for exclusions
       and uncertainty. Priority is an ordinal estimate of benefit and ease, not
-      a measured gain. The Stages tab can sort by benefit or ease without selecting
-      anything. If subsequent feedback materially changes the agreed proposals or
+      a measured gain. The top navigator and List open one proposal at a time without selecting
+      it. Description shows Why, Problem, Before and After; keep these concise. If subsequent feedback materially changes the agreed proposals or
       priorities, say that the earlier architect agreement covers the initial
       packet only; do not claim new changes were reviewed by both automatically.
 
@@ -292,17 +297,22 @@ stages:
       bounded shell waits between CDP calls; do not end the stage or create .done
       merely because there is no new feedback. Save after each new event batch.
       Selection and plans events do not need a proposal rewrite. Preserve plan_groups
-      exactly in checkpoints: the Plans tab assigns selected stages to named plans;
+      exactly in checkpoints: the Plan pill assigns stages to named plans;
       export writes each plan separately with dependencies and snapshots. Comments need a concrete
       answer and, when requested, adjusted alternatives and graph changes.
 
       For an update: keep session_id, baseline and source identical; increment
       revision; set addressed_event_id to the last event you actually addressed;
-      put your response in reply. Write and validate architecture.json first.
+      write replies as an array of {proposal_id, text}, one entry for every topic
+      in the addressed comment batch; use null for the general discussion. Match
+      the event's proposal_id exactly, even if the proposal is removed in this revision.
+      Replies belong to that stage, not to whichever stage the user opens later.
+      A short reply summary is optional for old clients. Preserve explanation on
+      every proposal. Write and validate architecture.json first.
       Publish its parsed object via window.refactor.publish(document). The page
-      automatically clears selection and approval so the human reviews that exact
-      revision again. Save a fresh checkpoint immediately. Do not alter the camera
-      unsolicited. Explain material tradeoffs in the proposal cards and reply.
+      clears selection when proposals, findings, goal or constraints change. A reply-only revision
+      preserves selected stages and plan grouping; approval is always invalidated. Save a fresh checkpoint immediately. Do not alter the camera
+      unsolicited. Explain material tradeoffs in the structured description and the matching reply.
 
       On retry/resume, recover checkpoint.json. If the browser already has newer
       events, save those instead. When a fresh page is needed, build with

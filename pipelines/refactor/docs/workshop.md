@@ -117,35 +117,37 @@ AFM_COLLABORATION=1 AFM_BROWSER=1 afm run pipelines/refactor/flow.yaml \
 The HTML embeds pinned `3d-force-graph`, Three.js and ELK bundles. Opening or building
 a report requires no CDN requests or npm installation. WebGL2 is required for the
 3D views. Rotate by dragging, pan with the right mouse button, zoom with the wheel.
-The graph occupies the main viewport; stages, evidence and discussion
-open in a collapsible side panel. Component buttons in that panel provide a
-keyboard-accessible alternative to clicking graph nodes.
-The panel reserves its own column and reduces the graph viewport instead of
-covering it; on narrow screens it docks below the graph. Resizing preserves the
-camera direction and adjusts its distance to the available space. The toolbar
-groups modes, plan actions, and compact filter buttons together. Filter controls
-open from their icons, leaving more height for the graph.
+The graph occupies the main viewport. Three vertical pills on the left open
+**Описание** (Description), **Обсуждение** (Discussion), or **План** (Plan).
+Only one drawer is open at a time. Drag its right edge to resize it; on desktop
+it reserves space instead of covering the graphs. Narrow screens use an overlay.
+The toolbar keeps modes, plan actions and compact filter icons together.
 
-The right panel has four tabs: **Этапы** (Stages), **Планы** (Plans),
-**Обсуждение** (Discussion), and **Детали** (Details). Plans organize selected
-stages into separate execution plans. Stages show a short rationale and expandable steps,
-risks and checks. **Разобрать** previews a stage; its checkbox includes it in
-the plan. **Обсудить** opens Discussion with that stage as the message topic.
-Clicking a graph component or arrow opens Details.
+Use the proposal review arrows at the top to move between changes. Description
+shows four separate blocks: **Зачем** (Why), **Что решает** (Problem), **До**
+(Before), and **После** (After), followed by optional implementation details.
+Both architects must approve this concise, plain-language explanation along
+with the findings and ranking. Existing checkpoints without these fields still
+open, with their original rationale and a legacy-format notice.
 
-Discussion keeps the composer visible below the conversation. **Отправить**
-(Send) or **Cmd/Ctrl + Enter** queues a message. Its status distinguishes a
-browser queue from an agent-saved checkpoint; neither status means an answer
-has arrived. Replies appear as separate agent cards. An unread reply marks the
-Discussion tab and the panel toggle; the latter opens the latest answer.
-An incoming reply does not switch tabs or interrupt reading earlier messages.
+Discussion follows the proposal currently being reviewed. **Все обсуждения**
+shows the complete conversation; the composer still names its destination.
+**Отправить** (Send) or **Cmd/Ctrl + Enter** queues a message. Its status
+distinguishes a browser queue from an agent-saved checkpoint; neither means an
+answer has arrived. Agent replies appear separately, and an unread reply marks
+the Discussion pill. Incoming replies do not switch drawers.
 
-Agent acknowledgements preserve the panel's scroll, expanded cards and input
-focus. Draft text and its topic survive page reloads in the same browser.
-Replies observed by this UI are cached locally for conversation history;
-only the latest reply is part of the portable checkpoint. If the agent publishes
-a new proposal revision, the panel explains that selections must be reviewed
-again. This UI update itself does not change selections or approval.
+Each proposal has its own draft, preserved across navigation and page reloads.
+Reply history is included in the portable checkpoint, including its proposal
+IDs. A reply-only revision preserves selected stages and named plans; changes
+to proposals, findings, the goal or constraints require reviewing selections
+again. Every revision invalidates an earlier approval.
+
+Plan shows the current plan, its ordered stages, checks and risks. **Перенести
+этап** opens a destination picker: select an existing plan or create a named
+one, then confirm. Cancel changes nothing. **Все планы** expands the complete
+plan manager. Component details and evidence remain available in this drawer
+when selecting a node, alongside a keyboard-accessible component list.
 
 Use **Сейчас / Будет / Оба** (Current / Future / Both) to switch between a single
 large graph and a comparison with synchronized cameras. Future initially matches
@@ -248,7 +250,7 @@ A stage diagram is a fragment: affected components, their containing boundaries,
 and only the relations changed by that stage. It expands the necessary source
 detail automatically. Removed components/relations appear in Before and are
 absent in After; they are not added back as ghosts in this diagram. The left
-**Об изменении** panel explains the intended benefit and expands to show responsibility changes,
+**Описание** panel explains the intended benefit and expands to show responsibility changes,
 risks and verification. More boxes or fewer visible arrows are not quality scores;
 benefits remain hypotheses until implementation and verification.
 
@@ -308,8 +310,9 @@ the agent is busy, paused, or disconnected. Unlike AFM's native dialog, waiting
 in this page leaves the workshop stage executing; use Pause or Continue in AFM
 as needed. The **Read browser feedback** stage button can prompt another check.
 
-Every document update requires a larger revision, preserves the baseline, and
-clears selection and approval. Comments block approval until the agent publishes
+Every document update requires a larger revision and preserves the baseline.
+Approval is always cleared; selection is cleared only when proposals, findings,
+the goal or constraints change. Comments block approval until the agent publishes
 a reply with an appropriate `addressed_event_id`. Prerequisites and conflicting
 alternatives are checked before a selection is accepted. Approval is bound to
 the exact document and selected stages; sealing rejects a stale decision.
@@ -324,15 +327,16 @@ never overwrite newer browser events. AFM may remove its Chrome profile at run e
 ### Split the selection into implementation plans
 
 A rejected selection shows the prerequisite's title and a jump button. Following
-it scrolls to and highlights the required card; nothing is selected automatically.
+it opens the required proposal in the review; nothing is selected automatically.
 Conflicting alternatives and selected dependents are explained the same way.
 
-Open **Планы**, add named plans, and assign each selected stage using its plan
+Open **План**, add named plans, and assign each selected stage using its plan
 selector. The UI displays required plans and the computed execution order. A
 circular grouping is rejected: move the related stages together or split the
 groups differently. Every selected stage belongs to exactly one plan. Changes to
-grouping invalidate an earlier approval; an updated proposal revision clears
-selections while keeping the empty named groups for a fresh review.
+grouping invalidate an earlier approval. Changed proposals clear selections
+while keeping the empty named groups for a fresh review; replies alone preserve
+the grouping.
 
 **Согласовать планы** agrees to the selection and grouping. **Завершить без
 изменений** records an empty selection. Neither executes source changes. Once the
@@ -372,7 +376,7 @@ explicitly synthetic and must never be presented as a project scan.
 | Field | Meaning |
 |---|---|
 | `schema_version`, `session_id`, `revision` | Contract version, run identity and proposal revision |
-| `addressed_event_id`, optional `reply` | Feedback addressed by this revision and the agent's response |
+| `addressed_event_id`, optional `replies` | Addressed feedback cursor and topic-specific `{proposal_id, text}` replies; legacy `reply` is still accepted |
 | `title`, `goal`, `constraints` | Confirmed objective and boundaries |
 | `source.revision`, `source.fingerprint`, `source.limitations` | Source receipt identity and explicit analysis omissions |
 | `baseline.nodes` | Stable IDs, label, kind, optional parent, source range, measured metrics |

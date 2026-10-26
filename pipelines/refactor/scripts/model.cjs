@@ -119,6 +119,7 @@
     const proposals = unique(doc.proposals, 'proposals');
     for (const p of doc.proposals) {
       priority(p);
+      if (p.explanation !== undefined) explanation(p);
       for (const field of ['title', 'rationale', 'effort']) check(text(p[field]), `Missing ${p.id}.${field}`);
       for (const field of ['depends_on', 'conflicts_with', 'finding_ids', 'node_ids', 'steps', 'verification', 'risks']) {
         check(list(p[field]), `Missing ${p.id}.${field}`);
@@ -134,6 +135,15 @@
       check(p.changes.add_nodes.every(node => !node.metrics || Object.keys(node.metrics).length === 0),
         'Do not invent measured metrics for proposed nodes');
     }
+    if (doc.replies !== undefined) {
+      check(list(doc.replies), 'replies must be an array');
+      const topics = new Set();
+      for (const reply of doc.replies) {
+        check(reply && (reply.proposal_id === null || text(reply.proposal_id)) && text(reply.text), 'Invalid discussion reply');
+        check(!topics.has(reply.proposal_id), 'Duplicate discussion reply topic');
+        topics.add(reply.proposal_id);
+      }
+    }
     // Validate each alternative with its prerequisites, without combining conflicting alternatives.
     for (const proposal of doc.proposals) {
       const closure = new Set();
@@ -146,6 +156,32 @@
       target(doc, [...closure]);
     }
     return doc;
+  }
+
+  function explanation(proposal) {
+    const value = proposal.explanation;
+    check(value && typeof value === 'object', `Missing ${proposal.id}.explanation`);
+    for (const [key, limit] of [['why',160],['problem',360],['before',360],['after',360]])
+      check(text(value[key]) && value[key].length <= limit, `Expected concise ${proposal.id}.explanation.${key} (up to ${limit} characters)`);
+    for (const key of ['before_refs','after_refs']) if (value[key] !== undefined)
+      check(list(value[key]) && value[key].length <= 8 && value[key].every(v => text(v) && v.length <= 200), `Invalid ${proposal.id}.explanation.${key}`);
+    return value;
+  }
+
+  function documentReplies(doc, events, previous = 0) {
+    let entries = doc.replies;
+    if (!entries?.length && text(doc.reply)) {
+      const topics = [...new Set(events.filter(e => e.kind === 'comment' && e.id > previous && e.id <= doc.addressed_event_id).map(e => e.proposal_id || null))];
+      entries = (topics.length ? topics : [null]).map(proposal_id => ({proposal_id, text:doc.reply}));
+    }
+    return (entries || []).map(r => ({...copy(r), revision:doc.revision, through:doc.addressed_event_id}));
+  }
+
+  function replies(state) {
+    const history = copy(state.reply_history || []);
+    if (!history.some(r => r.revision === state.document.revision))
+      history.push(...documentReplies(state.document, state.events, Math.max(0,...history.map(r=>r.through))));
+    return history;
   }
 
   function create(doc) {
@@ -249,13 +285,25 @@
       JSON.stringify(doc.source) === JSON.stringify(state.document.source), 'Baseline is immutable; start a new session for a rescan');
     check(doc.addressed_event_id >= state.document.addressed_event_id && doc.addressed_event_id <= state.events.length,
       'Invalid addressed event cursor');
-    return {...copy(state), document: copy(doc), selected: [], approval: null,
-      ...(state.plan_groups ? {plan_groups:state.plan_groups.map(g => ({...copy(g),proposal_ids:[]}))} : {})};
+    if (state.document.proposals.length && state.document.proposals.every(p=>p.explanation)) doc.proposals.forEach(explanation);
+    const addressed = state.events.filter(e=>e.kind==='comment' && e.id>state.document.addressed_event_id && e.id<=doc.addressed_event_id);
+    if (doc.replies !== undefined) for (const comment of addressed)
+      check(doc.replies.some(r=>r.proposal_id===(comment.proposal_id||null)), 'Missing reply for discussion: '+(comment.proposal_id||'general'));
+    const reply_history = [...replies(state), ...documentReplies(doc, state.events, state.document.addressed_event_id)];
+    const changed = ['proposals','findings','goal','constraints'].some(key=>JSON.stringify(doc[key])!==JSON.stringify(state.document[key]));
+    return {...copy(state), document: copy(doc), reply_history, selected:changed?[]:copy(state.selected), approval: null,
+      ...(state.plan_groups ? {plan_groups:state.plan_groups.map(g => ({...copy(g),proposal_ids:changed?[]:copy(g.proposal_ids)}))} : {})};
   }
 
   function restore(state) {
     check(state && state.schema_version === 1 && list(state.events) && list(state.selected), 'Invalid checkpoint');
     validate(state.document);
+    if (state.reply_history !== undefined) {
+      check(list(state.reply_history), 'Invalid reply history');
+      for (const reply of state.reply_history) check(reply && text(reply.text) &&
+        (reply.proposal_id===null || text(reply.proposal_id)) && Number.isInteger(reply.revision) && reply.revision>0 && reply.revision<=state.document.revision &&
+        Number.isInteger(reply.through) && reply.through>=0 && reply.through<=state.document.addressed_event_id, 'Invalid saved discussion reply');
+    }
     state.events.forEach((e, index) => check(e.id === index + 1 && text(e.kind), 'Invalid event sequence'));
     check(Number.isInteger(state.acknowledged) && state.acknowledged >= 0 && state.acknowledged <= state.events.length,
       'Invalid acknowledgement');
@@ -282,7 +330,7 @@
     return {...copy(state), sealed: true};
   }
 
-  const api = {validate, graph, order, target, create, select, plans, setPlans, comment, approve, publish, restore, seal};
+  const api = {validate, explanation, replies, graph, order, target, create, select, plans, setPlans, comment, approve, publish, restore, seal};
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.RefactorModel = api;
 })(globalThis);

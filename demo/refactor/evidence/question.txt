@@ -1,0 +1,6 @@
+Как сохранить округление при объединении расчёта?
+
+Context: architecture.json is an illustrative example, not scanned source code.
+Reply in Russian in at most 220 characters, two short sentences. Name the check
+before consolidation and the condition for deleting copies. No Markdown. Do not
+claim to have reviewed real source.

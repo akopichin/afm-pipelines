@@ -83,7 +83,9 @@ function planFiles(checkpoint) {
 function stageLines(doc, ids) {
   return ids.flatMap((id,index)=>{
     const p=doc.proposals.find(item=>item.id===id);
-    return [`### ${index+1}. ${p.title} (${id})`, '', p.rationale, '', `Effort: ${p.effort}`,
+    const explanation=p.explanation ? ['**Why**', '',p.explanation.why,'','**Problem**','',p.explanation.problem,'',
+      '**Before**','',p.explanation.before,...(p.explanation.before_refs||[]).map(ref=>'- '+ref),'','**After**','',p.explanation.after,...(p.explanation.after_refs||[]).map(ref=>'- '+ref)] : [p.rationale];
+    return [`### ${index+1}. ${p.title} (${id})`, '', ...explanation, '', `Effort: ${p.effort}`,
       `Prerequisites: ${p.depends_on.join(', ')||'None'}`, '', ...p.steps.map((s,i)=>`${i+1}. ${s}`), '',
       '**Verification**', '', ...p.verification.map(s=>'- '+s), '', '**Risks**', '', ...p.risks.map(s=>'- '+s), ''];
   });

@@ -5,49 +5,247 @@
   "addressed_event_id": 0,
   "title": "Order service · example",
   "goal": "Make pricing rules independently testable while keeping the HTTP contract.",
-  "constraints": ["Keep the existing HTTP response format.", "No database migration."],
+  "constraints": [
+    "Keep the existing HTTP response format.",
+    "No database migration."
+  ],
   "source": {
     "revision": "illustrative-example-not-a-real-scan",
     "fingerprint": "synthetic-example-no-source-fingerprint",
-    "limitations": ["Synthetic example. No actual project was analyzed.", "The example demonstrates component-level relationships, not a complete call graph."]
+    "limitations": [
+      "Synthetic example. No actual project was analyzed.",
+      "The example demonstrates component-level relationships, not a complete call graph."
+    ]
   },
   "baseline": {
     "nodes": [
-      {"id": "api", "label": "API", "kind": "subsystem", "description": "HTTP transport and request handling."},
-      {"id": "orders", "label": "Orders", "kind": "subsystem", "description": "Order lifecycle and storage."},
-      {"id": "handler", "label": "Create order", "kind": "file", "parent": "api", "description": "Validates requests, calculates prices and saves orders.", "source": {"file": "api/orders.go", "start": 20, "end": 140}, "metrics": {"loc": 120, "complexity": 34}},
-      {"id": "store", "label": "Order store", "kind": "file", "parent": "orders", "description": "Persists orders.", "source": {"file": "orders/store.go", "start": 1, "end": 90}, "metrics": {"loc": 90}},
-      {"id": "worker", "label": "Import worker", "kind": "file", "parent": "orders", "description": "Imports orders using a duplicate price calculation.", "source": {"file": "orders/import.go", "start": 1, "end": 80}, "metrics": {"loc": 80, "complexity": 20}}
+      {
+        "id": "api",
+        "label": "API",
+        "kind": "subsystem",
+        "description": "HTTP transport and request handling."
+      },
+      {
+        "id": "orders",
+        "label": "Orders",
+        "kind": "subsystem",
+        "description": "Order lifecycle and storage."
+      },
+      {
+        "id": "handler",
+        "label": "Create order",
+        "kind": "file",
+        "parent": "api",
+        "description": "Validates requests, calculates prices and saves orders.",
+        "source": {
+          "file": "api/orders.go",
+          "start": 20,
+          "end": 140
+        },
+        "metrics": {
+          "loc": 120,
+          "complexity": 34
+        }
+      },
+      {
+        "id": "store",
+        "label": "Order store",
+        "kind": "file",
+        "parent": "orders",
+        "description": "Persists orders.",
+        "source": {
+          "file": "orders/store.go",
+          "start": 1,
+          "end": 90
+        },
+        "metrics": {
+          "loc": 90
+        }
+      },
+      {
+        "id": "worker",
+        "label": "Import worker",
+        "kind": "file",
+        "parent": "orders",
+        "description": "Imports orders using a duplicate price calculation.",
+        "source": {
+          "file": "orders/import.go",
+          "start": 1,
+          "end": 80
+        },
+        "metrics": {
+          "loc": 80,
+          "complexity": 20
+        }
+      }
     ],
     "edges": [
-      {"id": "handler-store", "source": "handler", "target": "store", "kind": "calls", "confidence": "confirmed", "evidence": "Illustrative api/orders.go:100 SaveOrder call."},
-      {"id": "worker-store", "source": "worker", "target": "store", "kind": "calls", "confidence": "confirmed", "evidence": "Illustrative orders/import.go:65 SaveOrder call."}
+      {
+        "id": "handler-store",
+        "source": "handler",
+        "target": "store",
+        "kind": "calls",
+        "confidence": "confirmed",
+        "evidence": "Illustrative api/orders.go:100 SaveOrder call."
+      },
+      {
+        "id": "worker-store",
+        "source": "worker",
+        "target": "store",
+        "kind": "calls",
+        "confidence": "confirmed",
+        "evidence": "Illustrative orders/import.go:65 SaveOrder call."
+      }
     ]
   },
   "findings": [
-    {"id": "pricing-mixed", "title": "Pricing mixed with transport", "severity": "high", "detail": "Price calculation cannot be tested independently of the request handler.", "node_ids": ["handler"], "evidence": "Illustrative api/orders.go:40–95 pricing block."},
-    {"id": "pricing-duplicate", "title": "Two pricing implementations", "severity": "medium", "detail": "The import worker duplicates the handler's rules.", "node_ids": ["handler", "worker"], "evidence": "Illustrative matching rules in api/orders.go and orders/import.go."}
+    {
+      "id": "pricing-mixed",
+      "title": "Pricing mixed with transport",
+      "severity": "high",
+      "detail": "Price calculation cannot be tested independently of the request handler.",
+      "node_ids": [
+        "handler"
+      ],
+      "evidence": "Illustrative api/orders.go:40–95 pricing block."
+    },
+    {
+      "id": "pricing-duplicate",
+      "title": "Two pricing implementations",
+      "severity": "medium",
+      "detail": "The import worker duplicates the handler's rules.",
+      "node_ids": [
+        "handler",
+        "worker"
+      ],
+      "evidence": "Illustrative matching rules in api/orders.go and orders/import.go."
+    }
   ],
   "proposals": [
     {
-      "id": "extract-pricing", "title": "Extract pricing rules", "rationale": "Make pricing testable without HTTP or storage.", "effort": "small",
-      "depends_on": [], "conflicts_with": [], "finding_ids": ["pricing-mixed"], "node_ids": ["handler"],
-      "steps": ["Capture current price calculation behavior with boundary cases.", "Extract a pure CalculatePrice function into orders/pricing.go.", "Call it from the HTTP handler while preserving response semantics."],
-      "verification": ["Run pricing boundary-case tests.", "Run existing HTTP contract tests."],
-      "risks": ["Preserve rounding and discount precedence."],
+      "id": "extract-pricing",
+      "title": "Extract pricing rules",
+      "rationale": "Make pricing testable without HTTP or storage.",
+      "effort": "small",
+      "depends_on": [],
+      "conflicts_with": [],
+      "finding_ids": [
+        "pricing-mixed"
+      ],
+      "node_ids": [
+        "handler"
+      ],
+      "steps": [
+        "Capture current price calculation behavior with boundary cases.",
+        "Extract a pure CalculatePrice function into orders/pricing.go.",
+        "Call it from the HTTP handler while preserving response semantics."
+      ],
+      "verification": [
+        "Run pricing boundary-case tests.",
+        "Run existing HTTP contract tests."
+      ],
+      "risks": [
+        "Preserve rounding and discount precedence."
+      ],
       "changes": {
-        "add_nodes": [{"id": "pricing", "label": "Pricing rules", "kind": "file", "parent": "orders", "description": "Proposed pure pricing module; future metrics are not measured."}],
-        "remove_nodes": [], "update_nodes": [{"id": "handler", "description": "HTTP validation, pricing delegation and saving."}],
-        "add_edges": [{"id": "handler-pricing", "source": "handler", "target": "pricing", "kind": "calls", "confidence": "inferred", "evidence": "Proposed extraction; not yet implemented."}], "remove_edges": []
+        "add_nodes": [
+          {
+            "id": "pricing",
+            "label": "Pricing rules",
+            "kind": "file",
+            "parent": "orders",
+            "description": "Proposed pure pricing module; future metrics are not measured."
+          }
+        ],
+        "remove_nodes": [],
+        "update_nodes": [
+          {
+            "id": "handler",
+            "description": "HTTP validation, pricing delegation and saving."
+          }
+        ],
+        "add_edges": [
+          {
+            "id": "handler-pricing",
+            "source": "handler",
+            "target": "pricing",
+            "kind": "calls",
+            "confidence": "inferred",
+            "evidence": "Proposed extraction; not yet implemented."
+          }
+        ],
+        "remove_edges": []
+      },
+      "explanation": {
+        "why": "Test pricing without starting the HTTP server.",
+        "problem": "The request handler mixes price calculation with request validation and storage. Tests need unrelated infrastructure.",
+        "before": "api/orders.go calculates the price inside the HTTP request handler.",
+        "after": "Move the calculation into CalculatePrice() in orders/pricing.go. The handler calls it and keeps the HTTP response unchanged.",
+        "before_refs": [
+          "api/orders.go:40–95"
+        ],
+        "after_refs": [
+          "orders/pricing.go → CalculatePrice()",
+          "api/orders.go → CalculatePrice()"
+        ]
       }
     },
     {
-      "id": "reuse-pricing", "title": "Reuse pricing in imports", "rationale": "Use one set of rules for both entry points.", "effort": "small",
-      "depends_on": ["extract-pricing"], "conflicts_with": [], "finding_ids": ["pricing-duplicate"], "node_ids": ["worker", "handler"],
-      "steps": ["Compare existing import and HTTP rounding behavior.", "Replace duplicate import pricing with CalculatePrice.", "Remove only the obsolete implementation."],
-      "verification": ["Run import regression tests and compare totals against existing fixtures."],
-      "risks": ["Imported orders may intentionally use a different pricing policy; confirm before implementation."],
-      "changes": {"add_nodes": [], "remove_nodes": [], "update_nodes": [], "add_edges": [{"id": "worker-pricing", "source": "worker", "target": "pricing", "kind": "calls", "confidence": "inferred", "evidence": "Proposed reuse after extract-pricing."}], "remove_edges": []}
+      "id": "reuse-pricing",
+      "title": "Reuse pricing in imports",
+      "rationale": "Use one set of rules for both entry points.",
+      "effort": "small",
+      "depends_on": [
+        "extract-pricing"
+      ],
+      "conflicts_with": [],
+      "finding_ids": [
+        "pricing-duplicate"
+      ],
+      "node_ids": [
+        "worker",
+        "handler"
+      ],
+      "steps": [
+        "Compare existing import and HTTP rounding behavior.",
+        "Replace duplicate import pricing with CalculatePrice.",
+        "Remove only the obsolete implementation."
+      ],
+      "verification": [
+        "Run import regression tests and compare totals against existing fixtures."
+      ],
+      "risks": [
+        "Imported orders may intentionally use a different pricing policy; confirm before implementation."
+      ],
+      "changes": {
+        "add_nodes": [],
+        "remove_nodes": [],
+        "update_nodes": [],
+        "add_edges": [
+          {
+            "id": "worker-pricing",
+            "source": "worker",
+            "target": "pricing",
+            "kind": "calls",
+            "confidence": "inferred",
+            "evidence": "Proposed reuse after extract-pricing."
+          }
+        ],
+        "remove_edges": []
+      },
+      "explanation": {
+        "why": "Change pricing rules in one place.",
+        "problem": "HTTP requests and imports have separate copies of the pricing rules. Updating only one produces inconsistent totals.",
+        "before": "orders/import.go repeats the calculation used by the HTTP handler.",
+        "after": "Replace the import calculation with CalculatePrice() from orders/pricing.go, after checking that rounding policies match.",
+        "before_refs": [
+          "orders/import.go"
+        ],
+        "after_refs": [
+          "orders/pricing.go → CalculatePrice()",
+          "orders/import.go → CalculatePrice()"
+        ]
+      }
     }
   ]
 }

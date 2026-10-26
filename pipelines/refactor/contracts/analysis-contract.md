@@ -195,3 +195,52 @@ Describe visual changes using add_nodes/remove_nodes/update_nodes/add_edges/
 remove_edges. Each stage and its prerequisites must yield a valid graph;
 explicitly remove dangling edges when deleting a node. Proposed nodes have
 no measured metrics. Avoid gratuitous abstractions or a rewrite based on scores.
+
+
+## Plain-language proposal descriptions
+
+Every final proposal must include `explanation`. Both architects must review
+these fields alongside the evidence and ranking. The analysis gate rejects missing
+or overlong fields. Use the user's language; do not write HTML or Markdown in them.
+
+```json
+{
+  "explanation": {
+    "why": "Change launch settings once.",
+    "problem": "Five runners repeat the same configuration. Missing one copy makes their behavior differ.",
+    "before": "Five runners independently construct executor.Config.",
+    "after": "Extract baseExecutorConfig() into stage_executor.go and call it from all five runners.",
+    "before_refs": ["interactive.go", "autonomous.go"],
+    "after_refs": ["stage_executor.go → baseExecutorConfig()"]
+  }
+}
+```
+
+This example illustrates the writing format, not a finding about the target
+repository. Verify every file, symbol and count against actual source.
+
+- `why`: one plain sentence, up to 160 characters. State the practical benefit.
+- `problem`: one or two sentences, up to 360 characters. Explain what goes wrong
+  or costs effort today. Avoid vague claims such as “improve architecture”.
+- `before`: up to 360 characters. State what the code does now, with concrete
+  symbols, locations and counts only when supported by evidence.
+- `after`: up to 360 characters. State exactly what moves, disappears or becomes
+  shared, and where it goes. Distinguish a proposal from implemented behavior.
+- `before_refs` / `after_refs`: optional arrays, at most eight strings of up to
+  200 characters each. List exact files and symbols separately from the prose.
+
+Keep detailed evidence in findings and rationale; ordered implementation steps,
+verification and risks remain in their existing fields. The UI never invents
+Before/After text by splitting a legacy rationale. Old checkpoints can still be
+opened and explicitly show their older unstructured description.
+
+## Replies in the workshop
+
+Publish `replies: [{proposal_id: "stage-id", text: "Concrete answer"}]` for each
+addressed discussion topic; use `proposal_id: null` for general architecture.
+The stage ID comes from the comment event, including for an obsolete proposal.
+The model validates coverage of new comments before accepting an update with
+structured replies. Replies are saved in checkpoint `reply_history`, so recovery
+and offline reports retain the conversation. Reply-only revisions preserve plan
+membership; changed proposals, findings, goal or constraints clear selection for
+a fresh review. Every revision invalidates an earlier approval.

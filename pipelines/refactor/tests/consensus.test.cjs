@@ -94,3 +94,9 @@ test('both architects can agree that no refactoring is justified', t => {
   for(const d of c.dispositions){d.status='rejected';d.merged_finding_ids=[];d.reason='Counterevidence: the coupling is intentional and bounded.';}
   f.write('consensus.json',c);f.approve();assert.equal(validate(f.dir).findings,0);
 });
+
+test('new consensus packets require a readable before and after explanation', t => {
+  const f=fixture(t),doc=f.read('architecture.json');
+  delete doc.proposals[0].explanation;f.write('architecture.json',doc);f.approve();
+  assert.throws(()=>validate(f.dir),/Missing extract-pricing.explanation/);
+});

@@ -12,10 +12,23 @@ plans. The final stage exports the approved plans and an offline report.
 **This pipeline does not implement the refactoring.** Approval exports plans;
 it does not authorize changes to application source or create commits.
 
+## Watch the workshop
+
+![Refactor workshop: review changes, discuss rounding, rotate the 3D graph and save two plans](docs/assets/refactor-workshop.gif)
+
+An already open workshop: inspect before/after changes, ask about rounding,
+create a plan, preview the next change, rotate the 3D graph, then save two plans.
+The final frame shows the [actual exported plans](docs/demo-plans/README.md):
+shared pricing first, channel migration second.
+
+The checkout architecture is illustrative. The discussion replays a real Codex
+response to that fixture; the interface, selection, approval and plan export
+are real. [Capture source and reproduction instructions](https://github.com/akopichin/afm-pipelines/tree/main/demo/refactor).
+
 ## Requirements
 
 - AFM with worktrees, team agents, script stages, and a managed browser. The
-  package is tested with AFM 2.0.0; this is not a blanket compatibility guarantee
+  package is tested with AFM 2.0.2; this is not a blanket compatibility guarantee
   for older versions.
 - A Git target project and Node.js 18+ in the execution environment.
 - A browser-capable coordinator/workshop client and the two configured
@@ -61,6 +74,20 @@ The worktree contains the application revision being analyzed. Uncommitted
 application changes in the main checkout are not automatically copied into it.
 The package hook can find a newly installed package in the main checkout if it
 is absent from the worktree's revision.
+
+## Update an installed pipeline
+
+After the new catalog commit is pushed, ask the `afm-pipelines` skill in the
+**target project**:
+
+> Update the installed refactor pipeline from akopichin/afm-pipelines to the
+> latest version. Preserve my model bindings, settings and skills. Do not run it.
+
+The installer checks managed files before replacing them and preserves saved
+choices when no new options are supplied. Resolve local managed-file edits
+before updating. There is no need to reinstall AFM or its skills just to update
+this package. Start the next run with the same command. Existing runs keep
+their frozen toolkit; an update does not rewrite a running workshop.
 
 ## Run isolation and outputs
 
