@@ -1,0 +1,184 @@
+# Installer defaults; preserve unrelated project settings.
+docker:
+  autoShim: true
+  agents:
+    dev-default-writer-backend:
+      type: claude
+      model: claude-sonnet-5-5
+      reasoning: high
+      auth:
+        from: env:CLAUDE_CODE_OAUTH_TOKEN
+        to: env:CLAUDE_CODE_OAUTH_TOKEN
+    dev-default-writer-frontend:
+      type: claude
+      model: claude-sonnet-5-5
+      reasoning: high
+      auth:
+        from: env:CLAUDE_CODE_OAUTH_TOKEN
+        to: env:CLAUDE_CODE_OAUTH_TOKEN
+    dev-default-writer-astra:
+      type: codex
+      model: gpt-6-astra
+      reasoning: xhigh
+    dev-default-coordinator-plan:
+      type: codex
+      model: gpt-6.1-sol
+      reasoning: high
+    dev-default-coordinator-work:
+      type: claude
+      model: claude-sonnet-5-5
+      reasoning: high
+      auth:
+        from: env:CLAUDE_CODE_OAUTH_TOKEN
+        to: env:CLAUDE_CODE_OAUTH_TOKEN
+    dev-default-coordinator-docs:
+      type: claude
+      model: claude-sonnet-5-5
+      reasoning: high
+      auth:
+        from: env:CLAUDE_CODE_OAUTH_TOKEN
+        to: env:CLAUDE_CODE_OAUTH_TOKEN
+    dev-default-verifier:
+      type: codex
+      model: gpt-6.1-sol
+      reasoning: high
+    dev-default-arch-backend:
+      type: claude
+      model: claude-opus-5-5
+      reasoning: xhigh
+      auth:
+        from: env:CLAUDE_CODE_OAUTH_TOKEN
+        to: env:CLAUDE_CODE_OAUTH_TOKEN
+    dev-default-arch-frontend:
+      type: claude
+      model: claude-opus-5-5
+      reasoning: xhigh
+      auth:
+        from: env:CLAUDE_CODE_OAUTH_TOKEN
+        to: env:CLAUDE_CODE_OAUTH_TOKEN
+    dev-default-ux:
+      type: claude
+      model: claude-opus-5-5
+      reasoning: high
+      auth:
+        from: env:CLAUDE_CODE_OAUTH_TOKEN
+        to: env:CLAUDE_CODE_OAUTH_TOKEN
+    dev-default-review-correctness:
+      type: codex
+      model: gpt-6-sol
+      reasoning: xhigh
+    dev-default-review-design:
+      type: claude
+      model: claude-opus-5-5
+      reasoning: high
+      auth:
+        from: env:CLAUDE_CODE_OAUTH_TOKEN
+        to: env:CLAUDE_CODE_OAUTH_TOKEN
+    dev-default-review-tests:
+      type: claude
+      model: claude-opus-5-5
+      reasoning: high
+      auth:
+        from: env:CLAUDE_CODE_OAUTH_TOKEN
+        to: env:CLAUDE_CODE_OAUTH_TOKEN
+    dev-default-review-security:
+      type: claude
+      model: claude-opus-5-5
+      reasoning: high
+      auth:
+        from: env:CLAUDE_CODE_OAUTH_TOKEN
+        to: env:CLAUDE_CODE_OAUTH_TOKEN
+collaboration:
+  enabled: true
+  profiles:
+    dev-default-writer-backend:
+      title: Dev pipeline / writer_backend
+      command: dev-default-writer-backend
+      delegate: false
+      instructions: Follow the assigned stage or writer instructions, project rules
+        and required checks. Keep evidence in the run directory.
+    dev-default-writer-frontend:
+      title: Dev pipeline / writer_frontend
+      command: dev-default-writer-frontend
+      delegate: false
+      instructions: Follow the assigned stage or writer instructions, project rules
+        and required checks. Keep evidence in the run directory.
+    dev-default-writer-astra:
+      title: Dev pipeline / writer_astra
+      command: dev-default-writer-astra
+      delegate: false
+      instructions: Follow the assigned stage or writer instructions, project rules
+        and required checks. Keep evidence in the run directory.
+    dev-default-coordinator-plan:
+      title: Dev pipeline / coordinator_plan
+      command: dev-default-coordinator-plan
+      delegate: false
+      instructions: Follow the assigned stage or writer instructions, project rules
+        and required checks. Keep evidence in the run directory.
+    dev-default-coordinator-work:
+      title: Dev pipeline / coordinator_work
+      command: dev-default-coordinator-work
+      delegate: false
+      instructions: Follow the assigned stage or writer instructions, project rules
+        and required checks. Keep evidence in the run directory.
+    dev-default-coordinator-docs:
+      title: Dev pipeline / coordinator_docs
+      command: dev-default-coordinator-docs
+      delegate: false
+      instructions: Follow the assigned stage or writer instructions, project rules
+        and required checks. Keep evidence in the run directory.
+    dev-default-verifier:
+      title: Dev pipeline / verifier
+      command: dev-default-verifier
+      delegate: false
+      instructions: Follow the assigned stage or writer instructions, project rules
+        and required checks. Keep evidence in the run directory.
+    dev-default-arch-backend:
+      title: Dev pipeline / arch_backend
+      command: dev-default-arch-backend
+      delegate: false
+      instructions: Perform only the assigned bounded read-only consultation or
+        review. Follow the coordinator's scope, evidence and skill paths; return
+        a linked result.
+    dev-default-arch-frontend:
+      title: Dev pipeline / arch_frontend
+      command: dev-default-arch-frontend
+      delegate: false
+      instructions: Perform only the assigned bounded read-only consultation or
+        review. Follow the coordinator's scope, evidence and skill paths; return
+        a linked result.
+    dev-default-ux:
+      title: Dev pipeline / ux
+      command: dev-default-ux
+      delegate: false
+      instructions: Perform only the assigned bounded read-only consultation or
+        review. Follow the coordinator's scope, evidence and skill paths; return
+        a linked result.
+    dev-default-review-correctness:
+      title: Dev pipeline / review_correctness
+      command: dev-default-review-correctness
+      delegate: false
+      instructions: Perform only the assigned bounded read-only consultation or
+        review. Follow the coordinator's scope, evidence and skill paths; return
+        a linked result.
+    dev-default-review-design:
+      title: Dev pipeline / review_design
+      command: dev-default-review-design
+      delegate: false
+      instructions: Perform only the assigned bounded read-only consultation or
+        review. Follow the coordinator's scope, evidence and skill paths; return
+        a linked result.
+    dev-default-review-tests:
+      title: Dev pipeline / review_tests
+      command: dev-default-review-tests
+      delegate: false
+      instructions: Perform only the assigned bounded read-only consultation or
+        review. Follow the coordinator's scope, evidence and skill paths; return
+        a linked result.
+    dev-default-review-security:
+      title: Dev pipeline / review_security
+      command: dev-default-review-security
+      delegate: false
+      instructions: Perform only the assigned bounded read-only consultation or
+        review. Follow the coordinator's scope, evidence and skill paths; return
+        a linked result.

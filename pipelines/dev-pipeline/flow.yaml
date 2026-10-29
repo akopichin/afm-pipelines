@@ -1,0 +1,556 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/akopichin/afm/main/schema/flow.schema.json
+# Install this complete package at pipelines/dev-pipeline/ in the target project.
+# Python 3 and the named commands/profiles must be available in the execution environment.
+# The helper's --help and source describe the project contract and helper commands.
+name: dev-pipeline
+description: "Project-aware planning, standing writers, on-demand specialists, real acceptance checks and local merge"
+worktrees: true
+# The installer binds this to the main checkout for linked worktrees.
+skills_dir: ./pipelines/dev-pipeline/skills
+
+# Read existing lessons without paying for reflection/finalization on every task.
+memory:
+  path: __DEV_PIPELINE_MEMORY_DIR__
+  mode: r
+  memory_use: true
+
+prompt: |
+  Общайся с пользователем, показывай планы, вопросы и отчёты по-русски.
+  This flow develops the USER'S PROJECT. Discover its tools and conventions from
+  applicable AGENTS.md, contribution docs and actual code. Follow its requirements
+  for tests, documentation and commit language; keep changes within the approved task.
+
+  Artifacts belong under the absolute $AFM_STAGE_DIR, not in product source files.
+  The approved plan and project contract are sibling plan/dev-plan.md and
+  plan/project.json. Read their paths rather than copying them into messages.
+  The frozen per-run helper is:
+    python3 "$(git rev-parse --git-path dev-pipeline/helper.py)" --help
+  Use it for declared checks, receipts, identity, live-gate and optional app
+  supervision. Keep coordination IDs/brief revisions/check evidence and repair
+  counts in team-progress.json; later stages read saved reports and evidence.
+
+  The assigned skills own check discipline, mesh coordination, writer delivery,
+  read-only review and user-facing reporting. This flow owns ordering, role/profile
+  selection, artifact contracts, approvals and gates. Its execution defaults are:
+  - One owner per check; broad checks belong to declared gates, not every agent.
+  - One focused run; repeats above five require a named hypothesis and budget.
+  - Mutation testing only for an explicit risk, with one owner and bounded mutants.
+  - One initial review and one focused correction review; normally 15 minutes per
+    review. Further rounds need a named defect and a revised budget, never auto-PASS.
+  - Finite mesh wait deadlines, normally 1800 seconds. After two failed repairs or
+    a second rejection of one defect, obtain independent diagnosis before a bounded
+    rescue. Count across stages/turns; unresolved rescue failures need a user decision.
+  Pass the applicable defaults, brief revision and evidence with every assignment;
+  helpers do not inherit this prompt. Required project checks remain mandatory.
+
+  Temporary helpers and AI verify agents do NOT inherit stage/team skills. Every
+  spawn instruction must explicitly require reading these exact files before work:
+    __DEV_PIPELINE_SKILLS_DIR__/afm-review-work/SKILL.md
+    __DEV_PIPELINE_SKILLS_DIR__/afm-check-evidence/SKILL.md
+  Include the bounded question, scope, criteria, prior findings and check budget.
+  A replacement writer also needs the exact afm-dev-writer and afm-check-evidence
+  paths from this library in its assignment; it does not inherit the team's skills.
+  Missing skills/capabilities must be reported; no silent substitute or gate
+  waiver. Reconcile own pending waits/helpers before completion using the coordinator
+  skill when collaboration was used. Routine in-scope work needs no new approval;
+  ask only for missing requirements, material scope changes or a concrete blocker.
+  Own only started processes. Exercise orchestrator products only in an isolated
+  fixture with its own data/port, never by mutating the parent run.
+
+team:
+  - id: dev-backend
+    profile: backend-developer-claude-sonnet-5-5-high
+    title: dev-backend
+    skills: &writer_skills [afm-check-evidence, afm-dev-writer]
+    instruction: &writer_instruction |
+      Implement your assigned bounded task under the writer and check-evidence
+      skills. Use the task's canonical request ID, file grant and current brief.
+      Follow the coordinator's explicit check/review budgets. Do not commit or push;
+      return the linked deliverable and evidence for independent acceptance.
+  - id: dev-frontend
+    profile: frontend-developer-claude-sonnet-5-5-high
+    title: dev-frontend
+    skills: *writer_skills
+    instruction: *writer_instruction
+  - id: astra
+    profile: dev-pipeline-astra-xhigh
+    title: astra
+    skills: *writer_skills
+    instruction: *writer_instruction
+
+stages:
+  - id: bootstrap
+    name: "Bind pipeline tools to this run"
+    script: |
+      set -eu
+      package=pipelines/dev-pipeline
+      if [ ! -f "$package/scripts/helper.py" ]; then
+        common=$(git rev-parse --path-format=absolute --git-common-dir)
+        package="$(dirname "$common")/pipelines/dev-pipeline"
+      fi
+      test -f "$package/scripts/helper.py" || { echo "Install the complete dev-pipeline package" >&2; exit 1; }
+      cp "$package/docs/project-contract.md" "$AFM_STAGE_DIR/project-contract.md"
+      python3 "$package/scripts/helper.py" init --run-dir "$(dirname "$AFM_STAGE_DIR")" --flow "$package/flow.yaml"
+
+  - id: plan
+    name: "Confirm task and project contract"
+    depends_on: [bootstrap]
+    command: codex
+    agents: [auto]
+    interactive: true
+    script_before: &bind_run |
+      set -eu
+      python3 "$(git rev-parse --git-path dev-pipeline/helper.py)" init --run-dir "$(dirname "$AFM_STAGE_DIR")"
+    skills: [afm-dev-planning, afm-check-evidence, afm-dev-coordinator]
+    artifacts:
+      - {name: plan, path: ./dev-plan.md, inline: false}
+      - {name: project, path: ./project.json, inline: false}
+    prompt: |
+      Recover prior answers before asking anything. If the task is unknown, ask
+      what to build via the dialog; otherwise use the supplied task. Ask only
+      unresolved questions that materially affect scope or acceptance, bundling
+      related points. The planning skill supplies discovery/decomposition techniques;
+      this flow owns file paths, review, approval, delegation and commits. Do not
+      create separate specs or native subagents. Do not write product code.
+
+      Discover the actual project and inspect relevant instructions/build scripts.
+      Read the sibling bootstrap/project-contract.md for the project.json
+      contract. Write under $AFM_STAGE_DIR:
+      - dev-plan.md: confirmed Task and Non-goals; requirements table mapping each
+        confirmed requirement/prototype behavior to a test or live step; grounded
+        implementation Sections with task IDs, files, one writer owner and criteria;
+        Docs notes; an executable Live run scenario with expected results/cleanup.
+      - project.json: schema_version 1, base_branch, environment_id, input_paths,
+        checks groups implement/docs/final (each commands [{argv, cwd, timeout}]
+        or commands [] plus skip_reason), live {required, reason}, and review
+        {risk, profiles, escalation_profiles, consultants,
+        sections: [{id, reviewers, reason}]}.
+        profiles maps selected consultation/review roles to actual configured
+        profile IDs; escalation_profiles maps relevant architect roles to their
+        profiles even when no initial consultation is needed. Read-only escalation
+        specialists stay available for later unexpected defects. Record a projected
+        helper count plus a correction/escalation reserve against configured limits;
+        completed helpers still count toward any whole-run max_tasks limit.
+        Commands use argv arrays. For shell syntax use bash -o pipefail -c explicitly.
+        Discover required checks from this project's rules; never assume a stack
+        or omit its required checks. Include build/schema/docs checks when required.
+        input_paths lists relevant ignored inputs needed for evidence reuse; all
+        tracked and nonignored untracked source is fingerprinted automatically.
+        environment_id identifies the actual toolchain/dependency setup; update it
+        when that setup changes. Final checks cover the entire delivered change.
+        In dev-plan.md assign each required command/check family to one execution
+        gate and owner, with selectors, repeat/time budget and evidence to reuse.
+        Keep implement checks to necessary integration coverage; reserve repository-
+        wide suites for final unless an earlier full gate is concretely required.
+        Do not duplicate broad commands across groups by habit: receipts are reusable
+        only for the same group, inputs, contract and confirmed environment. Record
+        why any required overlap cannot wait. Docs checks belong to docs verify;
+        authors need only focused previews while editing. Plan review rounds and
+        their time budgets along with helper counts; revise them when scope changes.
+
+      Default specialist profile catalog (role names are not standing participants):
+        arch-backend: __PROFILE_ARCH_BACKEND__
+        arch-frontend: __PROFILE_ARCH_FRONTEND__
+        ux: __PROFILE_UX__
+        review-correctness: __PROFILE_REVIEW_CORRECTNESS__
+        review-design: __PROFILE_REVIEW_DESIGN__
+        review-tests: __PROFILE_REVIEW_TESTS__
+        review-security: __PROFILE_REVIEW_SECURITY__
+      Save selected mappings in review.profiles and the relevant architect mappings
+      in review.escalation_profiles. A configured, available equivalent may replace
+      a default; record the reason. Unused catalog profiles need not be available.
+
+      Review budget follows risk, with a reason per selected/skipped perspective:
+      - small: one coherent change without risky boundaries; no mandatory consultants
+        or section reviews, final independent implement gate covers all perspectives;
+      - normal: consult a relevant specialist only for an unresolved design question;
+        one correctness section review, adding design/tests only for a concrete risk;
+      - high: concurrency, persistence, broad refactors or trust boundaries require
+        independent architecture consultation and correctness/tests section reviews;
+        add security for changed trust boundaries, design for structural risk.
+      UX consultation is useful for new/ambiguous interactions or prototypes, not
+      obligatory for every task. Keep sections coherent; no microscopic sections
+      created just to trigger more review. Spawn the selected consultants using
+      review.profiles and the shared helper protocol; no consultations means no
+      consultant spawns. Wait once for their message IDs, read each helper-result,
+      integrate findings and record task/request/result IDs in consultations.md.
+
+      The live scenario launches the real product from current source using this
+      project's commands. UI checks use the managed browser when available; CLI/API
+      changes use their real interfaces and captured exit codes. Test fixtures have
+      their own data/port and remain visible to the app being tested. A docs-only
+      or non-executable change can justify live.required false. A missing browser
+      for a required UI scenario is a blocker, not grounds to disable that scenario.
+
+      Validate the contract with the helper before approval. Present the full plan,
+      commands, review budget and material tradeoffs in ONE plan approval dialog.
+      Record its question/answer paths in approval.md. Material changes after
+      approval need renewed approval; routine review corrections within scope do not.
+      Summary: confirmed task, absolute artifact paths, approval and consultation
+      evidence. Keep it short. No project-root planning junk.
+    verify:
+      steps:
+        - run: python3 "$(git rev-parse --git-path dev-pipeline/helper.py)" identity
+          timeout: 2m
+        - command: codex
+          timeout: 15m
+          prompt: |
+            Before reviewing, read these assigned skills (verify does not inherit them):
+            __DEV_PIPELINE_SKILLS_DIR__/afm-review-work/SKILL.md
+            __DEV_PIPELINE_SKILLS_DIR__/afm-check-evidence/SKILL.md
+            Use the injected verify result contract; the review below defines its scope.
+            Independently inspect this run's plan/dev-plan.md, project.json,
+            approval.md and any consultation evidence via the paths in the summary.
+            Check task fit and requirement/prototype coverage, real integration
+            points, repo-required commands, justified review budget and executable
+            live acceptance. Selected consultations must have committed helper
+            results with task/request IDs and dispositions; check profile mappings,
+            escalation coverage, helper/check budgets and one owner per broad check.
+            Required checks must stay covered; flag unjustified duplicate full suites
+            or blanket stress/mutation passes. A summary reply alone is not a result;
+            unselected roles need no ceremonial requests. Approval must cover the
+            task and material design; report missing evidence truthfully.
+      max_failures: 2
+      review_patience: 0
+
+  - id: implement
+    name: "Implement and review according to risk"
+    depends_on: [plan]
+    inputs: [plan.plan, plan.project]
+    command: claude-sonnet-5-5-high
+    agents: [auto]
+    interactive: true
+    script_before: *bind_run
+    skills: [afm-check-evidence, afm-dev-coordinator]
+    prompt: |
+      Implement the approved sections with dev-backend/dev-frontend/astra under the
+      coordinator and check-evidence skills. Use astra for difficult fixes and work
+      spanning subsystem boundaries. Keep the plan as a file reference. Publish task
+      ownership/progress on the Board; save IDs, acceptance, completed-command evidence
+      and applied brief revisions in team-progress.json before review dispatch.
+
+      Reviews follow project.json's selected perspectives per section. Spawn a fresh
+      helper per selected section/perspective/round using review.profiles and the exact
+      review/check skill paths above. Keep the candidate stable until the batch ends.
+      Save committed result IDs/findings/dispositions in team-review.md, updating rather
+      than repeatedly appending the same finding. Deduplicate corrections per writer;
+      round two reviews only perspectives affected by blockers, with prior evidence.
+      Unselected reviewers are not missing work. Defer optional refinements once.
+
+      Apply the coordinator skill's diagnosis/handoff protocol, including during verify
+      corrections. Use review.escalation_profiles for the affected domain: backend/CLI/
+      data or frontend/client state; both only for cross-boundary diagnosis. Preserve
+      prior counters and read the architect's full result before another writer fix.
+      Record diagnosis IDs, dispositions, owner and evidence in the same task's ledger
+      and team-review.md. Unresolved bounded rescue or material scope changes go to the
+      dialog; a new helper never resets the repair count.
+
+      Before finishing, every task and selected review must have accepted evidence.
+      Use the coordinator's wait/helper cleanup protocol. Put last required broad
+      checks in project.json; implement verify runs or reuses them immediately. On
+      verify correction, address only the reported defects and reopen specialist review
+      only for new material risk, recording its reason. Summary: task coverage, changed
+      scope, review/cleanup outcomes and evidence paths. Docs and commit are later.
+    verify:
+      steps:
+        - run: |
+            python3 "$(git rev-parse --git-path dev-pipeline/helper.py)" receipt --group implement --stage implement ||
+            python3 "$(git rev-parse --git-path dev-pipeline/helper.py)" checks --group implement --stage implement
+          timeout: 30m
+        - command: codex
+          timeout: 20m
+          prompt: |
+            Before reviewing, read these assigned skills (verify does not inherit them):
+            __DEV_PIPELINE_SKILLS_DIR__/afm-review-work/SKILL.md
+            __DEV_PIPELINE_SKILLS_DIR__/afm-check-evidence/SKILL.md
+            Use the injected verify result contract; the review below defines its scope.
+            Independently inspect the actual change against the approved plan and
+            project contract. Read the linked team-review/check evidence. Verify
+            required task coverage and the selected risk-based review policy;
+            temporary reviews/diagnoses need committed helper results and IDs,
+            with repeated-defect counters and required architect escalation preserved;
+            check canonical request IDs and linked replies; Board completion is
+            not proof that a reply_to wait was answered. Recorded cancellations
+            need accepted evidence and must not hide outstanding review work;
+            unselected reviewers are not missing work. Apply the assigned review
+            and evidence skills; correctness defects remain blocking even if
+            dismissed as out of scope.
+      max_failures: 3
+      review_patience: 0
+
+  - id: live-run
+    name: "Exercise the project's real acceptance scenario"
+    depends_on: [plan, implement]
+    inputs: [plan.plan, plan.project]
+    command: claude-sonnet-5-5-high
+    agents: [auto]
+    interactive: true
+    script_before: *bind_run
+    skills: [afm-check-evidence, afm-dev-coordinator, afm-delivery-report]
+    prompt: |
+      Execute the plan's Live run scenario on the real product built from this
+      tree. Follow this project's launch/fixture commands; the product can be a
+      website, CLI, library, service or something else. Record observed outcomes,
+      stdout/stderr/exit codes, and screenshots/console/network evidence for UI.
+      Use managed browser APP_URL/APP_PORT and bind instructions when supplied;
+      a non-UI scenario does not require a browser. Never test the parent run.
+
+      Use helper serve/stop as needed for a foreground HTTP app: it captures the
+      process log, readiness and final exit code, and stops only its owned child.
+      It requires a fresh state directory under $AFM_STAGE_DIR, a readiness URL
+      and the project's argv. Run it as a background tool job while using the
+      browser, then request stop and await its result. Use the project's native
+      lifecycle for multi-process stacks; do not daemonize a child under serve.
+      Pass --unset-env NAME only for identified inherited parent transport variables
+      when necessary, preserving required browser/auth transport. Never guess or
+      rewrite auth/UID/HOME. For CLI checks capture the real exit status directly.
+
+      Write result.json under $AFM_STAGE_DIR using helper identity's current tree
+      and contract_sha256: {verdict, decision, reason, evidence: [file paths],
+      tree, contract_sha256}. PASS uses decision continue. NOT_APPLICABLE is allowed
+      only when the reviewed contract says live.required false, with its reason.
+
+      YOU own the complete acceptance/repair cycle in this stage. An in-scope
+      failure automatically means diagnose -> delegate repair -> independent
+      review -> rebuild -> repeat the live scenario. Do not ask whether to fix,
+      whether to rerun, whether the repaired tree is ready, or ask the user to
+      Revise/Pause the completed implement stage. Keep live-run open and coordinate
+      its repair through AFM; never call parent-run mutation APIs. The coordinator
+      does not patch product code. Routine repairs and required review/reruns are
+      already authorized by the approved task.
+
+      On each failure:
+      1. Persist FAIL with decision retry and the tested identity before dispatch.
+         Preserve each attempt's result and evidence under a distinct round path
+         in $AFM_STAGE_DIR; do not overwrite the only failing repro. Keep ownership,
+         request/helper IDs, phase, findings, hypotheses, repair counts and accepted
+         evidence in team-progress.json; recover it before any resumed dispatch.
+         Import relevant prior repairs from sibling implement/team-progress.json
+         and implement/team-review.md so stage changes do not reset the budget.
+      2. Turn concrete failures into bounded work items with repro steps, expected
+         versus actual behavior, tested tree/contract, evidence paths, prior
+         hypotheses, explicit owned files/tests and acceptance criteria. Resolve
+         dev-backend/dev-frontend/astra from the roster and send each repair to the
+         appropriate standing writer; use astra for difficult fixes or changes
+         spanning subsystem boundaries. Reuse reachable writers; temporary helpers
+         are for read-only diagnosis/review, not product implementation. If a
+         writer is unavailable, follow the coordinator skill's replacement protocol and
+         report a real availability blocker only when no suitable owner exists.
+         Stop owned fixtures before writers change their inputs. Grant disjoint
+         scopes for concurrent work and wait once for the batch, yielding normally.
+      3. Inspect each writer's actual changes, file ownership, regression test
+         evidence and focused checks. Reconcile actual completed commands and
+         applied brief revisions before assigning review checks. Freeze the review
+         candidate; leave the broad integration gate to the accepted candidate in
+         step 6 instead of repeating it before every correction review.
+      4. Spawn fresh independent review helpers in THIS stage using review.profiles
+         and the shared helper protocol. Always cover repair correctness and the
+         regression test; add design/security perspectives when the changed
+         boundary warrants them. Include the original failure, current diff,
+         relevant approved requirements, repair history and exact candidate tree.
+         Freeze the tree for the whole review batch. Read every committed
+         helper-result and record IDs/findings/dispositions in live-repair-review.md.
+         Before every correction apply step 5's escalation checkpoint. Route
+         concrete blockers back to the writer, then repeat affected checks and
+         independent review. A writer reply or green tests alone is not review
+         acceptance; implement-stage reviews do not cover later repairs.
+      5. Apply the coordinator skill's repeated-defect diagnosis/handoff protocol
+         before further correction, using review.escalation_profiles. Import and
+         preserve earlier counters; inspect the full independent result before the
+         bounded rescue. If it fails, report the concrete blocker for a user decision.
+      6. Once repairs and reviews are accepted, check the implement receipt with
+         helper receipt --group implement --stage implement. Reuse it only after
+         confirming the environment; if missing/stale/failed, archive the previous
+         receipt/logs and run helper checks --group implement --stage implement
+         ONCE for this candidate. Inspect check-generated changes; a changed tree
+         needs affected review again and a valid receipt before proceeding.
+         Rebuild the product from current source and start a fresh owned fixture.
+         Repeat the original failing steps
+         AND the full approved Live run scenario; a targeted regression test is
+         insufficient. Record the new tested identity and observed evidence.
+         Another in-scope failure returns to step 1 with the same defect counters.
+         Do not rerun an unchanged failing tree just to wait for an external fix;
+         a fixture-only correction or disproved diagnosis needs recorded evidence
+         and independent acceptance before retrying unchanged product source.
+
+      Keep the user informed of findings, delegated fixes and review/rerun results
+      without routine approval questions. Ask only for missing requirements,
+      material scope expansion, unavailable required access/tools or a concrete
+      blocker after bounded diagnosis/rescue. Record unrelated findings separately;
+      do not silently broaden the approved task to fix them.
+
+      If an unresolved failure requires the user's decision, use a dialog with:
+        Retry after a fix
+        Override: continue with this recorded failure
+        Abort
+      Include the current tree and contract_sha256 literally in the question,
+      along with the concrete failure, attempted fixes/reviews, remaining blocker
+      and consequences. Explain what new input is needed for Retry; an unchanged
+      blocker is not permission to restart the exhausted repair loop.
+      Retry/Abort NEVER release this stage. Do not write execution_summary.md while
+      any repair, review or rerun is pending. Override records verdict FAIL,
+      decision override and answer_file pointing to the actual dialog .answer.json
+      in this stage; the helper verifies the exact selected option against its
+      question. Custom text
+      is not an implicit override. Missing evidence cannot be overridden.
+
+      Clean up owned fixtures/processes. Finish only after helper live-gate passes.
+      Use afm-delivery-report's live acceptance format for execution_summary.md and
+      present the same report directly in your final reply in Russian. Its evidence
+      comes from this stage's result.json, the approved live scenario and the actual
+      attempt logs/screenshots. Include repairs, unexecuted coverage and cleanup;
+      reporting itself must not start new tests or helpers.
+    verify:
+      steps:
+        - run: python3 "$(git rev-parse --git-path dev-pipeline/helper.py)" live-gate
+          timeout: 2m
+        - command: codex
+          timeout: 15m
+          prompt: |
+            Before reviewing, read these assigned skills (verify does not inherit them):
+            __DEV_PIPELINE_SKILLS_DIR__/afm-review-work/SKILL.md
+            __DEV_PIPELINE_SKILLS_DIR__/afm-check-evidence/SKILL.md
+            Use the injected verify result contract; the review below defines its scope.
+            Read-only: inspect live-run/result.json, live-run/execution_summary.md,
+            the approved live scenario,
+            actual observations and any team-progress.json/live-repair-review.md
+            through this run's stage paths. Confirm the result describes the
+            current tree and contract. PASS needs the full required scenario;
+            NOT_APPLICABLE needs the reviewed live.required false justification.
+            The user-facing report must cover each planned scenario with observed
+            outcomes and evidence, disclose test doubles and unexecuted coverage,
+            and distinguish live-run fixes from earlier implementation. Reject
+            unsupported pass counts or claims; do not demand wording polish.
+            For an explicit FAIL override inspect the recorded failed/blocked
+            steps and actual evidence without demanding a successful scenario.
+            If no remediation occurred, do not demand repair artifacts or helpers.
+            If product repairs occurred, inspect their actual diff and confirm
+            regression evidence, current declared checks and independent committed
+            review results for the repaired candidate. An implement-stage approval
+            predating those repairs is insufficient. Check that repeated-defect
+            counters and required independent diagnosis were preserved, with no
+            pending writer/reviewer work or unaddressed acceptance defects hidden
+            behind a summary. A FAIL may pass only with the exact explicit override
+            already validated by live-gate; a verified override accepts its recorded
+            failure, not missing or fabricated evidence. Apply the assigned
+            read-only review and evidence skills.
+      max_failures: 3
+      review_patience: 0
+
+  - id: docs
+    name: "Update required documentation"
+    depends_on: [plan, live-run]
+    inputs: [plan.plan, plan.project]
+    command: docfixer
+    agents: [auto]
+    interactive: true
+    script_before: *bind_run
+    skills: [afm-check-evidence]
+    prompt: |
+      Cover the plan's Docs notes using this project's documentation locations,
+      language, changelog format and required build/link checks. Inspect the code
+      and actual UI/CLI labels. Update only necessary documentation; a justified
+      no-op is valid for an internal change. Do not edit product code. Use focused
+      previews while editing; leave the declared docs checks to verify. If a full
+      docs check is needed earlier to diagnose a failure, run it with the helper
+      once and provide its receipt so verify can reuse valid evidence. Confirm the
+      environment and pass a compact summary plus paths.
+      Add required docs commands to the contract if discovery exposed a missing
+      check; never remove a required check to get green.
+    verify:
+      steps:
+        - run: |
+            python3 "$(git rev-parse --git-path dev-pipeline/helper.py)" receipt --group docs --stage docs ||
+            python3 "$(git rev-parse --git-path dev-pipeline/helper.py)" checks --group docs --stage docs
+          timeout: 15m
+        - command: codex
+          timeout: 10m
+          prompt: |
+            Before reviewing, read these assigned skills (verify does not inherit them):
+            __DEV_PIPELINE_SKILLS_DIR__/afm-review-work/SKILL.md
+            __DEV_PIPELINE_SKILLS_DIR__/afm-check-evidence/SKILL.md
+            Use the injected verify result contract; the review below defines its scope.
+            Read-only: check the documentation diff against the actual implemented
+            behavior and project's requirements. Confirm required Docs notes are
+            covered and no product code was changed in this stage. Report factual
+            mismatches/missing required docs; wording taste is non-blocking. Reuse
+            the recorded docs build evidence for unchanged inputs.
+      max_failures: 2
+      review_patience: 0
+
+  - id: commit
+    name: "Validate and commit the delivered change"
+    depends_on: [docs]
+    command: claude-sonnet-5-5-high
+    agents: [auto]
+    interactive: true
+    script_before: *bind_run
+    skills: [afm-check-evidence]
+    prompt: |
+      Inspect staged/unstaged/new files and the plan's intended deliverables.
+      Pipeline artifacts live in the run directory; never delete source/tests/docs
+      as cleanup. Remove only your identified scratch files. Stage explicit paths,
+      excluding secrets/local config/unrelated edits. Review the staged diff.
+      Execute helper checks --group final --stage commit before committing, using
+      --reuse <receipt> only if its declared environment truly is unchanged. The
+      helper rejects a mismatched tree/contract. Checks that edit files must be
+      inspected and rerun until stable, then restage intended changes.
+      Commit under this project's message rules, with no unsolicited attribution
+      trailers or push. Confirm a clean tree and report commit ID/check receipt.
+      An already clean tree needs no empty commit. Unexpected product-code changes
+      after implementation require the affected review/acceptance again.
+    verify:
+      steps:
+        - run: python3 "$(git rev-parse --git-path dev-pipeline/helper.py)" receipt --group final --stage commit
+          timeout: 2m
+      max_failures: 1
+      review_patience: 0
+
+  - id: merge
+    name: "Optionally integrate into the project's base branch"
+    depends_on: [commit]
+    command: claude-sonnet-5-5-high
+    agents: [auto]
+    interactive: true
+    script_before: *bind_run
+    skills: [afm-check-evidence, afm-dev-coordinator, afm-delivery-report]
+    prompt: |
+      Read base_branch from the project contract, current branch and git worktree
+      list. A non-linked checkout or current==base needs no merge. Otherwise
+      prepare integration in THIS feature worktree: merge the current local base,
+      understand both sides of conflicts, preserve both changes and commit any
+      resolution under project rules. Never leave the base checkout conflicted.
+      For material resolutions obtain a focused independent review of that scope;
+      repeat affected acceptance when behavior changed. Never classify a failed
+      test as environmental just because an isolated rerun is green.
+
+      Run helper checks --group final --stage merge on the exact candidate tree.
+      Reuse the commit receipt only for the same source inputs/contract and verified
+      unchanged environment, regardless of Git's "Already up to date" wording.
+      Build, UI, schema and docs checks are whatever THIS project requires.
+      Confirm clean source/base worktrees and identify the base HEAD. If the base
+      advanced during preparation, integrate and validate again before proceeding.
+
+      Now present the concrete candidate commit, base branch/HEAD, conflict outcome
+      and check evidence in one merge approval dialog. A user who declines keeps
+      the branch. After approval, recheck base HEAD and cleanliness; if the base
+      changed, re-prepare the candidate before seeking approval of material changes.
+      Fast-forward only from the base checkout; a race/refusal is a blocker, never
+      a reason to force/reset. Do not push. Report candidate/base IDs and the
+      validation receipt. Leave this active worktree intact; provide its cleanup
+      command for after the enclosing run exits, using branch -d.
+
+      On EVERY completion path (merged, declined or not needed), use the final
+      delivery format from afm-delivery-report in your final Russian reply and
+      execution_summary.md. Read the approved plan, sibling implement/live-run/docs/
+      commit summaries, live-run/result.json and applicable receipts. Include the
+      scenario/result table, limitations, actual commit/merge outcome and helper
+      cleanup. Distinguish the source exercised live from later merge validation.
+    verify:
+      steps:
+        - run: |
+            python3 "$(git rev-parse --git-path dev-pipeline/helper.py)" receipt --group final --stage merge ||
+            python3 "$(git rev-parse --git-path dev-pipeline/helper.py)" receipt --group final --stage commit
+          timeout: 2m
+      max_failures: 1
+      review_patience: 0

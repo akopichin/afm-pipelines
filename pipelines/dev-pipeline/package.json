@@ -1,0 +1,17 @@
+{
+  "name": "afm-pipeline-dev-pipeline",
+  "private": true,
+  "version": "1.0.0",
+  "afmRuntimeFiles": [
+    "flow.yaml",
+    "pipeline.yaml",
+    "package.json",
+    "README.md",
+    "LICENSE",
+    "config.example.yaml",
+    "scripts",
+    "skills",
+    "docs",
+    "bindings.json"
+  ]
+}

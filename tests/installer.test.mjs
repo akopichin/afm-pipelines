@@ -52,6 +52,48 @@ test('install, configure independent models, repeat, update and remove with actu
   assert.equal(YAML.parse(f.read('.afm/config.yaml')).executor.max_parallel,7);
 });
 
+test('dev pipeline installs every local skill and binds stage, verify, writer and specialist roles',t=>{
+  const f=fixture(t);
+  const options={skills:['claude','codex'],roles:{writer_astra:{model:'custom-astra'},review_security:{model:'custom-review'}}};
+  const plan=planInstall({project:f.project,name:'dev-pipeline',options});
+  assert.equal(plan.receipt.bindings.writer_astra.model,'custom-astra');
+  assert.equal(plan.receipt.bindings.review_security.model,'custom-review');
+  apply(plan);
+  const flow=YAML.parse(f.read('pipelines/dev-pipeline/flow.yaml'));
+  const bindings=JSON.parse(f.read('pipelines/dev-pipeline/bindings.json')).roles;
+  assert.equal(flow.name,'dev-pipeline');
+  assert.equal(flow.skills_dir,path.join(f.project,'pipelines/dev-pipeline/skills'));
+  assert.equal(flow.memory.path,path.join(f.project,'.memory'));
+  assert.equal(flow.team.find(member=>member.id==='astra').profile,bindings.writer_astra.profile);
+  assert.equal(flow.stages.find(stage=>stage.id==='plan').command,bindings.coordinator_plan.command);
+  assert.equal(flow.stages.find(stage=>stage.id==='docs').command,bindings.coordinator_docs.command);
+  assert.equal(flow.stages.find(stage=>stage.id==='implement').verify.steps[1].command,bindings.verifier.command);
+  assert.match(flow.stages.find(stage=>stage.id==='plan').prompt,new RegExp(bindings.review_security.profile));
+  assert.match(flow.stages.find(stage=>stage.id==='plan').verify.steps[1].prompt,/afm-review-work\/SKILL\.md/);
+  assert(!f.read('pipelines/dev-pipeline/flow.yaml').includes('__PROFILE_'));
+  assert(!f.read('pipelines/dev-pipeline/flow.yaml').includes('__DEV_PIPELINE_'));
+  for(const skill of ['afm-dev-planning','afm-check-evidence','afm-dev-coordinator','afm-dev-writer','afm-review-work','afm-delivery-report']) {
+    assert(fs.existsSync(path.join(f.project,`pipelines/dev-pipeline/skills/${skill}/SKILL.md`)));
+    assert(fs.existsSync(path.join(f.project,`.agents/skills/${skill}/SKILL.md`)));
+    assert(fs.existsSync(path.join(f.project,`.claude/skills/${skill}/SKILL.md`)));
+  }
+  assert(fs.existsSync(path.join(f.project,'pipelines/dev-pipeline/skills/afm-dev-coordinator/references/helpers.md')));
+  assert.equal(verify(f.project,'dev-pipeline').status,'validated');
+  execFileSync('git',['-C',f.project,'config','user.name','Pipeline test']);
+  execFileSync('git',['-C',f.project,'config','user.email','pipeline@example.invalid']);
+  execFileSync('git',['-C',f.project,'add','README.md']);
+  execFileSync('git',['-C',f.project,'commit','-qm','Initial fixture']);
+  const worktree=path.join(f.root,'linked worktree');
+  execFileSync('git',['-C',f.project,'worktree','add','-qb','feature',worktree]);
+  const stage=path.join(f.root,'run/bootstrap');fs.mkdirSync(stage,{recursive:true});
+  execFileSync('bash',['-c',flow.stages[0].script],{cwd:worktree,env:{...process.env,AFM_STAGE_DIR:stage}});
+  assert(fs.existsSync(path.join(stage,'helper.py')));
+  assert(fs.existsSync(path.join(stage,'project-contract.md')));
+  assert.equal(planInstall({project:f.project,name:'dev-pipeline'}).writes.length,0);
+  apply(planRemove({project:f.project,name:'dev-pipeline'}));
+  assert(!fs.existsSync(path.join(f.project,'pipelines/dev-pipeline/flow.yaml')));
+});
+
 test('stale plans, edited files and configuration conflicts do not overwrite user changes',t=>{
   const f=fixture(t), plan=planInstall({project:f.project,name:'refactor'});
   f.write('.afm/config.yaml',f.read('.afm/config.yaml')+'# User edit\n');

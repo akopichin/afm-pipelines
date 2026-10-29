@@ -1,15 +1,17 @@
 # Pipeline roles and model bindings
 
-Installer protocol 1 supports per-pipeline model choices. Refactor 0.3.0 uses
-stable reviewer roles and configurable bindings instead of hard-coded model
-identities. Older runs retain their original frozen scripts and contracts.
+Installer protocol 1 supports per-pipeline model choices. Refactor and dev-pipeline
+use stable roles and configurable bindings instead of hard-coded model identities.
+Older runs retain their original frozen scripts and contracts.
 
 ## Roles, profiles and choices
 
 A role describes work inside one pipeline. The package declares roles in
 `pipeline.yaml` under `setup.models`: `role` is a stable identifier,
-`team_member` identifies its flow team entry, and `profile`, `command`, `client`,
-`model`, `reasoning` describe recommended defaults from `config.example.yaml`.
+`team_member` identifies a flow team entry; `stage_ids` selects stage commands;
+`verify_stage_ids` selects AI verify commands; and `profile_token` identifies a
+specialist profile name in a prompt. `profile`, `command`, `client`, `model` and
+`reasoning` describe recommended defaults from `config.example.yaml`.
 Packages can declare different numbers of roles and different defaults. The
 installer does not assume every pipeline has two architects.
 
@@ -55,7 +57,8 @@ configuration into the installed package's `bindings.json`:
 ```
 
 The example names are illustrative; the installer computes actual hashes.
-The flow's team profiles and binding file are generated in the same plan.
+The flow's team profiles, stage commands, specialist names and binding file are
+generated in the same plan.
 Two roles may use the same model but remain separate agents. Provider/model
 availability is not inferred from configuration validity.
 
@@ -88,7 +91,8 @@ reconfigure an existing run; prepare a new installation plan and new run instead
 ## Supported scope
 
 The first adapters support Claude/Codex Docker recipes and AFM reasoning levels.
-The coordinator inherits the project's default client. Arbitrary host commands,
+Refactor's coordinator inherits the project's default client; dev-pipeline has
+explicit stage coordinator roles. Arbitrary host commands,
 additional provider adapters, runtime rebinding and an independent reusable
 binding-file format are future extensions. The current project choices live in
 installer receipts, not in a hypothetical `pipelines/bindings.yaml`.

@@ -2,19 +2,28 @@
 
 Reusable, self-contained workflows for [AFM](https://github.com/akopichin/afm).
 Each package combines a flow definition with the scripts, agent instructions,
-interfaces, examples, and tests it needs. Copy a package into a project and run
-it with AFM; the AFM engine does not need to be modified.
+interfaces, examples, and tests it needs. Install a package into a project with
+the catalog helper, then run it with AFM; the AFM engine does not need to be modified.
 
 ## Available pipelines
 
 | Pipeline | Purpose | Status |
 | --- | --- | --- |
 | [Refactor](pipelines/refactor/README.md) | Analyze a codebase with two architects, explore changes in an interactive architecture workshop, and export approved, separately executable plans. | Initial portable package; plans changes but does not execute them. |
+| [Dev pipeline](pipelines/dev-pipeline/README.md) | Plan and implement a project change with coordinated writers, selected reviews, real acceptance, documentation, commit and optional merge. | Portable package; executes approved changes. |
 
 ## Repository layout
 
 ```text
 pipelines/
+  dev-pipeline/
+    pipeline.yaml          Package metadata and setup requirements
+    flow.yaml              AFM entry point
+    config.example.yaml    Default roles and Docker recipes
+    scripts/               Evidence and live-app helper
+    skills/                Planning, coordination, writer and review rules
+    docs/                  Project contract
+    tests/                 Helper regression checks (catalog only)
   refactor/
     pipeline.yaml          Package metadata and setup requirements
     flow.yaml              AFM entry point
@@ -28,9 +37,10 @@ pipelines/
     docs/                  Detailed usage documentation
 ```
 
-Packages live in this catalog, are installed under `pipelines/<name>/` in the
-target project, and freeze their runtime files into each run. Updating an
-installed package must not change an existing run's tools or decisions.
+Packages live in this catalog and are installed under `pipelines/<name>/` in the
+target project. Refactor freezes its complete toolkit into each run. Dev-pipeline
+freezes its helper and flow in bootstrap, while AFM reads its skill library again
+on later agent turns. Do not update that library during an active dev-pipeline run.
 
 ## Getting started
 
@@ -39,17 +49,17 @@ its environment, model, and authentication requirements. The refactor package
 includes a prebuilt interface; users do not need to build its frontend.
 
 The bundled AFM skill `afm-pipelines` can guide installation: ask your agent to
-"install the refactor pipeline in this project". Its helper is shipped here and
-can also be used directly from a catalog checkout:
+"install dev-pipeline in this project" or choose refactor. Its helper is shipped
+here and can also be used directly from a catalog checkout:
 
 ```sh
 npm ci --ignore-scripts --no-audit --no-fund
 node scripts/pipelines.mjs list
 node scripts/pipelines.mjs inspect --project /absolute/path/to/your-project
-node scripts/pipelines.mjs plan refactor \
+node scripts/pipelines.mjs plan dev-pipeline \
   --project /absolute/path/to/your-project --out /absolute/path/to/install-plan.json
 node scripts/pipelines.mjs apply /absolute/path/to/install-plan.json
-node scripts/pipelines.mjs verify refactor --project /absolute/path/to/your-project
+node scripts/pipelines.mjs verify dev-pipeline --project /absolute/path/to/your-project
 ```
 
 Review the printed plan before applying it. Use `--options options.json` to
@@ -74,6 +84,7 @@ an AFM binary; browser checks also need Chrome.
 ```sh
 npm ci
 npm test
+python3 -B -m unittest discover -s pipelines/dev-pipeline/tests -p 'test_*.py'
 cd pipelines/refactor
 npm ci
 npm test

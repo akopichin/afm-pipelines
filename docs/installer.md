@@ -27,7 +27,9 @@ a reproducible published revision.
 ## Select models, settings and skills
 
 Read the selected `pipelines/<name>/pipeline.yaml` and its README. Each package
-has its own roles and recommended models. Create an options JSON file, for example:
+has its own roles and recommended models. Dev-pipeline binds writers, stage
+coordinators, AI verify commands and on-demand specialist profiles; refactor
+binds two team architects. Create an options JSON file, for example:
 
 ```json
 {
@@ -117,6 +119,12 @@ profile. Receipts under `.afm/pipelines/receipts/` preserve choices, ownership,
 source revision and file hashes. Backups and journals live under
 `.afm/pipelines/backups/`. They can contain original configuration: keep `.afm/`
 private and ignored by Git. Receipts and backups use restricted file permissions.
+
+Dev-pipeline also binds its `skills_dir`, exact reviewer skill paths and read-only
+memory path to the target project's main checkout. Its bootstrap can load an
+installed but uncommitted package from that checkout when the run uses a linked
+worktree. Keep that main checkout available while the run is active.
+
 The install plan adds `.afm/` to the project's `.gitignore` if missing; this
 entry is retained on removal along with the local artifacts it protects.
 

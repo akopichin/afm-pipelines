@@ -1,0 +1,61 @@
+schema_version: 1
+name: dev-pipeline
+version: 1.0.0
+description: Project-aware development with planning, standing writers, independent review, live acceptance, documentation, commit and optional merge.
+entrypoint: flow.yaml
+license: MIT
+
+installation:
+  project_path: pipelines/dev-pipeline
+  configuration_example: config.example.yaml
+  scope: project
+
+requirements:
+  python: ">=3.9"
+  git: true
+  afm_features: [worktrees, team, script_stages, stage_team_skills, interactive_stages]
+  browser_capable_coordinator: true
+
+setup:
+  configuration:
+    collaboration_enabled: true
+    managed_browser_enabled: true
+    docker_auto_shim: true
+  flow_bindings:
+    skills_dir: true
+    memory_path: true
+    skill_path_token: __DEV_PIPELINE_SKILLS_DIR__
+  models:
+    - {role: writer_backend, team_member: dev-backend, profile: dev-default-writer-backend, command: dev-default-writer-backend, client: claude, model: claude-sonnet-5-5, reasoning: high}
+    - {role: writer_frontend, team_member: dev-frontend, profile: dev-default-writer-frontend, command: dev-default-writer-frontend, client: claude, model: claude-sonnet-5-5, reasoning: high}
+    - {role: writer_astra, team_member: astra, profile: dev-default-writer-astra, command: dev-default-writer-astra, client: codex, model: gpt-6-astra, reasoning: xhigh}
+    - {role: coordinator_plan, stage_ids: [plan], profile: dev-default-coordinator-plan, command: dev-default-coordinator-plan, client: codex, model: gpt-6.1-sol, reasoning: high}
+    - {role: coordinator_work, stage_ids: [implement, live-run, commit, merge], profile: dev-default-coordinator-work, command: dev-default-coordinator-work, client: claude, model: claude-sonnet-5-5, reasoning: high}
+    - {role: coordinator_docs, stage_ids: [docs], profile: dev-default-coordinator-docs, command: dev-default-coordinator-docs, client: claude, model: claude-sonnet-5-5, reasoning: high}
+    - {role: verifier, verify_stage_ids: [plan, implement, live-run, docs], profile: dev-default-verifier, command: dev-default-verifier, client: codex, model: gpt-6.1-sol, reasoning: high}
+    - {role: arch_backend, profile_token: __PROFILE_ARCH_BACKEND__, profile: dev-default-arch-backend, command: dev-default-arch-backend, client: claude, model: claude-opus-5-5, reasoning: xhigh}
+    - {role: arch_frontend, profile_token: __PROFILE_ARCH_FRONTEND__, profile: dev-default-arch-frontend, command: dev-default-arch-frontend, client: claude, model: claude-opus-5-5, reasoning: xhigh}
+    - {role: ux, profile_token: __PROFILE_UX__, profile: dev-default-ux, command: dev-default-ux, client: claude, model: claude-opus-5-5, reasoning: high}
+    - {role: review_correctness, profile_token: __PROFILE_REVIEW_CORRECTNESS__, profile: dev-default-review-correctness, command: dev-default-review-correctness, client: codex, model: gpt-6-sol, reasoning: xhigh}
+    - {role: review_design, profile_token: __PROFILE_REVIEW_DESIGN__, profile: dev-default-review-design, command: dev-default-review-design, client: claude, model: claude-opus-5-5, reasoning: high}
+    - {role: review_tests, profile_token: __PROFILE_REVIEW_TESTS__, profile: dev-default-review-tests, command: dev-default-review-tests, client: claude, model: claude-opus-5-5, reasoning: high}
+    - {role: review_security, profile_token: __PROFILE_REVIEW_SECURITY__, profile: dev-default-review-security, command: dev-default-review-security, client: claude, model: claude-opus-5-5, reasoning: high}
+  model_policy: resolved_bindings
+  skills:
+    - {name: afm-dev-planning, source: skills/afm-dev-planning, runtime_loading: flow_library, offer_client_installation: true}
+    - {name: afm-check-evidence, source: skills/afm-check-evidence, runtime_loading: flow_library, offer_client_installation: true}
+    - {name: afm-dev-coordinator, source: skills/afm-dev-coordinator, runtime_loading: flow_library, offer_client_installation: true}
+    - {name: afm-dev-writer, source: skills/afm-dev-writer, runtime_loading: flow_library, offer_client_installation: true}
+    - {name: afm-review-work, source: skills/afm-review-work, runtime_loading: explicit_package_path, offer_client_installation: true}
+    - {name: afm-delivery-report, source: skills/afm-delivery-report, runtime_loading: flow_library, offer_client_installation: true}
+
+artifacts:
+  run_snapshot: bootstrap/helper.py
+  modifies_application_source: true
+  executes_changes: true
+
+development:
+  node: ">=22"
+  tests: npm test
+tested_with:
+  afm: 2.0.4

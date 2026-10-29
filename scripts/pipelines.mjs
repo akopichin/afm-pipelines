@@ -151,13 +151,42 @@ export function planInstall({project, name, options = {}, root = catalog}) {
   const metadata = readJSON(path.join(directory,'package.json'));
   const source = filesUnder(directory,metadata.afmRuntimeFiles);
   const output = {...source}, flow = YAML.parseDocument(source[manifest.entrypoint].toString());
+  check(!flow.errors.length, 'Invalid package flow');
+  const flowBindings = manifest.setup.flow_bindings || {};
+  if (flowBindings.skills_dir) flow.set('skills_dir', path.join(project, 'pipelines', name, 'skills'));
+  if (flowBindings.memory_path) flow.setIn(['memory','path'], path.join(project, '.memory'));
   for (const role of manifest.setup.models || []) {
-    const team = flow.get('team');
-    const member = team?.items.find(item => item.get('id') === role.team_member);
-    check(member, 'Missing declared team member: ' + role.team_member);
-    member.set('profile',resolved.roles[role.role].profile);
+    if (role.team_member) {
+      const team = flow.get('team');
+      const member = team?.items.find(item => item.get('id') === role.team_member);
+      check(member, 'Missing declared team member: ' + role.team_member);
+      member.set('profile',resolved.roles[role.role].profile);
+    }
+    for (const stageId of role.stage_ids || []) {
+      const stage = flow.get('stages')?.items.find(item => item.get('id') === stageId);
+      check(stage, 'Missing declared stage: ' + stageId);
+      stage.set('command',resolved.roles[role.role].command);
+    }
+    for (const stageId of role.verify_stage_ids || []) {
+      const stage = flow.get('stages')?.items.find(item => item.get('id') === stageId);
+      check(stage, 'Missing declared verify stage: ' + stageId);
+      const steps = stage.getIn(['verify','steps']);
+      check(steps?.items?.some(item => item.get('command')), 'Missing command verify step: ' + stageId);
+      for (const step of steps.items) if (step.get('command')) step.set('command',resolved.roles[role.role].command);
+    }
   }
-  output[manifest.entrypoint] = Buffer.from(flow.toString());
+  let renderedFlow = flow.toString();
+  if (flowBindings.skill_path_token) {
+    check(renderedFlow.includes(flowBindings.skill_path_token), 'Missing skill path token');
+    renderedFlow = renderedFlow.replaceAll(flowBindings.skill_path_token, path.join(project, 'pipelines', name, 'skills'));
+  }
+  for (const role of manifest.setup.models || []) if (role.profile_token) {
+    check(renderedFlow.includes(role.profile_token), 'Missing profile token: ' + role.profile_token);
+    renderedFlow = renderedFlow.replaceAll(role.profile_token, resolved.roles[role.role].profile);
+  }
+  if (Object.keys(flowBindings).length)
+    check(!/__[_A-Z0-9]+__/.test(renderedFlow), 'Unresolved package flow binding');
+  output[manifest.entrypoint] = Buffer.from(renderedFlow);
   output['bindings.json'] = Buffer.from(json({schema_version:1,pipeline:name,roles:resolved.roles}));
   const desired = {};
   for (const [file, bytes] of Object.entries(output)) desired[`pipelines/${name}/${file}`] = bytes;
