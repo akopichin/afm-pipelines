@@ -31,6 +31,9 @@ updates or a draft artifact without a completion marker.
 - Preserve limitations, skipped/blocked/failed coverage, accepted exceptions and
   user overrides. NOT_APPLICABLE and overridden FAIL are different from PASS.
   Unit-test evidence does not establish a live exercise.
+- Build the scenario table from the structured result's criterion records, not
+  a second handwritten completion list. Preserve ACCEPTED_WITH_EXCEPTIONS and
+  its scoped user authorizations; a waiver is not a passed observation.
 - Link the result record and key logs/screenshots; report owned fixture/process
   cleanup and any unfinished temporary helpers with their task/wait IDs.
 

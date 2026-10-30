@@ -26,6 +26,12 @@ check or treats a timeout as success.
   applicable, and a confirmed unchanged toolchain/dependency environment. HEAD
   alone does not identify a dirty tree. Update the environment identity when it
   changes. Inspect check-generated edits before accepting the candidate.
+- Declare normalizing generators/builds in a group's `prepare` commands when
+  they rewrite tracked outputs. Run helper prepare, inspect the changes, then
+  freeze/review the candidate before broad checks. Preparation is not test evidence.
+- Scoped `input_paths` may reuse evidence across unrelated edits only after review
+  confirms the complete dependency closure (code, configuration, assets and build
+  inputs). Default to the whole tree when uncertain; final checks stay unscoped.
 
 ## Bound experiments
 

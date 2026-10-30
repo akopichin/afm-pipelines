@@ -121,7 +121,10 @@ source revision and file hashes. Backups and journals live under
 private and ignored by Git. Receipts and backups use restricted file permissions.
 
 Dev-pipeline also binds its `skills_dir`, exact reviewer skill paths and read-only
-memory path to the target project's main checkout. Its bootstrap can load an
+memory path to the target project's main checkout. Its skill library is installed under a content-hashed
+`skill-libraries/` path. Updates retain previous libraries and legacy `skills/`
+files without changing them, so existing stage/helper prompts keep their exact
+instructions. Do not edit retained libraries. Its bootstrap can load an
 installed but uncommitted package from that checkout when the run uses a linked
 worktree. Keep that main checkout available while the run is active.
 

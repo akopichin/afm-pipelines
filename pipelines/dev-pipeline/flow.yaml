@@ -29,6 +29,11 @@ prompt: |
   supervision. Keep coordination IDs/brief revisions/check evidence and repair
   counts in team-progress.json; later stages read saved reports and evidence.
 
+  Route acceptance by project.json acceptance.interfaces and acceptance.ui.mode.
+  Only participants assigned UI work read
+  __DEV_PIPELINE_SKILLS_DIR__/afm-ui-acceptance/SKILL.md.
+  Backend-only tasks use their API/CLI/library criteria without visual protocols.
+
   The assigned skills own check discipline, mesh coordination, writer delivery,
   read-only review and user-facing reporting. This flow owns ordering, role/profile
   selection, artifact contracts, approvals and gates. Its execution defaults are:
@@ -48,6 +53,8 @@ prompt: |
     __DEV_PIPELINE_SKILLS_DIR__/afm-review-work/SKILL.md
     __DEV_PIPELINE_SKILLS_DIR__/afm-check-evidence/SKILL.md
   Include the bounded question, scope, criteria, prior findings and check budget.
+  For UI review/consultation include the exact afm-ui-acceptance skill path too;
+  backend-only helpers do not load that skill.
   A replacement writer also needs the exact afm-dev-writer and afm-check-evidence
   paths from this library in its assignment; it does not inherit the team's skills.
   Missing skills/capabilities must be reported; no silent substitute or gate
@@ -65,6 +72,8 @@ team:
     instruction: &writer_instruction |
       Implement your assigned bounded task under the writer and check-evidence
       skills. Use the task's canonical request ID, file grant and current brief.
+      If assigned UI behavior/appearance work, also read
+      __DEV_PIPELINE_SKILLS_DIR__/afm-ui-acceptance/SKILL.md; otherwise skip it.
       Follow the coordinator's explicit check/review budgets. Do not commit or push;
       return the linked deliverable and evidence for independent acceptance.
   - id: dev-frontend
@@ -120,7 +129,7 @@ stages:
         confirmed requirement/prototype behavior to a test or live step; grounded
         implementation Sections with task IDs, files, one writer owner and criteria;
         Docs notes; an executable Live run scenario with expected results/cleanup.
-      - project.json: schema_version 1, base_branch, environment_id, input_paths,
+      - project.json: schema_version 2, base_branch, environment_id, input_paths,
         checks groups implement/docs/final (each commands [{argv, cwd, timeout}]
         or commands [] plus skip_reason), live {required, reason}, and review
         {risk, profiles, escalation_profiles, consultants,
@@ -147,6 +156,22 @@ stages:
         why any required overlap cannot wait. Docs checks belong to docs verify;
         authors need only focused previews while editing. Plan review rounds and
         their time budgets along with helper counts; revise them when scope changes.
+
+      Add acceptance {interfaces, reason, ui, criteria} using the bootstrap contract.
+      Choose interfaces from changed observable behavior, not file suffixes. Set
+      ui.mode none for backend-only work; behavior for interaction fixes, visual for
+      appearance changes, prototype for reference parity. If UI is affected read
+      __DEV_PIPELINE_SKILLS_DIR__/afm-ui-acceptance/SKILL.md now.
+      Bound ui.surfaces to affected states; do not prescribe all themes/widths for
+      every UI task. Write atomic criteria with stable IDs, requirement, interface,
+      action, expected observation and evidence_kind. Separately required actions
+      need separate IDs. Non-executable changes have no live criteria.
+      Declare rewriting generators/builds as check-group prepare commands so they
+      finish before candidate freeze and broad checks. Optional input_paths on a
+      check group, live or criterion must cover its complete input dependencies;
+      explain the scope for review. Default to all inputs if uncertain; final
+      checks always cover the whole tree. Reference shared protocols, do not copy
+      them into the plan. Recover incoming task additions before asking approval.
 
       Default specialist profile catalog (role names are not standing participants):
         arch-backend: __PROFILE_ARCH_BACKEND__
@@ -199,11 +224,17 @@ stages:
             __DEV_PIPELINE_SKILLS_DIR__/afm-review-work/SKILL.md
             __DEV_PIPELINE_SKILLS_DIR__/afm-check-evidence/SKILL.md
             Use the injected verify result contract; the review below defines its scope.
+            If this contract selects UI acceptance, also read
+            __DEV_PIPELINE_SKILLS_DIR__/afm-ui-acceptance/SKILL.md; otherwise skip it.
             Independently inspect this run's plan/dev-plan.md, project.json,
             approval.md and any consultation evidence via the paths in the summary.
             Check task fit and requirement/prototype coverage, real integration
             points, repo-required commands, justified review budget and executable
-            live acceptance. Selected consultations must have committed helper
+            live acceptance. Check interface selection, atomic criteria and justified
+            UI mode/surfaces: no visual protocol for backend-only work, no blanket
+            palette sweep for a local interaction fix. Check scoped input dependency
+            coverage, including build/configuration inputs; uncertain scopes must use
+            the whole tree. Selected consultations must have committed helper
             results with task/request IDs and dispositions; check profile mappings,
             escalation coverage, helper/check budgets and one owner per broad check.
             Required checks must stay covered; flag unjustified duplicate full suites
@@ -228,6 +259,14 @@ stages:
       spanning subsystem boundaries. Keep the plan as a file reference. Publish task
       ownership/progress on the Board; save IDs, acceptance, completed-command evidence
       and applied brief revisions in team-progress.json before review dispatch.
+
+      If check groups declare prepare commands, run helper prepare --group implement
+      --stage implement before freezing the review candidate; inspect generated edits.
+      If UI is affected, the coordinator uses the UI skill for an early representative
+      preview before repeating the design across sections. Capture all selected
+      surfaces/states in ui-preview.json on the accepted candidate before completion.
+      Backend-only work needs no UI preview or design helper. Read-only reviewers
+      receive actual captures/measurements; do not grant them the managed browser.
 
       Reviews follow project.json's selected perspectives per section. Spawn a fresh
       helper per selected section/perspective/round using review.profiles and the exact
@@ -254,8 +293,10 @@ stages:
     verify:
       steps:
         - run: |
+            set -e
             python3 "$(git rev-parse --git-path dev-pipeline/helper.py)" receipt --group implement --stage implement ||
             python3 "$(git rev-parse --git-path dev-pipeline/helper.py)" checks --group implement --stage implement
+            python3 "$(git rev-parse --git-path dev-pipeline/helper.py)" ui-gate
           timeout: 30m
         - command: codex
           timeout: 20m
@@ -264,9 +305,15 @@ stages:
             __DEV_PIPELINE_SKILLS_DIR__/afm-review-work/SKILL.md
             __DEV_PIPELINE_SKILLS_DIR__/afm-check-evidence/SKILL.md
             Use the injected verify result contract; the review below defines its scope.
+            If this contract selects UI acceptance, also read
+            __DEV_PIPELINE_SKILLS_DIR__/afm-ui-acceptance/SKILL.md; otherwise skip it.
             Independently inspect the actual change against the approved plan and
             project contract. Read the linked team-review/check evidence. Verify
             required task coverage and the selected risk-based review policy;
+            when UI is selected inspect ui-preview.json and actual observations,
+            including prototype/reference pairs where selected. A baseline defect
+            violating an approved criterion remains blocking. Backend-only work
+            does not require previews or visual reviews;
             temporary reviews/diagnoses need committed helper results and IDs,
             with repeated-defect counters and required architect escalation preserved;
             check canonical request IDs and linked replies; Board completion is
@@ -309,6 +356,18 @@ stages:
       and contract_sha256: {verdict, decision, reason, evidence: [file paths],
       tree, contract_sha256}. PASS uses decision continue. NOT_APPLICABLE is allowed
       only when the reviewed contract says live.required false, with its reason.
+
+      Use schema 2 structured results from bootstrap/project-contract.md. Record
+      one result row per approved criterion with observed behavior, evidence_kind,
+      evidence files and helper identity --criterion ID. Use identity --live for
+      result.json's product identity. Record repairs with invariant and accepted
+      independent-review/regression evidence; pending_work must be empty to finish.
+      Missing, NOT_RUN or failed required criteria cannot be PASS. A known baseline
+      defect violating an explicit criterion remains in scope. Scoped user changes
+      need their original authorization evidence and affected criterion IDs; record
+      WAIVED rows and ACCEPTED_WITH_EXCEPTIONS, never disguise them as passed steps.
+      Read the UI skill only for selected UI criteria; API/CLI/library acceptance
+      needs no screenshot, prototype or theme matrix. Preserve each attempt.
 
       YOU own the complete acceptance/repair cycle in this stage. An in-scope
       failure automatically means diagnose -> delegate repair -> independent
@@ -366,8 +425,10 @@ stages:
          needs affected review again and a valid receipt before proceeding.
          Rebuild the product from current source and start a fresh owned fixture.
          Repeat the original failing steps
-         AND the full approved Live run scenario; a targeted regression test is
-         insufficient. Record the new tested identity and observed evidence.
+         AND the affected approved criteria. Reuse other recorded criterion results
+         only when identity --criterion ID still matches their inputs, contract and
+         environment; unknown dependencies require the full approved scenario.
+         A targeted unit test is insufficient for a required live criterion. Record the new tested identity and observed evidence.
          Another in-scope failure returns to step 1 with the same defect counters.
          Do not rerun an unchanged failing tree just to wait for an external fix;
          a fixture-only correction or disproved diagnosis needs recorded evidence
@@ -411,11 +472,17 @@ stages:
             __DEV_PIPELINE_SKILLS_DIR__/afm-review-work/SKILL.md
             __DEV_PIPELINE_SKILLS_DIR__/afm-check-evidence/SKILL.md
             Use the injected verify result contract; the review below defines its scope.
+            If this contract selects UI acceptance, also read
+            __DEV_PIPELINE_SKILLS_DIR__/afm-ui-acceptance/SKILL.md; otherwise skip it.
             Read-only: inspect live-run/result.json, live-run/execution_summary.md,
             the approved live scenario,
             actual observations and any team-progress.json/live-repair-review.md
             through this run's stage paths. Confirm the result describes the
-            current tree and contract. PASS needs the full required scenario;
+            current inputs and contract. Inspect every structured criterion row,
+            evidence and input scope; unchanged criterion identities may reuse actual
+            prior observations, not unexecuted steps. Inspect original scoped user
+            authorizations for WAIVED rows; ACCEPTED_WITH_EXCEPTIONS is not PASS.
+            PASS needs all required criteria;
             NOT_APPLICABLE needs the reviewed live.required false justification.
             The user-facing report must cover each planned scenario with observed
             outcomes and evidence, disclose test doubles and unexecuted coverage,
@@ -448,7 +515,9 @@ stages:
     skills: [afm-check-evidence]
     prompt: |
       Cover the plan's Docs notes using this project's documentation locations,
-      language, changelog format and required build/link checks. Inspect the code
+      language, changelog format and required build/link checks. If docs declares
+      prepare commands, run helper prepare --group docs --stage docs and inspect
+      generated edits before freezing the candidate for verify. Inspect the code
       and actual UI/CLI labels. Update only necessary documentation; a justified
       no-op is valid for an internal change. Do not edit product code. Use focused
       previews while editing; leave the declared docs checks to verify. If a full
@@ -491,6 +560,9 @@ stages:
       Pipeline artifacts live in the run directory; never delete source/tests/docs
       as cleanup. Remove only your identified scratch files. Stage explicit paths,
       excluding secrets/local config/unrelated edits. Review the staged diff.
+      If final declares prepare commands, run helper prepare --group final --stage
+      commit, inspect generated edits and repeat affected review/acceptance as needed
+      before freezing the candidate for checks.
       Execute helper checks --group final --stage commit before committing, using
       --reuse <receipt> only if its declared environment truly is unchanged. The
       helper rejects a mismatched tree/contract. Checks that edit files must be
@@ -524,6 +596,8 @@ stages:
       repeat affected acceptance when behavior changed. Never classify a failed
       test as environmental just because an isolated rerun is green.
 
+      If final declares prepare commands, run helper prepare --group final --stage
+      merge, inspect generated edits and repeat affected review/acceptance as needed.
       Run helper checks --group final --stage merge on the exact candidate tree.
       Reuse the commit receipt only for the same source inputs/contract and verified
       unchanged environment, regardless of Git's "Already up to date" wording.

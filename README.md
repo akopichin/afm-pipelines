@@ -39,8 +39,8 @@ pipelines/
 
 Packages live in this catalog and are installed under `pipelines/<name>/` in the
 target project. Refactor freezes its complete toolkit into each run. Dev-pipeline
-freezes its helper and flow in bootstrap, while AFM reads its skill library again
-on later agent turns. Do not update that library during an active dev-pipeline run.
+freezes its helper and flow in bootstrap and references an immutable, content-hashed
+skill library. Updates retain older libraries for active runs.
 
 ## Getting started
 

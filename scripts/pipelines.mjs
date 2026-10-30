@@ -153,7 +153,18 @@ export function planInstall({project, name, options = {}, root = catalog}) {
   const output = {...source}, flow = YAML.parseDocument(source[manifest.entrypoint].toString());
   check(!flow.errors.length, 'Invalid package flow');
   const flowBindings = manifest.setup.flow_bindings || {};
-  if (flowBindings.skills_dir) flow.set('skills_dir', path.join(project, 'pipelines', name, 'skills'));
+  let skillDirectory = 'skills';
+  if (flowBindings.immutable_skills) {
+    const skillFiles = Object.entries(source).filter(([file]) => file.startsWith('skills/')).sort(([a],[b])=>a.localeCompare(b));
+    check(skillFiles.length > 0, 'Immutable skills need a package skill library');
+    skillDirectory = 'skill-libraries/' + sha(Buffer.from(json(skillFiles.map(([file,bytes])=>[file,sha(bytes)]))));
+    for (const [file,bytes] of skillFiles) {
+      output[skillDirectory + file.slice('skills'.length)] = bytes;
+      delete output[file];
+    }
+  }
+  const skillPath = path.join(project, 'pipelines', name, skillDirectory);
+  if (flowBindings.skills_dir) flow.set('skills_dir', skillPath);
   if (flowBindings.memory_path) flow.setIn(['memory','path'], path.join(project, '.memory'));
   for (const role of manifest.setup.models || []) {
     if (role.team_member) {
@@ -178,7 +189,7 @@ export function planInstall({project, name, options = {}, root = catalog}) {
   let renderedFlow = flow.toString();
   if (flowBindings.skill_path_token) {
     check(renderedFlow.includes(flowBindings.skill_path_token), 'Missing skill path token');
-    renderedFlow = renderedFlow.replaceAll(flowBindings.skill_path_token, path.join(project, 'pipelines', name, 'skills'));
+    renderedFlow = renderedFlow.replaceAll(flowBindings.skill_path_token, skillPath);
   }
   for (const role of manifest.setup.models || []) if (role.profile_token) {
     check(renderedFlow.includes(role.profile_token), 'Missing profile token: ' + role.profile_token);
@@ -190,6 +201,14 @@ export function planInstall({project, name, options = {}, root = catalog}) {
   output['bindings.json'] = Buffer.from(json({schema_version:1,pipeline:name,roles:resolved.roles}));
   const desired = {};
   for (const [file, bytes] of Object.entries(output)) desired[`pipelines/${name}/${file}`] = bytes;
+  if (flowBindings.immutable_skills) {
+    for (const [file,old] of Object.entries(previous?.files || {})) {
+      if (!file.startsWith(`pipelines/${name}/skill-libraries/`) && !file.startsWith(`pipelines/${name}/skills/`)) continue;
+      const current = contained(project,file);
+      check(hash(current) === old, 'Retained skill library was edited or removed: ' + file);
+      if (!Object.hasOwn(desired,file)) desired[file] = fs.readFileSync(current);
+    }
+  }
   for (const skill of manifest.setup.skills || []) {
     check(identifier(skill.name), 'Invalid skill name');
     const skillFiles = filesUnder(directory,[skill.source]);

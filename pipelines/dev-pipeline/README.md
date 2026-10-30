@@ -19,7 +19,7 @@ commit conventions.
 - A browser-capable coordinator for tasks whose approved live scenario needs a
   UI. The flow also supports CLI, API, library and documentation tasks.
 
-The package includes all six local skills, their reference files, the helper and
+The package includes all seven local skills, their reference files, the helper and
 its project contract. Planning uses `afm-dev-planning`; it does not require the
 external Superpowers plugin. Skills assigned to stages and standing writers are
 loaded from the package. Temporary reviewers and verify agents receive exact
@@ -82,13 +82,26 @@ subsequent stages; each check receipt includes the source fingerprint, contract
 hash, environment identity, command result and log path. See
 [project contract](docs/project-contract.md) for the fields and gates.
 
+Acceptance routes by observable behavior: backend-only API/CLI/library changes
+use no visual protocol; UI tasks select behavior, visual or prototype mode with
+bounded affected surfaces. Only those tasks load `afm-ui-acceptance`. Coordinators
+capture early UI previews during implementation; UX/design helpers are selected
+on demand. Structured criterion results make omitted steps and stale evidence
+blocking before AI verification. Scoped user exceptions are reported separately
+from PASS. See the project contract for schema version 2 and examples.
+
+Declare rewriting generators/builds as `prepare` commands before broad checks,
+inspect their changes, and freeze the candidate for review. Optional reviewed input
+scopes allow receipts/live observations to survive unrelated edits; final checks
+always cover the complete tree. Each attempt preserves its logs and prior receipt.
+
 The live stage records actual product observations. In-scope failures trigger a
 bounded repair and independent review cycle. A failed live scenario can proceed
 only after an explicit user override of the recorded failure. The commit stage
 runs final checks; merge is optional and has its own concrete approval. Neither
-stage pushes. Existing runs keep their frozen helper and chosen profiles, while
-an update may change the installed skill library for a later agent turn; avoid
-updating a package used by an active run.
+stage pushes. Existing runs keep their frozen helper and chosen profiles, and reference content-hashed immutable skill libraries. Updates retain the old
+libraries (including legacy paths) for active runs. Never edit a retained library
+in place; removal still requires stopping runs using the package.
 
 ## Package checks
 
@@ -99,3 +112,18 @@ node --test tests/installer.test.mjs
 
 The installer test covers a project path containing spaces, resolved roles and
 skills, actual AFM flow validation, update, and removal.
+
+## Older local entry point
+
+For an existing project using `pipelines/dev-pipeline-v1.yaml`, synchronize its
+ignored local files from this catalog while keeping its configured stage, writer
+and specialist model choices:
+
+```sh
+node scripts/sync-dev-pipeline-v1.mjs /absolute/project/root
+```
+
+This writes the local flow, helper, helper tests and contract, and a new immutable
+skill library under `pipelines/skill-libraries/`. It preserves older libraries
+and does not change active run snapshots or launch a run. New runs use the updated
+entry point. Use the installer for the normal managed `dev-pipeline` package.

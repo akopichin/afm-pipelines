@@ -78,6 +78,13 @@ freeze the candidate: no writer tasks, coordinator edits or file-rewriting check
 Collect all outcomes, deduplicate findings into bounded corrections per writer,
 and preserve earlier findings and repair counts. Gates remain the flow's decision.
 
+Tie each finding to an approved requirement/criterion before disposition. A
+pre-existing defect still blocks an explicit criterion; extend the writer's file
+grant within approved scope instead of dismissing it as unrelated. Record direct
+user changes to acceptance with the affected IDs, original user evidence and
+remaining limitations; preserve unexecuted/waived status rather than declaring
+PASS. Resolve ambiguity only when the requested change itself is unclear.
+
 ## Complete deliberately
 
 Before any completion summary/marker, reconcile ALL of your actual pending waits

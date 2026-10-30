@@ -1,6 +1,6 @@
 schema_version: 1
 name: dev-pipeline
-version: 1.0.1
+version: 1.1.0
 description: Project-aware development with planning, standing writers, independent review, live acceptance, documentation, commit and optional merge.
 entrypoint: flow.yaml
 license: MIT
@@ -23,6 +23,7 @@ setup:
     docker_auto_shim: true
   flow_bindings:
     skills_dir: true
+    immutable_skills: true
     memory_path: true
     skill_path_token: __DEV_PIPELINE_SKILLS_DIR__
   models:
@@ -43,6 +44,7 @@ setup:
   model_policy: resolved_bindings
   skills:
     - {name: afm-dev-planning, source: skills/afm-dev-planning, runtime_loading: flow_library, offer_client_installation: true}
+    - {name: afm-ui-acceptance, source: skills/afm-ui-acceptance, runtime_loading: conditional, offer_client_installation: true}
     - {name: afm-check-evidence, source: skills/afm-check-evidence, runtime_loading: flow_library, offer_client_installation: true}
     - {name: afm-dev-coordinator, source: skills/afm-dev-coordinator, runtime_loading: flow_library, offer_client_installation: true}
     - {name: afm-dev-writer, source: skills/afm-dev-writer, runtime_loading: flow_library, offer_client_installation: true}

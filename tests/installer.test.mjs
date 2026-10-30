@@ -8,6 +8,7 @@ import {createRequire} from 'node:module';
 import YAML from 'yaml';
 import {catalog,inspect,planInstall,planRemove,apply,verify,recover} from '../scripts/pipelines.mjs';
 import {freeze} from '../pipelines/refactor/scripts/freeze.mjs';
+import {sync} from '../scripts/sync-dev-pipeline-v1.mjs';
 
 const require = createRequire(import.meta.url);
 function fixture(t) {
@@ -64,7 +65,7 @@ test('dev pipeline installs every local skill and binds stage, verify, writer an
   const flow=YAML.parse(f.read('pipelines/dev-pipeline/flow.yaml'));
   const bindings=JSON.parse(f.read('pipelines/dev-pipeline/bindings.json')).roles;
   assert.equal(flow.name,'dev-pipeline');
-  assert.equal(flow.skills_dir,path.join(f.project,'pipelines/dev-pipeline/skills'));
+  assert(flow.skills_dir.startsWith(path.join(f.project,'pipelines/dev-pipeline/skill-libraries/')));
   assert.equal(flow.memory.path,path.join(f.project,'.memory'));
   assert.equal(flow.team.find(member=>member.id==='astra').profile,bindings.writer_astra.profile);
   assert.equal(flow.stages.find(stage=>stage.id==='plan').command,bindings.coordinator_plan.command);
@@ -80,12 +81,12 @@ test('dev pipeline installs every local skill and binds stage, verify, writer an
   assert.match(flow.stages.find(stage=>stage.id==='plan').verify.steps[1].prompt,/afm-review-work\/SKILL\.md/);
   assert(!f.read('pipelines/dev-pipeline/flow.yaml').includes('__PROFILE_'));
   assert(!f.read('pipelines/dev-pipeline/flow.yaml').includes('__DEV_PIPELINE_'));
-  for(const skill of ['afm-dev-planning','afm-check-evidence','afm-dev-coordinator','afm-dev-writer','afm-review-work','afm-delivery-report']) {
-    assert(fs.existsSync(path.join(f.project,`pipelines/dev-pipeline/skills/${skill}/SKILL.md`)));
+  for(const skill of ['afm-dev-planning','afm-ui-acceptance','afm-check-evidence','afm-dev-coordinator','afm-dev-writer','afm-review-work','afm-delivery-report']) {
+    assert(fs.existsSync(path.join(flow.skills_dir,`${skill}/SKILL.md`)));
     assert(fs.existsSync(path.join(f.project,`.agents/skills/${skill}/SKILL.md`)));
     assert(fs.existsSync(path.join(f.project,`.claude/skills/${skill}/SKILL.md`)));
   }
-  assert(fs.existsSync(path.join(f.project,'pipelines/dev-pipeline/skills/afm-dev-coordinator/references/helpers.md')));
+  assert(fs.existsSync(path.join(flow.skills_dir,'afm-dev-coordinator/references/helpers.md')));
   assert.equal(verify(f.project,'dev-pipeline').status,'validated');
   execFileSync('git',['-C',f.project,'config','user.name','Pipeline test']);
   execFileSync('git',['-C',f.project,'config','user.email','pipeline@example.invalid']);
@@ -97,9 +98,60 @@ test('dev pipeline installs every local skill and binds stage, verify, writer an
   execFileSync('bash',['-c',flow.stages[0].script],{cwd:worktree,env:{...process.env,AFM_STAGE_DIR:stage}});
   assert(fs.existsSync(path.join(stage,'helper.py')));
   assert(fs.existsSync(path.join(stage,'project-contract.md')));
+  assert(fs.existsSync(path.join(flow.skills_dir,'afm-ui-acceptance/SKILL.md')));
   assert.equal(planInstall({project:f.project,name:'dev-pipeline'}).writes.length,0);
   apply(planRemove({project:f.project,name:'dev-pipeline'}));
   assert(!fs.existsSync(path.join(f.project,'pipelines/dev-pipeline/flow.yaml')));
+});
+
+test('dev pipeline updates preserve libraries referenced by both old and new runs',t=>{
+  const f=fixture(t), root=path.join(f.root,'catalog');
+  fs.cpSync(path.join(catalog,'pipelines/dev-pipeline'),path.join(root,'pipelines/dev-pipeline'),{recursive:true});
+  const manifestFile=path.join(root,'pipelines/dev-pipeline/pipeline.yaml');
+  const manifest=YAML.parse(fs.readFileSync(manifestFile,'utf8'));
+  delete manifest.setup.flow_bindings.immutable_skills;
+  fs.writeFileSync(manifestFile,YAML.stringify(manifest));
+  apply(planInstall({project:f.project,name:'dev-pipeline',root}));
+  const oldPath=YAML.parse(f.read('pipelines/dev-pipeline/flow.yaml')).skills_dir;
+  const oldFile=path.join(oldPath,'afm-dev-planning/SKILL.md'), oldBytes=fs.readFileSync(oldFile,'utf8');
+  manifest.setup.flow_bindings.immutable_skills=true;
+  fs.writeFileSync(manifestFile,YAML.stringify(manifest));
+  const sourceSkill=path.join(root,'pipelines/dev-pipeline/skills/afm-dev-planning/SKILL.md');
+  fs.appendFileSync(sourceSkill,'\nUpdated planning protocol.\n');
+  apply(planInstall({project:f.project,name:'dev-pipeline',root}));
+  const firstPath=YAML.parse(f.read('pipelines/dev-pipeline/flow.yaml')).skills_dir;
+  assert.notEqual(firstPath,oldPath);
+  assert.equal(fs.readFileSync(oldFile,'utf8'),oldBytes,'Legacy active run retains its original instructions');
+  const firstFile=path.join(firstPath,'afm-dev-planning/SKILL.md'), firstBytes=fs.readFileSync(firstFile,'utf8');
+  fs.appendFileSync(sourceSkill,'\nAnother planning protocol.\n');
+  apply(planInstall({project:f.project,name:'dev-pipeline',root}));
+  const nextFlow=YAML.parse(f.read('pipelines/dev-pipeline/flow.yaml'));
+  assert.notEqual(nextFlow.skills_dir,firstPath);
+  assert.equal(fs.readFileSync(firstFile,'utf8'),firstBytes);
+  assert.equal(fs.readFileSync(oldFile,'utf8'),oldBytes);
+  assert(nextFlow.prompt.includes(nextFlow.skills_dir+'/afm-ui-acceptance/SKILL.md'));
+  assert.equal(verify(f.project,'dev-pipeline').status,'validated');
+  assert.equal(planInstall({project:f.project,name:'dev-pipeline',root}).writes.length,0);
+});
+
+test('legacy synchronization preserves role choices and older libraries and is repeatable',t=>{
+  const f=fixture(t);
+  apply(planInstall({project:f.project,name:'dev-pipeline'}));
+  const before=YAML.parse(f.read('pipelines/dev-pipeline/flow.yaml'));
+  f.write('pipelines/dev-pipeline-v1.yaml',YAML.stringify(before));
+  f.write('pipelines/skills/old/SKILL.md','Existing active instructions');
+  const first=sync(f.project), text=f.read('pipelines/dev-pipeline-v1.yaml');
+  const flow=YAML.parse(text);
+  assert.equal(flow.name,'dev-pipeline-v1');
+  assert.deepEqual(flow.team.map(m=>m.profile),before.team.map(m=>m.profile));
+  assert.deepEqual(flow.stages.map(s=>s.command),before.stages.map(s=>s.command));
+  assert.equal(f.read('pipelines/skills/old/SKILL.md'),'Existing active instructions');
+  assert(fs.existsSync(path.join(first.skills_dir,'afm-ui-acceptance/SKILL.md')));
+  assert(flow.stages.find(s=>s.id==='implement').verify.steps[0].run.includes('--git-path dev-pipeline-v1/'));
+  assert(!flow.stages.find(s=>s.id==='implement').skills.includes('afm-ui-acceptance'));
+  execFileSync('afm',['validate',first.flow],{cwd:f.project});
+  assert.deepEqual(sync(f.project),first);
+  assert.equal(f.read('pipelines/dev-pipeline-v1.yaml'),text);
 });
 
 test('stale plans, edited files and configuration conflicts do not overwrite user changes',t=>{

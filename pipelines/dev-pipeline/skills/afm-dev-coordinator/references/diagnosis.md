@@ -5,6 +5,10 @@ second rejection of the same underlying defect require independent diagnosis
 before another correction. Count across requests, helpers, stages, sessions and
 verify/live reruns. Renaming a task or narrowing a reproduction does not reset
 the count. Expected TDD red and planned diagnostic checks are not failed repairs.
+Group related symptoms by the underlying invariant, not just finding IDs. Several
+focus failures across one panel/dialog transition, or contrast failures across
+shared tokens, warrant a bounded diagnosis of that mechanism before more local
+patches, even when each individual symptom has only one attempted repair.
 
 State the invariant, symptom, suspected cause, distinguishing check and observed
 result. A published status may precede deferred cleanup: reason about ownership,

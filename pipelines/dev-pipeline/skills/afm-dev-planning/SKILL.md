@@ -17,6 +17,15 @@ file grant per task. Specify observable acceptance, focused tests and the full
 project checks, including who runs each check. Define a real product scenario
 with setup, expected observations, evidence and cleanup.
 
+Choose acceptance interfaces by changed observable behavior: API, CLI, library,
+UI or documentation, combining them for mixed tasks. Explain the selection and
+omissions in the contract. Backend-only work needs no visual protocol. When UI
+is affected, read the sibling `../afm-ui-acceptance/SKILL.md` and select behavior,
+visual or prototype mode with bounded affected surfaces/states. A backend file
+can affect a UI journey; frontend files alone do not justify a full theme sweep.
+Keep the plan concise: decisions, atomic criteria, owned work and check ownership;
+reference shared protocols instead of copying them into every task.
+
 The flow defines the plan paths, project.json schema, approval, review budget,
 delegation and commit behavior. Use those contracts rather than creating a
 second plan or dispatching native subagents. Explain assumptions and tradeoffs
