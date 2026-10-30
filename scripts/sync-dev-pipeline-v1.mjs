@@ -16,6 +16,7 @@ export function sync(project) {
   const target=path.join(project,'pipelines/dev-pipeline-v1.yaml');
   const old=YAML.parse(fs.readFileSync(target,'utf8'));
   const flow=YAML.parse(fs.readFileSync(path.join(packageRoot,'flow.yaml'),'utf8'));
+  const manifest=YAML.parse(fs.readFileSync(path.join(packageRoot,'pipeline.yaml'),'utf8'));
   const files=[];
   function visit(relative) {
     const absolute=path.join(packageRoot,relative);
@@ -38,7 +39,9 @@ export function sync(project) {
   flow.name='dev-pipeline-v1';flow.skills_dir=library;
   flow.memory.path=path.join(project,'.memory');
   for(const member of flow.team) {
-    const prior=old.team.find(item=>item.id===member.id);
+    const role=manifest.setup.models.find(item=>item.team_member===member.id);
+    const prior=old.team.find(item=>item.id===member.id) ||
+      old.team.find(item=>role?.previous_team_members?.includes(item.id));
     if(!prior)throw new Error('Missing existing writer: '+member.id);
     member.profile=prior.profile;
   }

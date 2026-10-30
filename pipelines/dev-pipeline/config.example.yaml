@@ -16,7 +16,7 @@ docker:
       auth:
         from: env:CLAUDE_CODE_OAUTH_TOKEN
         to: env:CLAUDE_CODE_OAUTH_TOKEN
-    dev-default-writer-astra:
+    dev-default-writer-opus:
       type: claude
       model: claude-opus-5-5
       reasoning: xhigh
@@ -109,9 +109,9 @@ collaboration:
       delegate: false
       instructions: Follow the assigned stage or writer instructions, project rules
         and required checks. Keep evidence in the run directory.
-    dev-default-writer-astra:
-      title: Dev pipeline / writer_astra
-      command: dev-default-writer-astra
+    dev-default-writer-opus:
+      title: Dev pipeline / writer_opus
+      command: dev-default-writer-opus
       delegate: false
       instructions: Follow the assigned stage or writer instructions, project rules
         and required checks. Keep evidence in the run directory.

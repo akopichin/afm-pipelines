@@ -140,6 +140,11 @@ export function planInstall({project, name, options = {}, root = catalog}) {
   const previous = exists(receiptFile) ? readJSON(receiptFile) : null;
   const roleChoices = structuredClone(previous?.options?.roles || {});
   for (const [role,choice] of Object.entries(options.roles || {})) roleChoices[role]={...roleChoices[role],...choice};
+  for (const role of manifest.setup.models || []) for (const oldRole of role.previous_roles || []) {
+    if (!Object.hasOwn(roleChoices,oldRole)) continue;
+    roleChoices[role.role]={...roleChoices[oldRole],...roleChoices[role.role]};
+    delete roleChoices[oldRole];
+  }
   options = {...(previous?.options || {}),...options,roles:roleChoices};
   const skills = options.skills || [];
   check(Array.isArray(skills) && skills.every(client => ['claude','codex'].includes(client)), 'skills must list claude and/or codex');

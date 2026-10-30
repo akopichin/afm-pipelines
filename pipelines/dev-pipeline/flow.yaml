@@ -81,9 +81,9 @@ team:
     title: dev-frontend
     skills: *writer_skills
     instruction: *writer_instruction
-  - id: astra
-    profile: dev-default-writer-astra
-    title: astra
+  - id: opus
+    profile: dev-default-writer-opus
+    title: opus
     skills: *writer_skills
     instruction: *writer_instruction
 
@@ -254,8 +254,8 @@ stages:
     script_before: *bind_run
     skills: [afm-check-evidence, afm-dev-coordinator]
     prompt: |
-      Implement the approved sections with dev-backend/dev-frontend/astra under the
-      coordinator and check-evidence skills. Use astra for difficult fixes and work
+      Implement the approved sections with dev-backend/dev-frontend/opus under the
+      coordinator and check-evidence skills. Use opus for difficult fixes and work
       spanning subsystem boundaries. Keep the plan as a file reference. Publish task
       ownership/progress on the Board; save IDs, acceptance, completed-command evidence
       and applied brief revisions in team-progress.json before review dispatch.
@@ -389,8 +389,8 @@ stages:
       2. Turn concrete failures into bounded work items with repro steps, expected
          versus actual behavior, tested tree/contract, evidence paths, prior
          hypotheses, explicit owned files/tests and acceptance criteria. Resolve
-         dev-backend/dev-frontend/astra from the roster and send each repair to the
-         appropriate standing writer; use astra for difficult fixes or changes
+         dev-backend/dev-frontend/opus from the roster and send each repair to the
+         appropriate standing writer; use opus for difficult fixes or changes
          spanning subsystem boundaries. Reuse reachable writers; temporary helpers
          are for read-only diagnosis/review, not product implementation. If a
          writer is unavailable, follow the coordinator skill's replacement protocol and

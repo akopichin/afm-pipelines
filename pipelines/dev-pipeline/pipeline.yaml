@@ -29,7 +29,7 @@ setup:
   models:
     - {role: writer_backend, team_member: dev-backend, profile: dev-default-writer-backend, command: dev-default-writer-backend, client: claude, model: claude-sonnet-5-5, reasoning: high}
     - {role: writer_frontend, team_member: dev-frontend, profile: dev-default-writer-frontend, command: dev-default-writer-frontend, client: claude, model: claude-sonnet-5-5, reasoning: high}
-    - {role: writer_astra, team_member: astra, profile: dev-default-writer-astra, command: dev-default-writer-astra, client: claude, model: claude-opus-5-5, reasoning: xhigh}
+    - {role: writer_opus, previous_roles: [writer_astra], team_member: opus, previous_team_members: [astra], profile: dev-default-writer-opus, command: dev-default-writer-opus, client: claude, model: claude-opus-5-5, reasoning: xhigh}
     - {role: coordinator_plan, stage_ids: [plan], profile: dev-default-coordinator-plan, command: dev-default-coordinator-plan, client: claude, model: claude-opus-5-5, reasoning: xhigh}
     - {role: coordinator_work, stage_ids: [implement, live-run, commit, merge], profile: dev-default-coordinator-work, command: dev-default-coordinator-work, client: claude, model: claude-sonnet-5-5, reasoning: high}
     - {role: coordinator_docs, stage_ids: [docs], profile: dev-default-coordinator-docs, command: dev-default-coordinator-docs, client: claude, model: claude-sonnet-5-5, reasoning: high}

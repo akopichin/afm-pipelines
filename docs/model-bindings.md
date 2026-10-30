@@ -12,6 +12,8 @@ A role describes work inside one pipeline. The package declares roles in
 `verify_stage_ids` selects AI verify commands; and `profile_token` identifies a
 specialist profile name in a prompt. `profile`, `command`, `client`, `model` and
 `reasoning` describe recommended defaults from `config.example.yaml`.
+Optional `previous_roles` migrates saved choices when a role is renamed;
+`previous_team_members` lets legacy flow synchronization find renamed writers.
 Packages can declare different numbers of roles and different defaults. The
 installer does not assume every pipeline has two architects.
 

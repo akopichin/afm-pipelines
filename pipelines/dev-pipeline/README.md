@@ -52,13 +52,13 @@ their saved role choices on update; to switch an earlier Codex planner, pass:
 {"roles":{"coordinator_plan":{"client":"claude","model":"claude-opus-5-5","reasoning":"xhigh"}}}
 ```
 
-The difficult-task writer (`writer_astra`, team ID `astra`) also uses Claude Opus
-5.5 with `xhigh` reasoning; the stable role and team IDs are retained for existing
-installations. Correctness review (`review_correctness`) uses GPT-6.1 Sol with
+The difficult-task writer (`writer_opus`, team ID `opus`) also uses Claude Opus
+5.5 with `xhigh` reasoning. Updates migrate saved choices from the previous writer
+role to `writer_opus`. Correctness review (`review_correctness`) uses GPT-6.1 Sol with
 `xhigh` reasoning. To apply these defaults to an existing installation, pass:
 
 ```json
-{"roles":{"writer_astra":{"client":"claude","model":"claude-opus-5-5","reasoning":"xhigh"},"review_correctness":{"client":"codex","model":"gpt-6.1-sol","reasoning":"xhigh"}}}
+{"roles":{"writer_opus":{"client":"claude","model":"claude-opus-5-5","reasoning":"xhigh"},"review_correctness":{"client":"codex","model":"gpt-6.1-sol","reasoning":"xhigh"}}}
 ```
 
 The installer writes `pipelines/dev-pipeline/` and isolated AFM profiles in the

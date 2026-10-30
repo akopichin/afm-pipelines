@@ -55,9 +55,9 @@ test('install, configure independent models, repeat, update and remove with actu
 
 test('dev pipeline installs every local skill and binds stage, verify, writer and specialist roles',t=>{
   const f=fixture(t);
-  const options={skills:['claude','codex'],roles:{writer_astra:{model:'custom-astra'},review_security:{model:'custom-review'}}};
+  const options={skills:['claude','codex'],roles:{writer_opus:{model:'custom-opus'},review_security:{model:'custom-review'}}};
   const plan=planInstall({project:f.project,name:'dev-pipeline',options});
-  assert.equal(plan.receipt.bindings.writer_astra.model,'custom-astra');
+  assert.equal(plan.receipt.bindings.writer_opus.model,'custom-opus');
   assert.equal(plan.receipt.bindings.review_security.model,'custom-review');
   const planner=plan.receipt.bindings.coordinator_plan;
   assert.deepEqual([planner.client,planner.model,planner.reasoning],['claude','claude-opus-5-5','xhigh']);
@@ -67,7 +67,7 @@ test('dev pipeline installs every local skill and binds stage, verify, writer an
   assert.equal(flow.name,'dev-pipeline');
   assert(flow.skills_dir.startsWith(path.join(f.project,'pipelines/dev-pipeline/skill-libraries/')));
   assert.equal(flow.memory.path,path.join(f.project,'.memory'));
-  assert.equal(flow.team.find(member=>member.id==='astra').profile,bindings.writer_astra.profile);
+  assert.equal(flow.team.find(member=>member.id==='opus').profile,bindings.writer_opus.profile);
   assert.equal(flow.stages.find(stage=>stage.id==='plan').command,bindings.coordinator_plan.command);
   const recipes=YAML.parse(f.read('.afm/config.yaml')).docker.agents;
   const plannerRecipe=recipes[bindings.coordinator_plan.command];
@@ -104,6 +104,42 @@ test('dev pipeline installs every local skill and binds stage, verify, writer an
   assert(!fs.existsSync(path.join(f.project,'pipelines/dev-pipeline/flow.yaml')));
 });
 
+test('renamed writer migrates saved choices and accepts explicit Opus settings',t=>{
+  const f=fixture(t), root=path.join(f.root,'old catalog');
+  fs.cpSync(path.join(catalog,'pipelines/dev-pipeline'),path.join(root,'pipelines/dev-pipeline'),{recursive:true});
+  const manifestFile=path.join(root,'pipelines/dev-pipeline/pipeline.yaml');
+  const manifest=YAML.parse(fs.readFileSync(manifestFile,'utf8'));
+  const writer=manifest.setup.models.find(role=>role.role==='writer_opus');
+  writer.role='writer_astra';writer.team_member='astra';
+  delete writer.previous_roles;delete writer.previous_team_members;
+  fs.writeFileSync(manifestFile,YAML.stringify(manifest));
+  const flowFile=path.join(root,'pipelines/dev-pipeline/flow.yaml');
+  const oldFlow=YAML.parse(fs.readFileSync(flowFile,'utf8'));
+  oldFlow.team.find(member=>member.id==='opus').id='astra';
+  fs.writeFileSync(flowFile,YAML.stringify(oldFlow));
+  const original=planInstall({project:f.project,name:'dev-pipeline',root,
+    options:{roles:{writer_astra:{client:'codex',model:'saved-writer',reasoning:'high'}}}});
+  apply(original);
+  const update=planInstall({project:f.project,name:'dev-pipeline'});
+  assert.equal(update.receipt.bindings.writer_opus.model,'saved-writer');
+  assert.equal(update.receipt.bindings.writer_opus.client,'codex');
+  assert(!Object.hasOwn(update.receipt.options.roles,'writer_astra'));
+  apply(update);
+  const flow=YAML.parse(f.read('pipelines/dev-pipeline/flow.yaml'));
+  assert(flow.team.some(member=>member.id==='opus'));
+  assert(!flow.team.some(member=>member.id==='astra'));
+  const changed=planInstall({project:f.project,name:'dev-pipeline',options:{roles:{writer_opus:{
+    client:'claude',model:'claude-opus-5-5',reasoning:'xhigh'}}}});
+  apply(changed);
+  const binding=changed.receipt.bindings.writer_opus;
+  const config=YAML.parse(f.read('.afm/config.yaml'));
+  assert.deepEqual([binding.client,binding.model,binding.reasoning],['claude','claude-opus-5-5','xhigh']);
+  assert.equal(config.docker.agents[binding.command].auth.from,'env:CLAUDE_CODE_OAUTH_TOKEN');
+  assert(config.collaboration.profiles[original.receipt.bindings.writer_astra.profile]);
+  assert.equal(verify(f.project,'dev-pipeline').status,'validated');
+  assert.equal(planInstall({project:f.project,name:'dev-pipeline'}).writes.length,0);
+});
+
 test('dev pipeline updates preserve libraries referenced by both old and new runs',t=>{
   const f=fixture(t), root=path.join(f.root,'catalog');
   fs.cpSync(path.join(catalog,'pipelines/dev-pipeline'),path.join(root,'pipelines/dev-pipeline'),{recursive:true});
@@ -138,11 +174,15 @@ test('legacy synchronization preserves role choices and older libraries and is r
   const f=fixture(t);
   apply(planInstall({project:f.project,name:'dev-pipeline'}));
   const before=YAML.parse(f.read('pipelines/dev-pipeline/flow.yaml'));
-  f.write('pipelines/dev-pipeline-v1.yaml',YAML.stringify(before));
+  const legacy=structuredClone(before);
+  legacy.team.find(member=>member.id==='opus').id='astra';
+  f.write('pipelines/dev-pipeline-v1.yaml',YAML.stringify(legacy));
   f.write('pipelines/skills/old/SKILL.md','Existing active instructions');
   const first=sync(f.project), text=f.read('pipelines/dev-pipeline-v1.yaml');
   const flow=YAML.parse(text);
   assert.equal(flow.name,'dev-pipeline-v1');
+  assert(flow.team.some(member=>member.id==='opus'));
+  assert(!flow.team.some(member=>member.id==='astra'));
   assert.deepEqual(flow.team.map(m=>m.profile),before.team.map(m=>m.profile));
   assert.deepEqual(flow.stages.map(s=>s.command),before.stages.map(s=>s.command));
   assert.equal(f.read('pipelines/skills/old/SKILL.md'),'Existing active instructions');
