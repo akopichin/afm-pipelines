@@ -82,7 +82,7 @@ team:
     skills: *writer_skills
     instruction: *writer_instruction
   - id: astra
-    profile: dev-pipeline-astra-xhigh
+    profile: dev-default-writer-astra
     title: astra
     skills: *writer_skills
     instruction: *writer_instruction

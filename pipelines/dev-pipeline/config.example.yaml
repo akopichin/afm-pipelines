@@ -17,9 +17,12 @@ docker:
         from: env:CLAUDE_CODE_OAUTH_TOKEN
         to: env:CLAUDE_CODE_OAUTH_TOKEN
     dev-default-writer-astra:
-      type: codex
-      model: gpt-6-astra
+      type: claude
+      model: claude-opus-5-5
       reasoning: xhigh
+      auth:
+        from: env:CLAUDE_CODE_OAUTH_TOKEN
+        to: env:CLAUDE_CODE_OAUTH_TOKEN
     dev-default-coordinator-plan:
       type: claude
       model: claude-opus-5-5
@@ -68,7 +71,7 @@ docker:
         to: env:CLAUDE_CODE_OAUTH_TOKEN
     dev-default-review-correctness:
       type: codex
-      model: gpt-6-sol
+      model: gpt-6.1-sol
       reasoning: xhigh
     dev-default-review-design:
       type: claude
