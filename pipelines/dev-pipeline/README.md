@@ -44,6 +44,14 @@ compatible `profile` to copy. The 14 roles cover the three writers, stage
 coordinators, AI verifier and seven specialist perspectives. A specialist remains
 available for on-demand use without becoming a standing team member.
 
+The recommended planner (`coordinator_plan`) is Claude Opus 5.5 with `xhigh`
+reasoning. Its independent AI verifier uses Codex. Existing installations retain
+their saved role choices on update; to switch an earlier Codex planner, pass:
+
+```json
+{"roles":{"coordinator_plan":{"client":"claude","model":"claude-opus-5-5","reasoning":"xhigh"}}}
+```
+
 The installer writes `pipelines/dev-pipeline/` and isolated AFM profiles in the
 project, binds all stage commands and reviewer profile names, and resolves the
 package skill library to the main checkout's absolute path. That makes the

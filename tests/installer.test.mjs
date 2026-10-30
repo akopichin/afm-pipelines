@@ -58,6 +58,8 @@ test('dev pipeline installs every local skill and binds stage, verify, writer an
   const plan=planInstall({project:f.project,name:'dev-pipeline',options});
   assert.equal(plan.receipt.bindings.writer_astra.model,'custom-astra');
   assert.equal(plan.receipt.bindings.review_security.model,'custom-review');
+  const planner=plan.receipt.bindings.coordinator_plan;
+  assert.deepEqual([planner.client,planner.model,planner.reasoning],['claude','claude-opus-5-5','xhigh']);
   apply(plan);
   const flow=YAML.parse(f.read('pipelines/dev-pipeline/flow.yaml'));
   const bindings=JSON.parse(f.read('pipelines/dev-pipeline/bindings.json')).roles;
@@ -66,6 +68,12 @@ test('dev pipeline installs every local skill and binds stage, verify, writer an
   assert.equal(flow.memory.path,path.join(f.project,'.memory'));
   assert.equal(flow.team.find(member=>member.id==='astra').profile,bindings.writer_astra.profile);
   assert.equal(flow.stages.find(stage=>stage.id==='plan').command,bindings.coordinator_plan.command);
+  const recipes=YAML.parse(f.read('.afm/config.yaml')).docker.agents;
+  const plannerRecipe=recipes[bindings.coordinator_plan.command];
+  assert.deepEqual([plannerRecipe.type,plannerRecipe.model,plannerRecipe.reasoning],['claude','claude-opus-5-5','xhigh']);
+  assert.equal(plannerRecipe.auth.from,'env:CLAUDE_CODE_OAUTH_TOKEN');
+  assert.equal(flow.stages.find(stage=>stage.id==='plan').verify.steps[1].command,bindings.verifier.command);
+  assert.equal(recipes[bindings.verifier.command].type,'codex');
   assert.equal(flow.stages.find(stage=>stage.id==='docs').command,bindings.coordinator_docs.command);
   assert.equal(flow.stages.find(stage=>stage.id==='implement').verify.steps[1].command,bindings.verifier.command);
   assert.match(flow.stages.find(stage=>stage.id==='plan').prompt,new RegExp(bindings.review_security.profile));

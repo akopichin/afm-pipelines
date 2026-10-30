@@ -95,7 +95,7 @@ stages:
   - id: plan
     name: "Confirm task and project contract"
     depends_on: [bootstrap]
-    command: codex
+    command: dev-default-coordinator-plan
     agents: [auto]
     interactive: true
     script_before: &bind_run |

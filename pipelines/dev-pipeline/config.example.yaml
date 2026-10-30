@@ -21,9 +21,12 @@ docker:
       model: gpt-6-astra
       reasoning: xhigh
     dev-default-coordinator-plan:
-      type: codex
-      model: gpt-6.1-sol
-      reasoning: high
+      type: claude
+      model: claude-opus-5-5
+      reasoning: xhigh
+      auth:
+        from: env:CLAUDE_CODE_OAUTH_TOKEN
+        to: env:CLAUDE_CODE_OAUTH_TOKEN
     dev-default-coordinator-work:
       type: claude
       model: claude-sonnet-5-5
