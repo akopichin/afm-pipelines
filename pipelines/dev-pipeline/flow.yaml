@@ -464,7 +464,7 @@ stages:
     verify:
       steps:
         - run: python3 "$(git rev-parse --git-path dev-pipeline/helper.py)" live-gate
-          timeout: 2m
+          timeout: 10m
         - command: codex
           timeout: 15m
           prompt: |
