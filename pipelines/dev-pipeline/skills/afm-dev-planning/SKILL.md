@@ -26,6 +26,14 @@ can affect a UI journey; frontend files alone do not justify a full theme sweep.
 Keep the plan concise: decisions, atomic criteria, owned work and check ownership;
 reference shared protocols instead of copying them into every task.
 
+For mixed backend/UI work, give each implement/docs command and live criterion a
+reviewed dependency scope where possible. Include shared code, build/configuration
+and ignored inputs; document why any whole-tree fallback is necessary. Assign one
+owner per broad check and distinguish a representative early preview from final
+acceptance. Plan compatible observations as browser batches while preserving atomic
+criterion IDs. Do not multiply the full acceptance matrix across implementation,
+review and live stages when matching actual evidence can be reused.
+
 The flow defines the plan paths, project.json schema, approval, review budget,
 delegation and commit behavior. Use those contracts rather than creating a
 second plan or dispatching native subagents. Explain assumptions and tradeoffs

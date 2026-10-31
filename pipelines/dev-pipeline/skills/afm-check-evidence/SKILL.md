@@ -32,6 +32,15 @@ check or treats a timeout as success.
 - Scoped `input_paths` may reuse evidence across unrelated edits only after review
   confirms the complete dependency closure (code, configuration, assets and build
   inputs). Default to the whole tree when uncertain; final checks stay unscoped.
+- For mixed stacks, declare dependencies per implement/docs command instead of
+  tying every check to one whole-tree receipt. Include shared interfaces, manifests,
+  lockfiles, generators and tool configuration. The helper reuses successful commands
+  with matching content, command, contract and environment, retaining original logs;
+  a stale group receipt does not mean every command must execute again. Final gates
+  remain whole-tree. Do not narrow scopes after a failure just to reuse old evidence.
+- Keep stateful commands serial. Parallelize only independent read-only checks with
+  disjoint resources and a bounded worker count; builds, formatters and shared fixture
+  tests need their existing ordering. More workers do not fix repeated I/O.
 
 ## Bound experiments
 

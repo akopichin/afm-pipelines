@@ -24,6 +24,12 @@ remain blockers; style preferences and hypothetical improvements do not. Do not
 claim a requirement was exercised from a check name, summary or green retry alone.
 Missing evidence and unavailable tools are explicit limitations.
 
+Tie blocking conditions to supported product behavior and approved criteria. An
+unsupported locale, browser or hypothetical feature is not a new acceptance target.
+For scoped evidence inspect dependency completeness and changed inputs; do not demand
+another full suite or live matrix when unchanged observations remain valid. A repair
+review covers its delta and affected integration points, retaining earlier findings.
+
 Stay read-only: no product edits, commits, native subagents, delegation, nested
 orchestration or process-name kills. Helpers and verify agents have no managed
 browser; use the author's captured evidence. Run permitted repros only where the

@@ -63,8 +63,26 @@ the actual foreground/background, opacity and affected states; for focus inspect
 the active element across the full transition. Keep relevant DOM/network records
 alongside screenshots. Explain simulated clipboard, hover or service behavior.
 
-Use `helper identity --criterion ID` for each result row. A screenshot alone does
+Use `helper identity --criteria` once for all result rows on a frozen candidate;
+`--criterion ID` remains available for one row. A screenshot alone does
 not prove a network status; a unit test alone does not prove a live interaction.
 Report unexecuted criteria explicitly. A known baseline defect violating an
 approved criterion still needs repair or a scoped user exception. Follow the
 coordinator's invariant diagnosis rule when related focus/layout symptoms recur.
+
+## Reuse observations after repairs
+
+During planning, group criteria by complete input dependencies and declare their
+`input_paths`, including shared styles, components, API shapes and build inputs.
+Unknown dependencies require the full scenario. Atomic IDs identify obligations,
+not separate browser sessions: collect compatible measurements/network observations
+in one visit, and sweep selected widths/themes with a bounded script. Keep a distinct
+observation and evidence mapping per ID; never infer an unvisited state.
+
+Early previews should catch representative design errors before broad implementation.
+Plan their scope separately from the final acceptance matrix. Actual preview evidence
+may be reused only when it exercised the exact criterion on matching inputs, contract
+and environment. After a repair rerun failed and affected criteria; retain unchanged
+rows with their original evidence and identities. Do not refresh their hashes without
+performing the required observation. Save progress between batches so a resumed turn
+continues from the ledger instead of restarting the whole matrix.

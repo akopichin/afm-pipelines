@@ -130,7 +130,7 @@ stages:
         implementation Sections with task IDs, files, one writer owner and criteria;
         Docs notes; an executable Live run scenario with expected results/cleanup.
       - project.json: schema_version 2, base_branch, environment_id, input_paths,
-        checks groups implement/docs/final (each commands [{argv, cwd, timeout}]
+        checks groups implement/docs/final (each commands [{argv, cwd, timeout, input_paths?}]
         or commands [] plus skip_reason), live {required, reason}, and review
         {risk, profiles, escalation_profiles, consultants,
         sections: [{id, reviewers, reason}]}.
@@ -167,9 +167,11 @@ stages:
       action, expected observation and evidence_kind. Separately required actions
       need separate IDs. Non-executable changes have no live criteria.
       Declare rewriting generators/builds as check-group prepare commands so they
-      finish before candidate freeze and broad checks. Optional input_paths on a
-      check group, live or criterion must cover its complete input dependencies;
-      explain the scope for review. Default to all inputs if uncertain; final
+      finish before candidate freeze and broad checks. Declare reviewed input_paths
+      per implement/docs command and criterion for independently affected surfaces;
+      include shared code, configuration, dependencies and build inputs. A stale group
+      receipt may still contain reusable successful commands. Group/live scopes remain
+      available; explain each scope and any whole-tree fallback for review. Default to all inputs if uncertain; final
       checks always cover the whole tree. Reference shared protocols, do not copy
       them into the plan. Recover incoming task additions before asking approval.
 
@@ -263,7 +265,8 @@ stages:
       If check groups declare prepare commands, run helper prepare --group implement
       --stage implement before freezing the review candidate; inspect generated edits.
       If UI is affected, the coordinator uses the UI skill for an early representative
-      preview before repeating the design across sections. Capture all selected
+      preview before repeating the design across sections. Keep early preview coverage
+      representative; do not repeat the full live matrix at every review. Capture all selected
       surfaces/states in ui-preview.json on the accepted candidate before completion.
       Backend-only work needs no UI preview or design helper. Read-only reviewers
       receive actual captures/measurements; do not grant them the managed browser.
@@ -359,7 +362,8 @@ stages:
 
       Use schema 2 structured results from bootstrap/project-contract.md. Record
       one result row per approved criterion with observed behavior, evidence_kind,
-      evidence files and helper identity --criterion ID. Use identity --live for
+      evidence files and identities from one helper identity --criteria batch on a
+      frozen candidate (--criterion ID for a single row). Use identity --live for
       result.json's product identity. Record repairs with invariant and accepted
       independent-review/regression evidence; pending_work must be empty to finish.
       Missing, NOT_RUN or failed required criteria cannot be PASS. A known baseline
@@ -371,7 +375,7 @@ stages:
 
       YOU own the complete acceptance/repair cycle in this stage. An in-scope
       failure automatically means diagnose -> delegate repair -> independent
-      review -> rebuild -> repeat the live scenario. Do not ask whether to fix,
+      review -> rebuild -> repeat failed and affected live criteria. Do not ask whether to fix,
       whether to rerun, whether the repaired tree is ready, or ask the user to
       Revise/Pause the completed implement stage. Keep live-run open and coordinate
       its repair through AFM; never call parent-run mutation APIs. The coordinator
@@ -421,7 +425,10 @@ stages:
          helper receipt --group implement --stage implement. Reuse it only after
          confirming the environment; if missing/stale/failed, archive the previous
          receipt/logs and run helper checks --group implement --stage implement
-         ONCE for this candidate. Inspect check-generated changes; a changed tree
+         ONCE for this candidate.
+         The helper reuses unchanged successful command inputs and original logs;
+         a frontend-only repair should not invalidate independently scoped backend tests.
+         Inspect check-generated changes; a changed tree
          needs affected review again and a valid receipt before proceeding.
          Rebuild the product from current source and start a fresh owned fixture.
          Repeat the original failing steps

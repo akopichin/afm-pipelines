@@ -113,6 +113,14 @@ def contract(run):
             raise ValueError(group + " needs commands or a justified skip_reason")
         for command in item["commands"]:
             validate_command(command)
+            if "input_paths" in command:
+                validate_paths(command["input_paths"])
+                if group == "final":
+                    raise ValueError("final commands must cover the complete source tree")
+                if "input_paths" in item and any(not any(
+                        parent == "." or child == parent or child.startswith(parent + "/")
+                        for parent in item["input_paths"]) for child in command["input_paths"]):
+                    raise ValueError("command input_paths must be covered by group input_paths")
         for command in item.get("prepare", []):
             validate_command(command)
         if "input_paths" in item:
@@ -184,9 +192,35 @@ def identity(root, run, data, contract_hash, scope=None):
             "contract_sha256": contract_hash, "environment_id": data["environment_id"]}
 
 
+class IdentitySnapshot:
+    """Share content identities inside one read-only operation, then check stability."""
+
+    def __init__(self, root, run, data, contract_hash):
+        self.args = root, run, data, contract_hash
+        self.values = {}
+
+    def get(self, scope=None):
+        key = None if scope is None else tuple(sorted(set(scope)))
+        if key not in self.values:
+            self.values[key] = identity(*self.args, scope)
+        return self.values[key]
+
+    def verify(self):
+        for scope, before in self.values.items():
+            if identity(*self.args, None if scope is None else list(scope)) != before:
+                raise ValueError("inputs changed during evidence validation; retry on a stable tree")
+
+
 def print_identity(args):
     root, run = binding()
     data, contract_hash = contract(run)
+    if getattr(args, "criteria", False):
+        snapshot = IdentitySnapshot(root, run, data, contract_hash)
+        values = {c["id"]: snapshot.get(c.get("input_paths", data["live"].get("input_paths")))
+                  for c in data["acceptance"]["criteria"]}
+        snapshot.verify()
+        print(json.dumps(values))
+        return 0
     scope = data["live"].get("input_paths") if args.live or args.criterion else None
     if args.criterion:
         matches = [c for c in data["acceptance"]["criteria"] if c["id"] == args.criterion]
@@ -284,7 +318,7 @@ def checks(args):
     key = identity(root, run, data, contract_hash, group.get("input_paths"))
     before = key["tree"]
     receipt = run / args.stage / ("checks-" + args.group + ".json")
-    if args.reuse:
+    if args.reuse and not args.fresh:
         previous = read_json(args.reuse)
         if valid_receipt(previous, key, args.group, data["checks"][args.group]["commands"]):
             write_json(receipt, dict(previous, reused_from=str(Path(args.reuse).resolve())))
@@ -298,12 +332,32 @@ def checks(args):
     result = dict(key, group=args.group, passed=False, commands=[], skip_reason=group.get("skip_reason", ""))
     write_json(receipt, result)
     for index, command in enumerate(group["commands"], 1):
+        scope = command.get("input_paths", group.get("input_paths"))
+        command_key = identity(root, run, data, contract_hash, scope)
+        cache = run / args.stage / "checks" / "cache" / args.group
+        cache_id = hashlib.sha256(json.dumps([command, command_key], sort_keys=True).encode()).hexdigest()
+        cached = cache / (cache_id + ".json")
+        if args.group != "final" and not args.fresh and cached.is_file():
+            prior = read_json(cached)
+            actual = prior.get("result", {})
+            if (prior.get("identity") == command_key and prior.get("command") == command
+                    and prior.get("root") == str(root) and actual.get("exit_code") == 0
+                    and Path(actual.get("log", "")).is_file()):
+                result["commands"].append(dict(actual, reused_from=str(cached)))
+                print("REUSE: " + " ".join(command["argv"]), flush=True)
+                continue
+        if cached.is_file():
+            cached.unlink()
         output = receipt.parent / "checks" / args.group / str(time.time_ns()) / (str(index) + ".log")
         code = execute(command, root, output)
-        result["commands"].append(read_json(output.with_suffix(".json")))
+        actual = read_json(output.with_suffix(".json"))
+        result["commands"].append(actual)
         if code:
             write_json(receipt, result)
             return code
+        if args.group != "final" and identity(root, run, data, contract_hash, scope) == command_key:
+            write_json(cached, {"identity": command_key, "command": command,
+                                "root": str(root), "result": actual})
     after = fingerprint(root, data.get("input_paths", []), (run,), group.get("input_paths"))
     result["tree_after"] = after
     result["passed"] = before == after
@@ -371,9 +425,16 @@ def check_receipt(args):
 def live_gate(args):
     root, run = binding()
     data, contract_hash = contract(run)
+    snapshot = IdentitySnapshot(root, run, data, contract_hash)
+    code = validate_live(root, run, data, contract_hash, snapshot)
+    snapshot.verify()
+    return code
+
+
+def validate_live(root, run, data, contract_hash, snapshot):
     stage = run / "live-run"
     result = read_json(stage / "result.json")
-    if result.get("tree") != fingerprint(root, data.get("input_paths", []), (run,), data["live"].get("input_paths")):
+    if result.get("tree") != snapshot.get(data["live"].get("input_paths"))["tree"]:
         raise ValueError("live-run evidence belongs to another tree")
     if result.get("contract_sha256") != contract_hash:
         raise ValueError("live-run evidence belongs to another project contract")
@@ -382,14 +443,14 @@ def live_gate(args):
         raise ValueError("live-run result needs a reason")
     if verdict == "NOT_APPLICABLE" and not data["live"]["required"] and decision == "continue":
         if data["schema_version"] == 2:
-            acceptance_gate(root, run, data, contract_hash, result)
+            acceptance_gate(root, run, data, contract_hash, result, snapshot)
         return 0
     evidence = result.get("evidence", [])
     if not evidence_files(stage, evidence):
         raise ValueError("live-run needs existing evidence files")
     waived = False
     if data["schema_version"] == 2:
-        waived = acceptance_gate(root, run, data, contract_hash, result)
+        waived = acceptance_gate(root, run, data, contract_hash, result, snapshot)
     if verdict == ("ACCEPTED_WITH_EXCEPTIONS" if waived else "PASS") and decision == "continue":
         return 0
     if verdict == "FAIL" and decision == "override":
@@ -411,7 +472,7 @@ def evidence_files(stage, paths):
         isinstance(p, str) and bool(p) and (stage / p).is_file() for p in paths)
 
 
-def acceptance_gate(root, run, data, contract_hash, result):
+def acceptance_gate(root, run, data, contract_hash, result, snapshot):
     stage = run / "live-run"
     if result.get("environment_id") != data["environment_id"]:
         raise ValueError("live evidence belongs to another environment")
@@ -432,7 +493,7 @@ def acceptance_gate(root, run, data, contract_hash, result):
     for criterion in data["acceptance"]["criteria"]:
         row = next(r for r in rows if r["id"] == criterion["id"])
         scope = criterion.get("input_paths", data["live"].get("input_paths"))
-        key = identity(root, run, data, contract_hash, scope)
+        key = snapshot.get(scope)
         if any(row.get(k) != v for k, v in key.items()):
             raise ValueError("stale criterion evidence: " + criterion["id"])
         if not row.get("observed") or not evidence_files(stage, row.get("evidence")):
@@ -561,6 +622,7 @@ def main():
     check.add_argument("--group", choices=["implement", "docs", "final"], required=True)
     check.add_argument("--stage", choices=["implement", "docs", "commit", "merge"], required=True)
     check.add_argument("--reuse", help="reuse a receipt only after confirming its environment is unchanged")
+    check.add_argument("--fresh", action="store_true", help="execute every command for a bounded diagnostic rerun")
     check.set_defaults(func=checks)
     receipt = sub.add_parser("receipt", help="reject missing, failed or stale check evidence")
     receipt.add_argument("--group", choices=["implement", "docs", "final"], required=True)
@@ -569,6 +631,7 @@ def main():
     context = sub.add_parser("identity", help="validate the contract and print source/contract identity")
     context.add_argument("--live", action="store_true", help="use the declared live product inputs")
     context.add_argument("--criterion", help="use this acceptance criterion's declared inputs")
+    context.add_argument("--criteria", action="store_true", help="print all criterion identities in one stable snapshot")
     context.set_defaults(func=print_identity)
     gate = sub.add_parser("live-gate", help="accept recorded live evidence or an explicit dialog override")
     gate.set_defaults(func=live_gate)

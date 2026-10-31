@@ -103,6 +103,12 @@ Declare rewriting generators/builds as `prepare` commands before broad checks,
 inspect their changes, and freeze the candidate for review. Optional reviewed input
 scopes allow receipts/live observations to survive unrelated edits; final checks
 always cover the complete tree. Each attempt preserves its logs and prior receipt.
+Implement/docs commands can declare their own dependency scopes, so a CSS repair
+does not rerun unchanged backend checks. Successful command results retain their
+original logs; failures and input-changing commands are never cached. Live gates
+and `identity --criteria` share identical scope hashes within one stable invocation.
+Plan browser batches with per-criterion observations and reuse unaffected evidence
+after repairs, rather than repeating the full width/theme matrix.
 
 The live stage records actual product observations. In-scope failures trigger a
 bounded repair and independent review cycle. A failed live scenario can proceed

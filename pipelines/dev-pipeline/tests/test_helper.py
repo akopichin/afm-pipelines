@@ -10,6 +10,8 @@ import sys
 import tempfile
 import time
 import unittest
+import runpy
+from unittest.mock import patch
 
 
 HELPER = (Path(__file__).resolve().parents[1] / "scripts" / "helper.py").resolve()
@@ -98,6 +100,113 @@ class PipelineTests(unittest.TestCase):
         self.invoke("ui-gate", expected=0)
         self.accepted_live()
         self.invoke("live-gate", expected=0)
+
+    def test_many_criteria_share_hashing_but_detect_concurrent_edits(self):
+        self.acceptance_contract()
+        first = self.project["acceptance"]["criteria"][0]
+        self.project["acceptance"]["criteria"] = [dict(first, id="L" + str(i)) for i in range(96)]
+        self.save_contract()
+        path, result = self.accepted_live()
+        result["criteria"] = [dict(result["criteria"][0], id=c["id"])
+                              for c in self.project["acceptance"]["criteria"]]
+        path.write_text(json.dumps(result))
+        module = runpy.run_path(str(HELPER))
+        namespace = module["live_gate"].__globals__
+        fingerprint = namespace["fingerprint"]
+        calls = []
+
+        def measured(*args, **kwargs):
+            calls.append(1)
+            return fingerprint(*args, **kwargs)
+
+        with patch.dict(namespace, binding=lambda: (self.root, self.run), fingerprint=measured):
+            self.assertEqual(module["live_gate"](None), 0)
+        self.assertEqual(len(calls), 2)
+        original = namespace["validate_live"]
+
+        def concurrent_edit(*args):
+            code = original(*args)
+            (self.root / "source.txt").write_text("edited during validation")
+            return code
+
+        with patch.dict(namespace, binding=lambda: (self.root, self.run), validate_live=concurrent_edit):
+            with self.assertRaisesRegex(ValueError, "inputs changed"):
+                module["live_gate"](None)
+
+    def test_batch_identities_match_individual_criteria(self):
+        self.acceptance_contract()
+        (self.root / "other.txt").write_text("other input")
+        first = self.project["acceptance"]["criteria"][0]
+        first["input_paths"] = ["source.txt"]
+        self.project["acceptance"]["criteria"].append(dict(first, id="L2", input_paths=["other.txt"]))
+        self.save_contract()
+        batch = json.loads(self.invoke("identity", "--criteria", expected=0).stdout)
+        for cid in ["L1", "L2"]:
+            self.assertEqual(batch[cid], json.loads(self.invoke("identity", "--criterion", cid, expected=0).stdout))
+
+    def test_commands_reuse_only_unchanged_inputs_with_original_logs(self):
+        counts = [self.run / "backend-count", self.run / "ui-count"]
+        (self.root / "ui.css").write_text("initial")
+        commands = []
+        for count, scope in zip(counts, ["source.txt", "ui.css"]):
+            code = "from pathlib import Path; p=Path(" + repr(str(count)) + "); " + \
+                   "p.write_text(str(int(p.read_text()) + 1 if p.exists() else 1))"
+            commands.append({"argv": [sys.executable, "-c", code], "input_paths": [scope]})
+        self.project["checks"]["implement"] = {"commands": commands}
+        self.save_contract()
+        self.invoke("checks", "--group", "implement", "--stage", "implement", expected=0)
+        receipt = self.run / "implement/checks-implement.json"
+        first = json.loads(receipt.read_text())
+        (self.root / "ui.css").write_text("changed CSS without a commit")
+        self.invoke("checks", "--group", "implement", "--stage", "implement", expected=0)
+        second = json.loads(receipt.read_text())
+        self.assertEqual([p.read_text() for p in counts], ["1", "2"])
+        self.assertEqual(first["commands"][0]["log"], second["commands"][0]["log"])
+        self.invoke("receipt", "--group", "implement", "--stage", "implement", expected=0)
+        Path(first["commands"][0]["log"]).unlink()
+        self.invoke("checks", "--group", "implement", "--stage", "implement", expected=0)
+        self.assertEqual([p.read_text() for p in counts], ["2", "2"])
+        self.project["environment_id"] = "new-toolchain"
+        self.save_contract()
+        self.invoke("checks", "--group", "implement", "--stage", "implement", expected=0)
+        self.assertEqual([p.read_text() for p in counts], ["3", "3"])
+        self.invoke("checks", "--group", "implement", "--stage", "implement", "--fresh", expected=0)
+        self.assertEqual([p.read_text() for p in counts], ["4", "4"])
+
+    def test_failure_never_cached_and_successful_prefix_survives_retry(self):
+        count = self.run / "prefix-count"
+        flag = self.run / "fail-once"
+        code = "from pathlib import Path; p=Path(" + repr(str(count)) + "); " + \
+               "p.write_text(str(int(p.read_text()) + 1 if p.exists() else 1))"
+        failure = "from pathlib import Path; p=Path(" + repr(str(flag)) + "); " + \
+                  "failed=not p.exists(); p.touch(); raise SystemExit(23 if failed else 0)"
+        self.project["checks"]["implement"] = {"commands": [
+            {"argv": [sys.executable, "-c", code]}, {"argv": [sys.executable, "-c", failure]}]}
+        self.save_contract()
+        self.invoke("checks", "--group", "implement", "--stage", "implement", expected=23)
+        self.invoke("checks", "--group", "implement", "--stage", "implement", expected=0)
+        self.assertEqual(count.read_text(), "1")
+
+    def test_final_checks_always_execute_and_reject_command_scopes(self):
+        count = self.run / "final-count"
+        self.command("from pathlib import Path; p=Path(" + repr(str(count)) + "); "
+                     "p.write_text(str(int(p.read_text()) + 1 if p.exists() else 1))")
+        self.project["checks"]["final"] = self.project["checks"]["implement"]
+        self.save_contract()
+        for _ in range(2):
+            self.invoke("checks", "--group", "final", "--stage", "commit", expected=0)
+        self.assertEqual(count.read_text(), "2")
+        self.project["checks"]["final"]["commands"][0]["input_paths"] = ["source.txt"]
+        self.save_contract()
+        self.invoke("identity", expected=1)
+
+    def test_failed_fresh_rerun_invalidates_earlier_cached_success(self):
+        flag = self.run / "external-failure"
+        self.command("from pathlib import Path; raise SystemExit(23 if Path(" + repr(str(flag)) + ").exists() else 0)")
+        self.invoke("checks", "--group", "implement", "--stage", "implement", expected=0)
+        flag.touch()
+        self.invoke("checks", "--group", "implement", "--stage", "implement", "--fresh", expected=23)
+        self.invoke("checks", "--group", "implement", "--stage", "implement", expected=23)
 
     def test_live_gate_rejects_partial_stale_or_unsupported_acceptance(self):
         self.acceptance_contract("behavior")

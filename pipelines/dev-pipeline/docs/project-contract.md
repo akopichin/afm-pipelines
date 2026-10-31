@@ -16,7 +16,7 @@ and budgets retain their existing flow-defined format.
 - Top-level `input_paths` includes relevant ignored inputs; all tracked and
   nonignored untracked files are included by default. Run artifacts are excluded.
 - `checks` has `implement`, `docs` and `final` groups. Each has `commands`, an
-  array of `{argv, cwd?, timeout?}`. Empty commands require `skip_reason`. Commands
+  array of `{argv, cwd?, timeout?, input_paths?}`. Empty commands require `skip_reason`. Commands
   use argument arrays; shell pipelines explicitly use `bash -o pipefail -c`.
 - A group's optional `prepare` array uses the same command format for generators,
   formatters or builds that rewrite outputs. Run `helper prepare --group GROUP
@@ -24,13 +24,16 @@ and budgets retain their existing flow-defined format.
   checks. Preparation has its own receipt and is not a passed test. The checks
   gate requires current preparation when declared; unexpected check-generated
   changes still invalidate the result. Preserve required build/test commands.
-- Optional `input_paths` on an implement/docs group, `live`, or a criterion scopes
+- Optional `input_paths` on an implement/docs command or group, `live`, or a criterion scopes
   its fingerprint to project-relative files/directories. Top-level ignored inputs
   remain included. The selection must cover the complete dependency closure,
   including config, templates, shared code and build inputs. Review its rationale;
   omit it when uncertain. No parent traversal or empty scopes. Final checks always
   fingerprint the whole tree. File deletion, new files in selected directories,
   contract changes and environment changes invalidate matching evidence.
+  A command scope overrides its group scope and must remain within the group's
+  dependency coverage. Prefer separate command scopes for independent backend/UI
+  checks; do not narrow scopes to hide a failed check.
 - `live` has `required` and `reason`; optional `input_paths` identifies all product
   inputs. A docs-only/non-executable change can set required false with no live
   criteria. Required project tests/builds still run.
@@ -39,10 +42,25 @@ and budgets retain their existing flow-defined format.
 live product scope; `identity --criterion ID` uses that criterion's input scope,
 falling back to live scope and then the whole tree. Copy the actual returned
 `tree`, `contract_sha256`, `environment_id`; HEAD alone is insufficient.
+`identity --criteria` returns an ID-to-identity map for all criteria in one operation.
+It and `live-gate` hash each distinct scope once, then recheck stability before
+returning. This cache lives only for that invocation; subsequent invocations read
+current content, including uncommitted edits. Branch names are not cache keys.
 
 Checks retain each attempt's command logs and archive replaced receipts. The
 helper does not prove that a chosen input scope is complete or an observation is
 truthful: independent review remains responsible for those semantic checks.
+
+Implement/docs checks reuse individual successful command results automatically
+within the same run, stage and group. The key includes the complete declared input
+content, command specification (including timeout and working directory), contract
+hash and environment identity. Original logs must still exist. Commands that failed
+or changed their inputs are not cached; successful prefixes survive a later command's
+failure. The group still checks input stability before accepting its new receipt.
+Final checks do not use this per-command cache; explicit reuse of a complete matching
+final receipt remains available. Confirm the toolchain/environment before reuse.
+Use `checks --fresh` only for an explicitly budgeted diagnostic rerun: it bypasses
+both command caching and `--reuse`, preserving the earlier logs.
 
 ## Acceptance routing
 
