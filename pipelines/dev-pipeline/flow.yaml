@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/akopichin/afm/main/schema/flow.schema.json
 # Install this complete package at pipelines/dev-pipeline/ in the target project.
-# Python 3 and the named commands/profiles must be available in the execution environment.
+# Python 3, Node.js 18+ and the named commands/profiles are required.
 # The helper's --help and source describe the project contract and helper commands.
 name: dev-pipeline
 description: "Project-aware planning, standing writers, on-demand specialists, real acceptance checks and local merge"
@@ -32,7 +32,8 @@ prompt: |
   Route acceptance by project.json acceptance.interfaces and acceptance.ui.mode.
   Only participants assigned UI work read
   __DEV_PIPELINE_SKILLS_DIR__/afm-ui-acceptance/SKILL.md.
-  Backend-only tasks use their API/CLI/library criteria without visual protocols.
+  Backend-only tasks use their API/CLI/library acceptance criteria. The visual
+  planning workshop applies independently of product UI acceptance.
 
   The assigned skills own check discipline, mesh coordination, writer delivery,
   read-only review and user-facing reporting. This flow owns ordering, role/profile
@@ -63,6 +64,11 @@ prompt: |
   ask only for missing requirements, material scope changes or a concrete blocker.
   Own only started processes. Exercise orchestrator products only in an isolated
   fixture with its own data/port, never by mutating the parent run.
+
+hooks:
+  - id: dev-planning-preview-cleanup
+    events: [flow_finished, flow_failed, flow_interrupted]
+    command: 'if [ -f "$AFM_RUN_DIR/bootstrap/planning/workbench.mjs" ]; then node "$AFM_RUN_DIR/bootstrap/planning/workbench.mjs" stop --session "$AFM_RUN_DIR/plan"; fi'
 
 team:
   - id: dev-backend
@@ -100,6 +106,11 @@ stages:
       test -f "$package/scripts/helper.py" || { echo "Install the complete dev-pipeline package" >&2; exit 1; }
       cp "$package/docs/project-contract.md" "$AFM_STAGE_DIR/project-contract.md"
       python3 "$package/scripts/helper.py" init --run-dir "$(dirname "$AFM_STAGE_DIR")" --flow "$package/flow.yaml"
+      if [ -f "$AFM_STAGE_DIR/planning/workbench.mjs" ]; then
+        node "$AFM_STAGE_DIR/planning/workbench.mjs" freeze --bootstrap "$AFM_STAGE_DIR"
+      else
+        node "$package/planning/workbench.mjs" freeze --bootstrap "$AFM_STAGE_DIR"
+      fi
 
   - id: plan
     name: "Confirm task and project contract"
@@ -114,6 +125,14 @@ stages:
     artifacts:
       - {name: plan, path: ./dev-plan.md, inline: false}
       - {name: project, path: ./project.json, inline: false}
+      - {name: grooming, path: ./grooming.json, inline: false}
+      - {name: grooming-report, path: ./report.html, inline: false}
+    buttons:
+      Read grooming feedback: |
+        Read window.devPlanning.readEvents through the managed browser now. Save
+        and acknowledge the checkpoint, address each original comment thread and
+        update the plan and visual document together. Do not select readiness or
+        approval for the human. Follow bootstrap/planning/README.md.
     prompt: |
       Recover prior answers before asking anything. If the task is unknown, ask
       what to build via the dialog; otherwise use the supplied task. Ask only
@@ -122,12 +141,33 @@ stages:
       this flow owns file paths, review, approval, delegation and commits. Do not
       create separate specs or native subagents. Do not write product code.
 
+      Read the frozen sibling bootstrap/planning/README.md now and use its
+      workbench.mjs and example.json for this run's visual planning workshop.
+      Start the page early and update it during discussion, not only at the end.
+      Show a source-grounded baseline and incremental Before/After steps. EVERY
+      step and technical entry must explain both WHAT changes and WHY; keep the
+      step's two explanations visible regardless of the open details tab.
+      Include real changed functions/signatures, contracts, source references,
+      preserved invariants and planned checks. Explain empty detail categories.
+      Match the current AFM Graphite/Goga skin and dark/light mode. This workshop
+      also applies to backend/docs tasks; it does not select product UI acceptance.
+      Use managed-browser CDP for real step/element/global comments and replies,
+      durable checkpoints and revision publication. Poll while awaiting feedback;
+      silence is not completion. Never simulate user comments or readiness clicks.
+      Keep dev-plan.md, project.json and grooming.json consistent. The human's
+      page readiness is not approval: lock that exact revision and use the ONE
+      existing AFM plan approval dialog, with the toolkit's exact approval label.
+      Seal grooming-approval.json, export report.html and run verify-plan after
+      the human selection. On resume recover browser/checkpoint state first and
+      reuse matching approval; never restart a completed workshop ceremonially.
+
       Discover the actual project and inspect relevant instructions/build scripts.
       Read the sibling bootstrap/project-contract.md for the project.json
       contract. Write under $AFM_STAGE_DIR:
       - dev-plan.md: confirmed Task and Non-goals; requirements table mapping each
         confirmed requirement/prototype behavior to a test or live step; grounded
-        implementation Sections with task IDs, files, one writer owner and criteria;
+        implementation Sections with task IDs, files, one writer owner, criteria,
+        and explicit What/Why explanations for EVERY section and task;
         Docs notes; an executable Live run scenario with expected results/cleanup.
       - project.json: schema_version 2, base_branch, environment_id, input_paths,
         checks groups implement/docs/final (each commands [{argv, cwd, timeout, input_paths?}]
@@ -217,7 +257,10 @@ stages:
       evidence. Keep it short. No project-root planning junk.
     verify:
       steps:
-        - run: python3 "$(git rev-parse --git-path dev-pipeline/helper.py)" identity
+        - run: |
+            set -eu
+            python3 "$(git rev-parse --git-path dev-pipeline/helper.py)" identity
+            node "$(dirname "$AFM_STAGE_DIR")/bootstrap/planning/workbench.mjs" verify-plan --session "$AFM_STAGE_DIR"
           timeout: 2m
         - command: codex
           timeout: 15m
@@ -243,13 +286,19 @@ stages:
             or blanket stress/mutation passes. A summary reply alone is not a result;
             unselected roles need no ceremonial requests. Approval must cover the
             task and material design; report missing evidence truthfully.
+            Inspect grooming.json, grooming-checkpoint.json and grooming-approval.json.
+            Every step/task and technical detail must explain WHAT and WHY, with
+            real symbols/contracts and honest planned checks. Compare visual task
+            IDs, source evidence and explanations with dev-plan.md. Check that
+            original comments have answers in their own threads and that the exact
+            displayed revision/plan/project bytes have explicit human AFM approval.
       max_failures: 2
       review_patience: 0
 
   - id: implement
     name: "Implement and review according to risk"
     depends_on: [plan]
-    inputs: [plan.plan, plan.project]
+    inputs: [plan.plan, plan.project, plan.grooming]
     command: claude-sonnet-5-5-high
     agents: [auto]
     interactive: true

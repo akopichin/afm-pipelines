@@ -1,6 +1,6 @@
 schema_version: 1
 name: dev-pipeline
-version: 1.1.0
+version: 1.2.0
 description: Project-aware development with planning, standing writers, independent review, live acceptance, documentation, commit and optional merge.
 entrypoint: flow.yaml
 license: MIT
@@ -12,8 +12,9 @@ installation:
 
 requirements:
   python: ">=3.9"
+  node: ">=18"
   git: true
-  afm_features: [worktrees, team, script_stages, stage_team_skills, interactive_stages]
+  afm_features: [worktrees, team, script_stages, stage_team_skills, interactive_stages, managed_browser]
   browser_capable_coordinator: true
 
 setup:
@@ -53,6 +54,7 @@ setup:
 
 artifacts:
   run_snapshot: bootstrap/helper.py
+  planning_snapshot: bootstrap/planning
   modifies_application_source: true
   executes_changes: true
 

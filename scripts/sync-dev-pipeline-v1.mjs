@@ -65,6 +65,11 @@ if [ ! -f "$flow" ]; then flow="$(dirname "$common")/pipelines/dev-pipeline-v1.y
 contract="$(dirname "$common")/pipelines/dev-pipeline-v1-contract.md"
 if [ -f "$contract" ]; then cp "$contract" "$AFM_STAGE_DIR/project-contract.md"; fi
 python3 "$helper" init --run-dir "$(dirname "$AFM_STAGE_DIR")" --flow "$flow"
+if [ -f "$AFM_STAGE_DIR/planning/workbench.mjs" ]; then
+  node "$AFM_STAGE_DIR/planning/workbench.mjs" freeze --bootstrap "$AFM_STAGE_DIR"
+else
+  node "$(dirname "$common")/pipelines/dev-pipeline-v1-planning/workbench.mjs" freeze --bootstrap "$AFM_STAGE_DIR"
+fi
 `;
   const priorPlan=old.stages.find(stage=>stage.id==='plan').prompt;
   const roles={ARCH_BACKEND:'arch-backend',ARCH_FRONTEND:'arch-frontend',UX:'ux',
@@ -89,6 +94,7 @@ python3 "$helper" init --run-dir "$(dirname "$AFM_STAGE_DIR")" --flow "$flow"
   fs.writeFileSync(path.join(project,'scripts/dev-pipeline.py'),helper);
   fs.writeFileSync(path.join(project,'scripts/test_dev_pipeline.py'),tests);
   fs.copyFileSync(path.join(packageRoot,'docs/project-contract.md'),path.join(project,'pipelines/dev-pipeline-v1-contract.md'));
+  fs.cpSync(path.join(packageRoot,'planning'),path.join(project,'pipelines/dev-pipeline-v1-planning'),{recursive:true});
   fs.writeFileSync(target,rendered);
   return {flow:target,skills_dir:library,preserved:'Existing stage, writer and specialist model bindings; legacy skill libraries'};
 }

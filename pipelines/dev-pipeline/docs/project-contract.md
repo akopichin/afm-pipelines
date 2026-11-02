@@ -5,6 +5,28 @@ path. New plans use `schema_version: 2`. Frozen helpers for existing runs retain
 their old contract; the new helper also reads version 1 without the new gates.
 Keep requirements and decisions in the plan and reference shared skill protocols.
 
+## Visual planning artifacts
+
+The plan stage additionally keeps a source-grounded `grooming.json`, a durable
+`grooming-checkpoint.json`, a sealed `grooming-approval.json` and a standalone
+`report.html`. These do not change the `project.json` schema. Every plan section,
+task, visual step and technical detail must state What changes and Why.
+Function/contract details describe Before/After, references and preserved
+invariants; planned checks describe the expected observation without claiming PASS.
+
+Comments can address the whole plan, a step or a specific element. They and the
+agent's replies remain attached to their original targets. Browser storage helps
+within the session; saved checkpoints recover discussion and drafts after restart.
+The page's readiness action only hands off to the one existing AFM approval
+dialog. Its seal binds the displayed revision, exact plan/project bytes, saved
+discussion, source identity and original human answer. Automatic answers do not
+satisfy the gate. See the frozen [workshop protocol](../planning/README.md).
+
+Architectural grooming applies to backend and documentation tasks as well; it
+does not by itself select UI acceptance, load the UI skill, or add product theme
+sweeps. Source identity for the visual baseline covers tracked/nonignored files;
+the execution contract still declares ignored inputs and acceptance scope.
+
 ## Execution and evidence
 
 Required fields: `base_branch`, `environment_id`, `input_paths`, `checks`, `live`,
@@ -149,7 +171,7 @@ actual observations support the criterion and any scoped exception.
 
 ## Runtime library
 
-Bootstrap freezes the helper and flow. Installed flows reference a content-hashed
+Bootstrap freezes the helper, flow and complete planning toolkit. Installed flows reference a content-hashed
 skill library; updates retain older libraries, including legacy `skills/` paths,
 so active runs keep their instructions. Do not edit those retained libraries.
 Temporary helpers/verify agents receive exact review/evidence skill paths because

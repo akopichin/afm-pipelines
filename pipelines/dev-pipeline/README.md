@@ -12,12 +12,13 @@ commit conventions.
 - AFM with worktrees, team agents, script stages, interactive stages, and merged
   stage/team `skills` and `skills_dir` support. Tested with AFM 2.0.4; AFM 2.0.2
   predates the required skill loading support.
-- Git and Python 3.9+ in the execution environment. The installer itself needs
+- Git, Python 3.9+ and Node.js 18+ in the execution environment. The installer itself needs
   Node.js 22+ and Git.
 - Docker and authenticated Claude/Codex clients for the generated default recipes.
   Model names are recommendations and can be changed per role at installation.
-- A browser-capable coordinator for tasks whose approved live scenario needs a
-  UI. The flow also supports CLI, API, library and documentation tasks.
+- A browser-capable planning coordinator for the architecture workshop, including
+  CLI, API, library and documentation tasks. Product UI acceptance is selected
+  separately from planning and still depends on the actual changed behavior.
 
 The package includes all seven local skills, their reference files, the helper and
 its project contract. Planning uses `afm-dev-planning`; it does not require the
@@ -84,12 +85,44 @@ still follows the target project's Git and review rules.
 
 ## Behavior and evidence
 
+Planning starts a minimal architecture workshop while the design is being
+discussed. Before/After panes compare the current step with its predecessor or
+with the initial source snapshot. Previously proposed changes become neutral;
+additions, modifications and removals use Graphite/Goga semantic colors, plus
+symbols and dashed borders. Dark/light mode follows the selected AFM theme and
+can be changed in the page.
+
+Every step always displays **What changes** and **Why**. Technical tabs provide
+real functions and signatures, contract changes, preserved invariants, source
+references and planned checks with expected observations. Each technical entry
+has its own What/Why; inapplicable categories explain their omission.
+
+The discussion panel accepts comments about the whole plan, an individual step,
+or a selected function, contract, check, component or relation. The actual
+planning agent reads these events through managed-browser CDP, replies in the
+original thread, and publishes coordinated plan/diagram revisions. The interface
+does not generate synthetic answers. Drafts and comments survive step changes;
+saved checkpoints recover them across AFM restarts and browser-profile loss.
+
+**Перейти к утверждению** means the human is ready for the normal AFM plan dialog;
+it does not approve implementation. Pending comments and unsent drafts block
+that transition. The coordinator locks the exact displayed revision, obtains one
+explicit human AFM approval, and seals hashes of the plan, project contract,
+checkpoint and dialog evidence. Source drift or changed artifacts invalidate the
+seal. See the [workshop protocol](planning/README.md) and
+[synthetic example](planning/example.json). Do not use that sample as project facts.
+
 Stages run in order: `bootstrap → plan → implement → live-run → docs → commit →
 merge`. The approved plan and `project.json` contract live under the run's
 `plan/` stage. The helper is copied to `bootstrap/helper.py` and rebound for
 subsequent stages; each check receipt includes the source fingerprint, contract
 hash, environment identity, command result and log path. See
 [project contract](docs/project-contract.md) for the fields and gates.
+
+The complete planning toolkit is frozen at `bootstrap/planning/`. The plan stage
+keeps `grooming.json`, `grooming-checkpoint.json`, `grooming-approval.json` and the
+portable `report.html`. Updates preserve existing toolkit snapshots. Only the
+coordinator gets the managed browser; helpers and verify agents remain read-only.
 
 The `implement`, `live-run` and `docs` stages have a **get progress** button.
 It asks the dashboard Assistant for a Russian progress report in the stage's Feed.
@@ -100,7 +133,7 @@ evidence without starting new checks or helpers. The stage continues its approve
 work after sending the request. Assistant and Agent Mesh must be enabled.
 
 Acceptance routes by observable behavior: backend-only API/CLI/library changes
-use no visual protocol; UI tasks select behavior, visual or prototype mode with
+use no product UI acceptance protocol; UI tasks select behavior, visual or prototype mode with
 bounded affected surfaces. Only those tasks load `afm-ui-acceptance`. Coordinators
 capture early UI previews during implementation; UX/design helpers are selected
 on demand. Structured criterion results make omitted steps and stale evidence
@@ -130,7 +163,8 @@ in place; removal still requires stopping runs using the package.
 
 ```sh
 python3 -B -m unittest discover -s pipelines/dev-pipeline/tests -p 'test_*.py'
-node --test tests/installer.test.mjs
+npm test
+npm run test:planning-browser
 ```
 
 The installer test covers a project path containing spaces, resolved roles and
@@ -146,7 +180,8 @@ and specialist model choices:
 node scripts/sync-dev-pipeline-v1.mjs /absolute/project/root
 ```
 
-This writes the local flow, helper, helper tests and contract, and a new immutable
+This writes the local flow, helper, helper tests, contract, the standalone planning
+toolkit at `pipelines/dev-pipeline-v1-planning/`, and a new immutable
 skill library under `pipelines/skill-libraries/`. It preserves older libraries
 and does not change active run snapshots or launch a run. New runs use the updated
 entry point. Use the installer for the normal managed `dev-pipeline` package.

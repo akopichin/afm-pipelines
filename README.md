@@ -21,6 +21,7 @@ pipelines/
     flow.yaml              AFM entry point
     config.example.yaml    Default roles and Docker recipes
     scripts/               Evidence and live-app helper
+    planning/              Architecture workshop, discussion and approval binding
     skills/                Planning, coordination, writer and review rules
     docs/                  Project contract
     tests/                 Helper regression checks (catalog only)
@@ -39,7 +40,7 @@ pipelines/
 
 Packages live in this catalog and are installed under `pipelines/<name>/` in the
 target project. Refactor freezes its complete toolkit into each run. Dev-pipeline
-freezes its helper and flow in bootstrap and references an immutable, content-hashed
+freezes its helper, flow and planning toolkit in bootstrap and references an immutable, content-hashed
 skill library. Updates retain older libraries for active runs.
 
 ## Getting started
@@ -85,6 +86,7 @@ an AFM binary; browser checks also need Chrome.
 npm ci
 npm test
 python3 -B -m unittest discover -s pipelines/dev-pipeline/tests -p 'test_*.py'
+npm run test:planning-browser
 cd pipelines/refactor
 npm ci
 npm test
@@ -95,6 +97,9 @@ Keep packages self-contained. Do not depend on another checkout, personal skill
 directories, stored credentials, or sample data copied from a real private run.
 Document behavior in English and ship the licenses for bundled dependencies.
 The refactor package's build command regenerates its checked-in graphics bundle.
+Dev-pipeline's planning page uses bundled HTML/CSS/JavaScript with no runtime npm
+dependencies. Its browser check uses Node.js 22+ and Chrome (`CHROME_PATH` on
+non-macOS hosts). See its [changelog](pipelines/dev-pipeline/docs/changelog.md).
 
 ## License
 

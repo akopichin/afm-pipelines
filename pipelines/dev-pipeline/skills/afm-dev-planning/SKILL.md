@@ -1,6 +1,6 @@
 ---
 name: afm-dev-planning
-description: Discover a development task in the actual project, resolve material uncertainties, and write a grounded implementation and acceptance plan for the AFM dev pipeline.
+description: Discover a project change, discuss its architecture in the AFM dev pipeline's visual workshop, and write a grounded implementation and acceptance plan. Use during dev-pipeline planning, not ordinary implementation or product UI acceptance.
 ---
 
 # Development planning
@@ -17,9 +17,24 @@ file grant per task. Specify observable acceptance, focused tests and the full
 project checks, including who runs each check. Define a real product scenario
 with setup, expected observations, evidence and cleanup.
 
+Explain WHAT changes and WHY for every implementation section/task, visual step,
+changed function, contract and planned check. Keep the current step's What/Why
+visible; other steps need their own explanations, not a shared first-step preamble.
+Name real source symbols and signatures, contract differences, preserved behavior
+and material tradeoffs. Distinguish observed code from proposed design and checks
+from completed verification. Explain categories with no applicable changes.
+
+Use the run's frozen bootstrap/planning/README.md for the live workshop protocol.
+Publish the baseline and proposal early, update them with the plan during dialogue,
+and answer step/element/global comments in their original threads. Match the AFM
+theme. Preserve checkpoints, drafts and exact revision identity across resume.
+The page's readiness button leads to the existing one AFM approval dialog; it is
+not approval. Do not act as the human. The flow owns paths, gates and sealing.
+
 Choose acceptance interfaces by changed observable behavior: API, CLI, library,
 UI or documentation, combining them for mixed tasks. Explain the selection and
-omissions in the contract. Backend-only work needs no visual protocol. When UI
+omissions in the contract. Backend-only work needs no product UI acceptance
+protocol; architectural grooming still uses the planning workshop. When UI
 is affected, read the sibling `../afm-ui-acceptance/SKILL.md` and select behavior,
 visual or prototype mode with bounded affected surfaces/states. A backend file
 can affect a UI journey; frontend files alone do not justify a full theme sweep.

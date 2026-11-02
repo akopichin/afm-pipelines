@@ -105,6 +105,9 @@ test('dev pipeline installs every local skill and binds stage, verify, writer an
   execFileSync('bash',['-c',flow.stages[0].script],{cwd:worktree,env:{...process.env,AFM_STAGE_DIR:stage}});
   assert(fs.existsSync(path.join(stage,'helper.py')));
   assert(fs.existsSync(path.join(stage,'project-contract.md')));
+  assert(fs.existsSync(path.join(stage,'planning/.snapshot.json')));
+  assert(fs.existsSync(path.join(stage,'planning/workbench.mjs')));
+  assert(fs.existsSync(path.join(stage,'planning/template.html')));
   assert(fs.existsSync(path.join(flow.skills_dir,'afm-ui-acceptance/SKILL.md')));
   assert.equal(planInstall({project:f.project,name:'dev-pipeline'}).writes.length,0);
   apply(planRemove({project:f.project,name:'dev-pipeline'}));
