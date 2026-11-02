@@ -65,6 +65,13 @@ test('dev pipeline installs every local skill and binds stage, verify, writer an
   const flow=YAML.parse(f.read('pipelines/dev-pipeline/flow.yaml'));
   const bindings=JSON.parse(f.read('pipelines/dev-pipeline/bindings.json')).roles;
   assert.equal(flow.name,'dev-pipeline');
+  assert.deepEqual(flow.stages.filter(stage=>stage.buttons?.['get progress']).map(stage=>stage.id),
+    ['implement','live-run','docs']);
+  const sourceFlow=YAML.parse(fs.readFileSync(path.join(catalog,'pipelines/dev-pipeline/flow.yaml'),'utf8'));
+  for(const id of ['implement','live-run','docs']) {
+    assert.deepEqual(flow.stages.find(stage=>stage.id===id).buttons,
+      sourceFlow.stages.find(stage=>stage.id===id).buttons);
+  }
   assert(flow.skills_dir.startsWith(path.join(f.project,'pipelines/dev-pipeline/skill-libraries/')));
   assert.equal(flow.memory.path,path.join(f.project,'.memory'));
   assert.equal(flow.team.find(member=>member.id==='opus').profile,bindings.writer_opus.profile);
@@ -185,6 +192,7 @@ test('legacy synchronization preserves role choices and older libraries and is r
   assert(!flow.team.some(member=>member.id==='astra'));
   assert.deepEqual(flow.team.map(m=>m.profile),before.team.map(m=>m.profile));
   assert.deepEqual(flow.stages.map(s=>s.command),before.stages.map(s=>s.command));
+  assert.deepEqual(flow.stages.map(s=>s.buttons),before.stages.map(s=>s.buttons));
   assert.equal(f.read('pipelines/skills/old/SKILL.md'),'Existing active instructions');
   assert(fs.existsSync(path.join(first.skills_dir,'afm-ui-acceptance/SKILL.md')));
   assert(flow.stages.find(s=>s.id==='implement').verify.steps[0].run.includes('--git-path dev-pipeline-v1/'));
