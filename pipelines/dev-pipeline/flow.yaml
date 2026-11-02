@@ -33,7 +33,7 @@ prompt: |
   Only participants assigned UI work read
   __DEV_PIPELINE_SKILLS_DIR__/afm-ui-acceptance/SKILL.md.
   Backend-only tasks use their API/CLI/library acceptance criteria. The visual
-  planning workshop applies independently of product UI acceptance.
+  planning workshop is opt-in and independent of product UI acceptance.
 
   The assigned skills own check discipline, mesh coordination, writer delivery,
   read-only review and user-facing reporting. This flow owns ordering, role/profile
@@ -125,10 +125,13 @@ stages:
     artifacts:
       - {name: plan, path: ./dev-plan.md, inline: false}
       - {name: project, path: ./project.json, inline: false}
+      - {name: grooming-choice, path: ./grooming-choice.json, inline: false}
       - {name: grooming, path: ./grooming.json, inline: false}
       - {name: grooming-report, path: ./report.html, inline: false}
     buttons:
       Read grooming feedback: |
+        Check grooming-choice.json first. If visual grooming was declined, keep
+        the ordinary planning dialog; do not open a workshop or require feedback.
         Read window.devPlanning.readEvents through the managed browser now. Save
         and acknowledge the checkpoint, address each original comment thread and
         update the plan and visual document together. Do not select readiness or
@@ -141,9 +144,26 @@ stages:
       this flow owns file paths, review, approval, delegation and commits. Do not
       create separate specs or native subagents. Do not write product code.
 
-      Read the frozen sibling bootstrap/planning/README.md now and use its
-      workbench.mjs and example.json for this run's visual planning workshop.
-      Start the page early and update it during discussion, not only at the end.
+      Before starting visual grooming, ask via the AFM dialog:
+      "Использовать визуальный груминг при планировании?" with options exactly
+      "Да, использовать визуальный груминг" and "Нет, обычный план".
+      Explain that yes opens an interactive Before/After architecture workshop;
+      no keeps the ordinary written plan and AFM approval dialog. This choice
+      does not approve implementation or change product UI acceptance.
+      Read bootstrap/planning/README.md and record the actual question/answer with
+      workbench.mjs choose-grooming --session "$AFM_STAGE_DIR" --question <path>
+      --answer <path>. Reuse grooming-choice.json on resume without asking again;
+      an older session with a checkpoint but no choice keeps its visual protocol.
+
+      If the answer is no, write dev-plan.md/project.json and discuss them through
+      the ordinary AFM dialog as before. Do not start the workshop, require browser
+      feedback/readiness, create visual artifacts or seal a visual approval.
+      Obtain the existing ONE plan approval and record its paths in approval.md.
+      The verify-plan command checks the saved opt-out without visual artifacts.
+
+      Only if yes, use the frozen workbench.mjs and example.json for the visual
+      planning workshop. Start the page early and show its URL to the user;
+      update it during discussion, not only at the end.
       Show a source-grounded baseline and incremental Before/After steps. EVERY
       step and technical entry must explain both WHAT changes and WHY; keep the
       step's two explanations visible regardless of the open details tab.
@@ -286,8 +306,13 @@ stages:
             or blanket stress/mutation passes. A summary reply alone is not a result;
             unselected roles need no ceremonial requests. Approval must cover the
             task and material design; report missing evidence truthfully.
-            Inspect grooming.json, grooming-checkpoint.json and grooming-approval.json.
-            Every step/task and technical detail must explain WHAT and WHY, with
+            Inspect grooming-choice.json and its actual AFM question/answer evidence.
+            A declined workshop uses the ordinary written plan and approval.md;
+            do not require visual artifacts, browser feedback or readiness then.
+            If enabled (or an older visual session has no choice receipt), inspect
+            grooming.json, grooming-checkpoint.json and grooming-approval.json.
+            Every plan section/task must explain WHAT and WHY in either mode.
+            Visual steps and technical details need the same explanations, with
             real symbols/contracts and honest planned checks. Compare visual task
             IDs, source evidence and explanations with dev-plan.md. Check that
             original comments have answers in their own threads and that the exact
@@ -298,7 +323,7 @@ stages:
   - id: implement
     name: "Implement and review according to risk"
     depends_on: [plan]
-    inputs: [plan.plan, plan.project, plan.grooming]
+    inputs: [plan.plan, plan.project, {ref: plan.grooming, optional: true}]
     command: claude-sonnet-5-5-high
     agents: [auto]
     interactive: true

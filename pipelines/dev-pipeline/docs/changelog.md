@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-11-03
+
+### Improvement:
+
+- Ask whether to use visual grooming before opening the planning workshop.
+  Accepting opens the workshop; declining keeps the ordinary written plan and
+  single AFM approval without requiring visual artifacts or browser feedback.
+- Preserve the choice and its dialog evidence across resume; retain the full
+  visual approval gate when enabled and keep product UI acceptance independent.
+
 ## 2026-11-02
 
 ### Improvement:

@@ -16,9 +16,10 @@ commit conventions.
   Node.js 22+ and Git.
 - Docker and authenticated Claude/Codex clients for the generated default recipes.
   Model names are recommendations and can be changed per role at installation.
-- A browser-capable planning coordinator for the architecture workshop, including
-  CLI, API, library and documentation tasks. Product UI acceptance is selected
-  separately from planning and still depends on the actual changed behavior.
+- A browser-capable planning coordinator when visual grooming is selected,
+  including CLI, API, library and documentation tasks. Ordinary planning needs
+  no workshop browser. Product UI acceptance is selected separately from planning
+  and still depends on the actual changed behavior.
 
 The package includes all seven local skills, their reference files, the helper and
 its project contract. Planning uses `afm-dev-planning`; it does not require the
@@ -85,8 +86,15 @@ still follows the target project's Git and review rules.
 
 ## Behavior and evidence
 
-Planning starts a minimal architecture workshop while the design is being
-discussed. Before/After panes compare the current step with its predecessor or
+The planning agent first asks **Использовать визуальный груминг при планировании?**
+Choosing **Да, использовать визуальный груминг** opens the architecture workshop
+and shows its URL while the design is being discussed. Choosing **Нет, обычный
+план** keeps the ordinary written plan, AFM discussion and single plan approval;
+it requires no visual artifacts, browser feedback or page readiness. The choice
+is saved in `plan/grooming-choice.json` and reused on resume. It does not change
+the task's product UI acceptance requirements.
+
+When enabled, Before/After panes compare the current step with its predecessor or
 with the initial source snapshot. Previously proposed changes become neutral;
 additions, modifications and removals use Graphite/Goga semantic colors, plus
 symbols and dashed borders. Dark/light mode follows the selected AFM theme and
@@ -120,8 +128,9 @@ hash, environment identity, command result and log path. See
 [project contract](docs/project-contract.md) for the fields and gates.
 
 The complete planning toolkit is frozen at `bootstrap/planning/`. The plan stage
-keeps `grooming.json`, `grooming-checkpoint.json`, `grooming-approval.json` and the
-portable `report.html`. Updates preserve existing toolkit snapshots. Only the
+keeps `grooming-choice.json` and, when enabled, `grooming.json`,
+`grooming-checkpoint.json`, `grooming-approval.json` and the portable `report.html`.
+Updates preserve existing toolkit snapshots. Only the
 coordinator gets the managed browser; helpers and verify agents remain read-only.
 
 The `implement`, `live-run` and `docs` stages have a **get progress** button.

@@ -65,6 +65,8 @@ test('dev pipeline installs every local skill and binds stage, verify, writer an
   const flow=YAML.parse(f.read('pipelines/dev-pipeline/flow.yaml'));
   const bindings=JSON.parse(f.read('pipelines/dev-pipeline/bindings.json')).roles;
   assert.equal(flow.name,'dev-pipeline');
+  assert.deepEqual(flow.stages.find(stage=>stage.id==='implement').inputs,
+    ['plan.plan','plan.project',{ref:'plan.grooming',optional:true}]);
   assert.deepEqual(flow.stages.filter(stage=>stage.buttons?.['get progress']).map(stage=>stage.id),
     ['implement','live-run','docs']);
   const sourceFlow=YAML.parse(fs.readFileSync(path.join(catalog,'pipelines/dev-pipeline/flow.yaml'),'utf8'));

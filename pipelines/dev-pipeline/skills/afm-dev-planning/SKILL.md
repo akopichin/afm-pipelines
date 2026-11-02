@@ -1,14 +1,15 @@
 ---
 name: afm-dev-planning
-description: Discover a project change, discuss its architecture in the AFM dev pipeline's visual workshop, and write a grounded implementation and acceptance plan. Use during dev-pipeline planning, not ordinary implementation or product UI acceptance.
+description: Discover a project change, offer optional visual architecture grooming, and write a grounded implementation and acceptance plan for the AFM dev pipeline. Use during planning, not ordinary implementation or product UI acceptance.
 ---
 
 # Development planning
 
 Read the user's task, applicable AGENTS.md files, contribution guide, build commands,
 and the relevant code before proposing implementation. Reuse answers already given.
-Ask through the flow's dialog only when scope or acceptance still materially depends
-on an unknown. Keep related questions together and record the answers.
+Ask the flow's visual-grooming question before opening a workshop; reuse the saved
+choice on resume. Ask other questions only when scope or acceptance still materially
+depends on an unknown. Keep related questions together and record the answers.
 
 Prefer the smallest coherent design that meets the confirmed behavior. Identify
 real integration points, existing primitives, tests, documentation and any risky
@@ -24,7 +25,11 @@ Name real source symbols and signatures, contract differences, preserved behavio
 and material tradeoffs. Distinguish observed code from proposed design and checks
 from completed verification. Explain categories with no applicable changes.
 
-Use the run's frozen bootstrap/planning/README.md for the live workshop protocol.
+If visual grooming is declined, discuss the written plan through the ordinary AFM
+dialog and obtain its single plan approval. No workshop, visual artifacts, browser
+feedback or readiness is required. Keep the same discovery and acceptance work.
+
+If accepted, use the frozen bootstrap/planning/README.md for the workshop protocol.
 Publish the baseline and proposal early, update them with the plan during dialogue,
 and answer step/element/global comments in their original threads. Match the AFM
 theme. Preserve checkpoints, drafts and exact revision identity across resume.
@@ -34,7 +39,7 @@ not approval. Do not act as the human. The flow owns paths, gates and sealing.
 Choose acceptance interfaces by changed observable behavior: API, CLI, library,
 UI or documentation, combining them for mixed tasks. Explain the selection and
 omissions in the contract. Backend-only work needs no product UI acceptance
-protocol; architectural grooming still uses the planning workshop. When UI
+protocol; optional architectural grooming is a separate choice. When UI
 is affected, read the sibling `../afm-ui-acceptance/SKILL.md` and select behavior,
 visual or prototype mode with bounded affected surfaces/states. A backend file
 can affect a UI journey; frontend files alone do not justify a full theme sweep.

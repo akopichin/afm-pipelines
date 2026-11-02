@@ -7,7 +7,7 @@ import net from 'node:net';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import M from '../planning/model.cjs';
-import {atomic, json, freeze, sourceIdentity, checkSource, bind, build, approvalLabel, seal, verifyPlan, start, stop} from '../planning/workbench.mjs';
+import {atomic, json, freeze, sourceIdentity, checkSource, bind, build, approvalLabel, seal, groomingOptions, chooseGrooming, verifyPlan, start, stop} from '../planning/workbench.mjs';
 
 const planning = fileURLToPath(new URL('../planning/', import.meta.url));
 const example = () => JSON.parse(fs.readFileSync(path.join(planning, 'example.json'), 'utf8'));
@@ -36,6 +36,58 @@ function approved(t) {
   return {root, session, state, plan, project, checkpoint, question, answer, output,
     seal: () => seal(checkpoint, plan, project, question, answer, output)};
 }
+function groomingChoice(session, enabled, changes = {}) {
+  const question = path.join(session, 'autonomous_execution.mode.question.json');
+  const answer = path.join(session, 'autonomous_execution.mode.answer.json');
+  json(question, {id: 'mode', question: 'Использовать визуальный груминг при планировании?', options: groomingOptions});
+  json(answer, {id: 'mode', answer: groomingOptions[enabled ? 0 : 1], from_options: true, auto_answered: false, ...changes});
+  return {question, answer, choose: () => chooseGrooming(session, question, answer)};
+}
+
+test('declining grooming preserves ordinary planning without any visual artifacts', t => {
+  const session = fixture(t), choice = groomingChoice(session, false);
+  const receipt = choice.choose(); assert.equal(receipt.enabled, false);
+  assert.deepEqual(verifyPlan(session), receipt);
+  assert.deepEqual(choice.choose(), receipt, 'Resume reuses the saved choice');
+  assert(!fs.existsSync(path.join(session, 'grooming-checkpoint.json')));
+  assert(!fs.existsSync(path.join(session, 'grooming-approval.json')));
+  const tool = path.join(planning, 'workbench.mjs');
+  assert.match(execFileSync(process.execPath, [tool, 'verify-plan', '--session', session], {encoding: 'utf8'}), /Standard planning selected/);
+});
+
+test('accepting grooming retains the complete visual approval gate', t => {
+  const f = approved(t); groomingChoice(f.session, true).choose();
+  assert.throws(() => verifyPlan(f.session), /ENOENT/, 'Missing visual approval cannot pass');
+  f.seal(); assert.equal(verifyPlan(f.session).revision, 1);
+  fs.appendFileSync(f.plan, 'Changed after approval\n');
+  assert.throws(() => verifyPlan(f.session), /Plan\/project changed/);
+});
+
+test('a missing choice cannot silently opt out of visual planning', t => {
+  assert.throws(() => verifyPlan(fixture(t)), /ENOENT/);
+});
+
+test('grooming choice rejects automatic, custom, mismatched and foreign answers', t => {
+  const session = fixture(t);
+  for (const changes of [{auto_answered: true}, {answer: 'Нет', from_options: false}, {id: 'other'}]) {
+    assert.throws(groomingChoice(session, false, changes).choose, /explicit human grooming choice/);
+    assert(!fs.existsSync(path.join(session, 'grooming-choice.json')));
+  }
+  const foreign = groomingChoice(fixture(t), false);
+  assert.throws(() => chooseGrooming(session, foreign.question, foreign.answer), /belong to this plan stage/);
+});
+
+test('changed choice or dialog evidence cannot bypass the visual gate', t => {
+  const session = fixture(t), choice = groomingChoice(session, true); choice.choose();
+  const file = path.join(session, 'grooming-choice.json');
+  const receipt = JSON.parse(fs.readFileSync(file, 'utf8'));
+  json(file, {...receipt, enabled: false});
+  assert.throws(() => verifyPlan(session), /choice evidence changed/);
+  json(file, receipt);
+  groomingChoice(session, false);
+  assert.throws(() => verifyPlan(session), /choice evidence changed/);
+  assert.throws(choice.choose, /choice already recorded/);
+});
 
 test('every step and technical entry needs its own what and why', () => {
   const doc = example(); M.validate(doc);

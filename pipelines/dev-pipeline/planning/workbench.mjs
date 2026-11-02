@@ -119,7 +119,31 @@ export function seal(checkpointFile, plan, project, questionFile, answerFile, ou
   json(output, receipt);
   return receipt;
 }
+export const groomingOptions = ['Да, использовать визуальный груминг', 'Нет, обычный план'];
+function groomingSelection(session, questionFile, answerFile) {
+  const stage = fs.realpathSync(session);
+  for (const file of [questionFile, answerFile]) requireValue(path.dirname(fs.realpathSync(file)) === stage, 'Grooming choice question/answer must belong to this plan stage');
+  const question = read(questionFile), answer = read(answerFile);
+  requireValue(question.id === answer.id && groomingOptions.every(option => question.options?.includes(option)) && groomingOptions.includes(answer.answer) && answer.from_options === true && answer.auto_answered !== true, 'Missing explicit human grooming choice');
+  return {schema_version: 1, enabled: answer.answer === groomingOptions[0],
+    question_file: path.resolve(questionFile), question_sha256: fileHash(questionFile),
+    answer_file: path.resolve(answerFile), answer_sha256: fileHash(answerFile)};
+}
+export function chooseGrooming(session, questionFile, answerFile) {
+  const choice = groomingSelection(session, questionFile, answerFile);
+  const output = path.join(session, 'grooming-choice.json');
+  if (fs.existsSync(output)) requireValue(M.same(read(output), choice), 'Grooming choice already recorded; reuse it on resume');
+  else json(output, choice);
+  return choice;
+}
 export function verifyPlan(session) {
+  const choiceFile = path.join(session, 'grooming-choice.json');
+  if (fs.existsSync(choiceFile)) {
+    const choice = read(choiceFile);
+    requireValue(M.same(choice, groomingSelection(session, choice.question_file, choice.answer_file)), 'Grooming choice evidence changed');
+    if (!choice.enabled) return choice;
+  }
+  // Older visual sessions predate the choice receipt and retain their full gate.
   const checkpointFile = path.join(session, 'grooming-checkpoint.json');
   const state = M.restore(read(checkpointFile));
   const receipt = read(path.join(session, 'grooming-approval.json'));
@@ -212,11 +236,15 @@ async function main() {
   else if (command === 'check-source') checkSource(M.validate(read(required('input'))).source);
   else if (command === 'approval-label') console.log(approvalLabel(M.restore(read(required('checkpoint')))));
   else if (command === 'seal') seal(required('checkpoint'), required('plan'), required('project'), required('question'), required('answer'), required('output'));
-  else if (command === 'verify-plan') { verifyPlan(path.resolve(required('session'))); console.log('Visual plan, discussion and human approval match'); }
+  else if (command === 'choose-grooming') console.log(JSON.stringify(chooseGrooming(path.resolve(required('session')), required('question'), required('answer'))));
+  else if (command === 'verify-plan') {
+    const receipt = verifyPlan(path.resolve(required('session')));
+    console.log(receipt.enabled === false ? 'Standard planning selected; visual evidence not required' : 'Visual plan, discussion and human approval match');
+  }
   else if (command === 'start') console.log(await start(path.resolve(required('session')), Number(option('port', process.env.AFM_BROWSER_APP_PORT || '18080')), option('host', process.env.AFM_IN_DOCKER || fs.existsSync('/.dockerenv') ? '0.0.0.0' : '127.0.0.1')));
   else if (command === 'serve') await serve(path.resolve(required('session')), Number(required('port')), required('host'), required('lease-id'));
   else if (command === 'stop') await stop(path.resolve(required('session')));
-  else if (!command || command === '--help') console.log('Planning toolkit: freeze, source, validate, bind, build, checkpoint, check-source, approval-label, seal, verify-plan, start, stop. See README.md beside this tool.');
+  else if (!command || command === '--help') console.log('Planning toolkit: freeze, choose-grooming, source, validate, bind, build, checkpoint, check-source, approval-label, seal, verify-plan, start, stop. See README.md beside this tool.');
   else throw new Error('Unknown command: ' + command);
 }
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main().catch(error => { console.error(error.message); process.exitCode = 1; });
