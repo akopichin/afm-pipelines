@@ -12,3 +12,10 @@
   and discussion checkpoints, and preserve original reply targets across updates.
 - Bind the existing human AFM approval to the displayed revision, plan, project
   contract and source identity; retain a portable report and frozen per-run tools.
+
+### Fix:
+
+- Wait for checks through their original job IDs, saved child PIDs or validated
+  result files with finite deadlines. Avoid process-name wait loops that match
+  themselves, and finish owned background checks and monitors before delivery so
+  the agent can exit and the stage can complete.

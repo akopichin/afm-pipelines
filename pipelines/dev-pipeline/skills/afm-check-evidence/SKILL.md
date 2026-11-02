@@ -57,9 +57,27 @@ extra mutant. Do not prescribe mutation testing for every change.
 
 Before another expensive batch, read the incremental AFM inbox and latest brief.
 Apply changed guidance before starting new work, and report already-running
-checks. Await existing jobs through their supported wait primitive. Do not poll
-logs/processes or create no-op monitoring jobs every few seconds. Bound commands
-and clean up only owned processes using their saved identity, never name patterns.
+checks. Do not poll logs/processes or create no-op monitoring jobs every few
+seconds. Bound commands and clean up only owned processes using their saved
+identity, never name patterns.
+
+## Wait for checks
+
+Await the original tool job/session ID and collect its terminal exit code. For a
+shell child, save its PID and use `wait "$check_pid"` in the same shell. If only a
+result file is available, use a finite deadline and validate that the receipt
+belongs to the intended invocation and candidate inputs; an old receipt does not
+prove that an active job finished.
+
+Never wait with `pgrep -f "helper.py checks"`: the pattern occurs in the waiting
+shell's own command line, so the loop can match itself forever. For a one-shot
+process diagnostic, use `pgrep -f "[h]elper.py checks"` to avoid that self-match.
+Process-name matches are not completion evidence or a way to select cleanup PIDs.
+
+Before writing `execution_summary.md` or the final reply, finish and reap owned
+background checks and stop obsolete monitoring jobs by their tool job ID or saved
+PID. Collect their terminal status; leftover background jobs can keep the agent
+process alive after its final answer and prevent the stage from completing.
 
 ## Keep evidence honest
 
