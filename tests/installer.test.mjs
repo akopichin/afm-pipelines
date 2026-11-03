@@ -67,13 +67,6 @@ test('dev pipeline installs every local skill and binds stage, verify, writer an
   assert.equal(flow.name,'dev-pipeline');
   assert.deepEqual(flow.stages.find(stage=>stage.id==='implement').inputs,
     ['plan.plan','plan.project',{ref:'plan.grooming',optional:true}]);
-  assert.deepEqual(flow.stages.filter(stage=>stage.buttons?.['get progress']).map(stage=>stage.id),
-    ['implement','live-run','docs']);
-  const sourceFlow=YAML.parse(fs.readFileSync(path.join(catalog,'pipelines/dev-pipeline/flow.yaml'),'utf8'));
-  for(const id of ['implement','live-run','docs']) {
-    assert.deepEqual(flow.stages.find(stage=>stage.id===id).buttons,
-      sourceFlow.stages.find(stage=>stage.id===id).buttons);
-  }
   assert(flow.skills_dir.startsWith(path.join(f.project,'pipelines/dev-pipeline/skill-libraries/')));
   assert.equal(flow.memory.path,path.join(f.project,'.memory'));
   assert.equal(flow.team.find(member=>member.id==='opus').profile,bindings.writer_opus.profile);

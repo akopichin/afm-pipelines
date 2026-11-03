@@ -133,14 +133,6 @@ keeps `grooming-choice.json` and, when enabled, `grooming.json`,
 Updates preserve existing toolkit snapshots. Only the
 coordinator gets the managed browser; helpers and verify agents remain read-only.
 
-The `implement`, `live-run` and `docs` stages have a **get progress** button.
-It asks the dashboard Assistant for a Russian progress report in the stage's Feed.
-The first report covers the stage since it started; later reports show changes
-since the previous report for the same run and stage. Reports cover completed
-and ongoing work, observed check results, blockers and next steps, using existing
-evidence without starting new checks or helpers. The stage continues its approved
-work after sending the request. Assistant and Agent Mesh must be enabled.
-
 Acceptance routes by observable behavior: backend-only API/CLI/library changes
 use no product UI acceptance protocol; UI tasks select behavior, visual or prototype mode with
 bounded affected surfaces. Only those tasks load `afm-ui-acceptance`. Coordinators

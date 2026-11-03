@@ -329,23 +329,6 @@ stages:
     interactive: true
     script_before: *bind_run
     skills: [afm-check-evidence, afm-dev-coordinator]
-    buttons: &progress_buttons
-      get progress: |
-        Use afm agent send --to assistant --kind request --body to ask the dashboard
-        Assistant for a progress report. Include this stage's ID and the resolved
-        absolute $AFM_STAGE_DIR in the request, along with these instructions:
-        "Report in Russian on this stage using its existing Feed, Board/team
-        messages, artifacts and check evidence. Find your last delivered get progress
-        report for this exact absolute stage directory in this run. If there is no
-        previous report, summarize progress since the stage started; otherwise show
-        only changes since that report. Keep baselines separate for each run and
-        stage. Cover completed work, work in progress, observed check results,
-        blockers and next steps; say explicitly when nothing changed or evidence
-        is unavailable. Include the stage ID, report time and evidence references.
-        Inspect existing information only, without changing files, running checks
-        or spawning helpers. Reply in the originating conversation so the user can
-        read the report in this stage's Feed."
-        Continue the approved stage work after sending the request.
     prompt: |
       Implement the approved sections with dev-backend/dev-frontend/opus under the
       coordinator and check-evidence skills. Use opus for difficult fixes and work
@@ -428,7 +411,6 @@ stages:
     interactive: true
     script_before: *bind_run
     skills: [afm-check-evidence, afm-dev-coordinator, afm-delivery-report]
-    buttons: *progress_buttons
     prompt: |
       Execute the plan's Live run scenario on the real product built from this
       tree. Follow this project's launch/fixture commands; the product can be a
@@ -612,7 +594,6 @@ stages:
     interactive: true
     script_before: *bind_run
     skills: [afm-check-evidence]
-    buttons: *progress_buttons
     prompt: |
       Cover the plan's Docs notes using this project's documentation locations,
       language, changelog format and required build/link checks. If docs declares

@@ -2,6 +2,11 @@
 
 ## 2026-11-03
 
+### Fix:
+
+- Remove the Get progress button from implement, live-run and docs so requesting
+  a progress report cannot revise the stage.
+
 ### Improvement:
 
 - Ask whether to use visual grooming before opening the planning workshop.
