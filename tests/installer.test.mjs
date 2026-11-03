@@ -53,12 +53,18 @@ test('install, configure independent models, repeat, update and remove with actu
   assert.equal(YAML.parse(f.read('.afm/config.yaml')).executor.max_parallel,7);
 });
 
-test('dev pipeline installs every local skill and binds stage, verify, writer and specialist roles',t=>{
+test('dev pipeline installs named core and fallback roles and preserves existing helper profiles',t=>{
   const f=fixture(t);
-  const options={skills:['claude','codex'],roles:{writer_opus:{model:'custom-opus'},review_security:{model:'custom-review'}}};
+  const helper={title:'Existing reviewer',command:'existing-reviewer',instructions:'Review the assigned scope.'};
+  f.write('.afm/config.yaml',YAML.stringify({collaboration:{profiles:{reviewer:helper}},
+    docker:{agents:{'existing-reviewer':{type:'codex',model:'existing-model'}}}}));
+  const options={skills:['claude','codex'],roles:{writer_opus:{model:'custom-opus'}}};
   const plan=planInstall({project:f.project,name:'dev-pipeline',options});
   assert.equal(plan.receipt.bindings.writer_opus.model,'custom-opus');
-  assert.equal(plan.receipt.bindings.review_security.model,'custom-review');
+  assert.deepEqual(Object.keys(plan.receipt.bindings).sort(),[
+    'architect','coordinator_docs','coordinator_plan','coordinator_work','ux','verifier',
+    'writer_backend','writer_frontend','writer_opus'
+  ]);
   const planner=plan.receipt.bindings.coordinator_plan;
   assert.deepEqual([planner.client,planner.model,planner.reasoning],['claude','claude-opus-5-5','xhigh']);
   apply(plan);
@@ -70,16 +76,32 @@ test('dev pipeline installs every local skill and binds stage, verify, writer an
   assert(flow.skills_dir.startsWith(path.join(f.project,'pipelines/dev-pipeline/skill-libraries/')));
   assert.equal(flow.memory.path,path.join(f.project,'.memory'));
   assert.equal(flow.team.find(member=>member.id==='opus').profile,bindings.writer_opus.profile);
+  assert.equal(flow.team.find(member=>member.id==='dev-backend').title,'ЛинусБи');
+  assert.equal(flow.team.find(member=>member.id==='dev-frontend').title,'ЛинусФи');
   assert.equal(flow.stages.find(stage=>stage.id==='plan').command,bindings.coordinator_plan.command);
   const recipes=YAML.parse(f.read('.afm/config.yaml')).docker.agents;
+  const profiles=YAML.parse(f.read('.afm/config.yaml')).collaboration.profiles;
+  assert.equal(Object.keys(recipes).length,10);
+  assert.equal(Object.keys(profiles).length,10);
+  assert.deepEqual(profiles.reviewer,helper);
   const plannerRecipe=recipes[bindings.coordinator_plan.command];
   assert.deepEqual([plannerRecipe.type,plannerRecipe.model,plannerRecipe.reasoning],['claude','claude-opus-5-5','xhigh']);
   assert.equal(plannerRecipe.auth.from,'env:CLAUDE_CODE_OAUTH_TOKEN');
   assert.equal(flow.stages.find(stage=>stage.id==='plan').verify.steps[1].command,bindings.verifier.command);
-  assert.equal(recipes[bindings.verifier.command].type,'codex');
+  const verifierRecipe=recipes[bindings.verifier.command];
+  assert.deepEqual([verifierRecipe.type,verifierRecipe.model,verifierRecipe.reasoning],
+    ['codex','gpt-6.1-sol','xhigh']);
+  assert.equal(profiles[bindings.verifier.profile].command,bindings.verifier.command);
+  const labels=YAML.parse(f.read('.afm/config.yaml')).command_names;
+  assert.equal(labels[bindings.writer_backend.command],'ЛинусБи · Sonnet 5.5 · high');
+  assert.equal(labels[bindings.verifier.command],'Солянка · GPT-6.1 Sol · xhigh');
+  for(const role of ['architect','ux']) {
+    const recipe=recipes[bindings[role].command];
+    assert.deepEqual([recipe.type,recipe.model,recipe.reasoning],['claude','claude-opus-5-5','xhigh']);
+    assert.match(flow.stages.find(stage=>stage.id==='plan').prompt,new RegExp(bindings[role].profile));
+  }
   assert.equal(flow.stages.find(stage=>stage.id==='docs').command,bindings.coordinator_docs.command);
   assert.equal(flow.stages.find(stage=>stage.id==='implement').verify.steps[1].command,bindings.verifier.command);
-  assert.match(flow.stages.find(stage=>stage.id==='plan').prompt,new RegExp(bindings.review_security.profile));
   assert.match(flow.stages.find(stage=>stage.id==='plan').verify.steps[1].prompt,/afm-review-work\/SKILL\.md/);
   assert(!f.read('pipelines/dev-pipeline/flow.yaml').includes('__PROFILE_'));
   assert(!f.read('pipelines/dev-pipeline/flow.yaml').includes('__DEV_PIPELINE_'));
@@ -107,6 +129,73 @@ test('dev pipeline installs every local skill and binds stage, verify, writer an
   assert.equal(planInstall({project:f.project,name:'dev-pipeline'}).writes.length,0);
   apply(planRemove({project:f.project,name:'dev-pipeline'}));
   assert(!fs.existsSync(path.join(f.project,'pipelines/dev-pipeline/flow.yaml')));
+  assert.deepEqual(YAML.parse(f.read('.afm/config.yaml')).collaboration.profiles.reviewer,helper);
+});
+
+test('updates retire removed specialist choices and retain their profiles for older runs',t=>{
+  const f=fixture(t),root=path.join(f.root,'old catalog');
+  fs.cpSync(path.join(catalog,'pipelines/dev-pipeline'),path.join(root,'pipelines/dev-pipeline'),{recursive:true});
+  const manifestFile=path.join(root,'pipelines/dev-pipeline/pipeline.yaml');
+  const manifest=YAML.parse(fs.readFileSync(manifestFile,'utf8'));
+  manifest.setup.models.push({role:'review_security',profile_token:'__PROFILE_REVIEW_SECURITY__',
+    profile:'dev-default-review-security',command:'dev-default-review-security',
+    client:'claude',model:'claude-opus-5-5',reasoning:'high'});
+  fs.writeFileSync(manifestFile,YAML.stringify(manifest));
+  const configFile=path.join(root,'pipelines/dev-pipeline/config.example.yaml');
+  const defaults=YAML.parse(fs.readFileSync(configFile,'utf8'));
+  defaults.docker.agents['dev-default-review-security']={type:'claude',model:'claude-opus-5-5',reasoning:'high'};
+  defaults.collaboration.profiles['dev-default-review-security']={
+    title:'Security reviewer',command:'dev-default-review-security',instructions:'Review trust boundaries.'};
+  fs.writeFileSync(configFile,YAML.stringify(defaults));
+  const flowFile=path.join(root,'pipelines/dev-pipeline/flow.yaml');
+  const flow=YAML.parse(fs.readFileSync(flowFile,'utf8'));
+  flow.stages.find(stage=>stage.id==='plan').prompt+='\nreview-security: __PROFILE_REVIEW_SECURITY__\n';
+  fs.writeFileSync(flowFile,YAML.stringify(flow));
+  const old=planInstall({project:f.project,name:'dev-pipeline',root,options:{roles:{
+    writer_opus:{model:'saved-opus'},review_security:{model:'saved-review'}
+  }}});
+  apply(old);
+  const priorProfile=old.receipt.bindings.review_security.profile;
+  const priorConfig=YAML.parse(f.read('.afm/config.yaml'));
+  const update=planInstall({project:f.project,name:'dev-pipeline'});
+  assert.equal(update.receipt.bindings.writer_opus.model,'saved-opus');
+  assert.equal(Object.keys(update.receipt.bindings).length,9);
+  assert(!Object.hasOwn(update.receipt.options.roles,'review_security'));
+  apply(update);
+  const config=YAML.parse(f.read('.afm/config.yaml'));
+  assert.deepEqual(config.collaboration.profiles[priorProfile],priorConfig.collaboration.profiles[priorProfile]);
+  assert.deepEqual(config.docker.agents[priorProfile],priorConfig.docker.agents[priorProfile]);
+  assert.equal(verify(f.project,'dev-pipeline').status,'validated');
+  assert.throws(()=>planInstall({project:f.project,name:'dev-pipeline',
+    options:{roles:{review_security:{model:'explicit-review'}}}}),/Unknown role: review_security/);
+});
+
+test('consultations reuse compatible global and project connections without changing source profiles',t=>{
+  const f=fixture(t);
+  const global={docker:{agents:{'home-opus':{type:'claude',model:'claude-opus-5-5',reasoning:'xhigh',
+    url:'https://global.example.invalid'}}},collaboration:{profiles:{'home-architect':{
+      title:'Home architect',command:'home-opus',instructions:'Original home instructions.'}}}};
+  const globalFile=path.join(f.root,'home/.afm/config.yaml');
+  fs.mkdirSync(path.dirname(globalFile),{recursive:true});
+  fs.writeFileSync(globalFile,YAML.stringify(global));
+  const local={docker:{agents:{'local-ux':{type:'claude',model:'claude-opus-5-5',reasoning:'xhigh',
+    url:'https://local.example.invalid'},'wrong-opus':{type:'claude',model:'claude-opus-5-5',reasoning:'high'}}},
+    collaboration:{profiles:{'project-ux':{title:'Project UX',command:'local-ux',instructions:'Original UX instructions.'},
+      'project-architect':{title:'Wrong reasoning architect',command:'wrong-opus'}}}};
+  f.write('.afm/config.yaml',YAML.stringify(local));
+  const plan=planInstall({project:f.project,name:'dev-pipeline'});
+  apply(plan);
+  const config=YAML.parse(f.read('.afm/config.yaml')),bindings=plan.receipt.bindings;
+  assert.equal(config.docker.agents[bindings.architect.command].url,'https://global.example.invalid');
+  assert.equal(config.docker.agents[bindings.ux.command].url,'https://local.example.invalid');
+  assert.equal(config.docker.agents[bindings.architect.command].reasoning,'xhigh');
+  assert.deepEqual(config.collaboration.profiles['project-ux'],local.collaboration.profiles['project-ux']);
+  assert.deepEqual(YAML.parse(fs.readFileSync(globalFile,'utf8')),global);
+  assert.notEqual(config.collaboration.profiles[bindings.architect.profile].instructions,
+    global.collaboration.profiles['home-architect'].instructions);
+  assert.equal(verify(f.project,'dev-pipeline').status,'validated');
+  const repeat=planInstall({project:f.project,name:'dev-pipeline'});
+  assert.equal(repeat.writes.length,0);assert.equal(repeat.patches.length,0);
 });
 
 test('renamed writer migrates saved choices and accepts explicit Opus settings',t=>{
@@ -179,6 +268,14 @@ test('legacy synchronization preserves role choices and older libraries and is r
   const f=fixture(t);
   apply(planInstall({project:f.project,name:'dev-pipeline'}));
   const before=YAML.parse(f.read('pipelines/dev-pipeline/flow.yaml'));
+  const bindings=JSON.parse(f.read('pipelines/dev-pipeline/bindings.json')).roles;
+  const config=YAML.parse(f.read('.afm/config.yaml'));
+  for(const role of ['architect','ux']) {
+    delete config.collaboration.profiles[bindings[role].profile];
+    delete config.docker.agents[bindings[role].command];
+    delete config.command_names[bindings[role].command];
+  }
+  f.write('.afm/config.yaml',YAML.stringify(config));
   const legacy=structuredClone(before);
   legacy.team.find(member=>member.id==='opus').id='astra';
   f.write('pipelines/dev-pipeline-v1.yaml',YAML.stringify(legacy));
@@ -191,6 +288,8 @@ test('legacy synchronization preserves role choices and older libraries and is r
   assert.deepEqual(flow.team.map(m=>m.profile),before.team.map(m=>m.profile));
   assert.deepEqual(flow.stages.map(s=>s.command),before.stages.map(s=>s.command));
   assert.deepEqual(flow.stages.map(s=>s.buttons),before.stages.map(s=>s.buttons));
+  const restored=YAML.parse(f.read('.afm/config.yaml'));
+  for(const role of ['architect','ux'])assert(restored.collaboration.profiles[bindings[role].profile]);
   assert.equal(f.read('pipelines/skills/old/SKILL.md'),'Existing active instructions');
   assert(fs.existsSync(path.join(first.skills_dir,'afm-ui-acceptance/SKILL.md')));
   assert(flow.stages.find(s=>s.id==='implement').verify.steps[0].run.includes('--git-path dev-pipeline-v1/'));

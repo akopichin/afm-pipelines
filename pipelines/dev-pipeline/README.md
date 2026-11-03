@@ -9,9 +9,8 @@ commit conventions.
 
 ## Requirements
 
-- AFM with worktrees, team agents, script stages, interactive stages, and merged
-  stage/team `skills` and `skills_dir` support. Tested with AFM 2.0.4; AFM 2.0.2
-  predates the required skill loading support.
+- AFM 2.2.2 with readable executor names, worktrees, team agents, script stages,
+  interactive stages, and stage/team `skills` and `skills_dir` support.
 - Git, Python 3.9+ and Node.js 18+ in the execution environment. The installer itself needs
   Node.js 22+ and Git.
 - Docker and authenticated Claude/Codex clients for the generated default recipes.
@@ -42,29 +41,52 @@ node scripts/pipelines.mjs verify dev-pipeline --project /absolute/project/root
 
 Use `--options /private/options.json` with `plan` to choose `settings`, optional
 `skills` discovery copies, and per-role `client`, `model`, `reasoning` or a
-compatible `profile` to copy. The 14 roles cover the three writers, stage
-coordinators, AI verifier and seven specialist perspectives. A specialist remains
-available for on-demand use without becoming a standing team member.
+compatible `profile` to copy. The nine installed roles cover three writers,
+three stage coordinators, the AI verifier, an architect and a UX consultant.
+The backend and frontend team members are named **ЛинусБи** and **ЛинусФи**;
+their declaration IDs remain
+`dev-backend` and `dev-frontend`.
+
+For architecture and UX consultations the installer first looks for matching
+global/project AFM profiles backed by Claude Opus 5.5 with `xhigh` reasoning.
+It copies compatible connection settings into isolated consultation profiles with
+the package's bounded read-only instructions. When none match, it creates those
+profiles from the built-in defaults. An explicit per-role `profile` choice still
+copies that profile and its instructions. Independent correctness,
+design, tests and security reviews reuse the installed verifier profile, so they
+use the same executor and settings as AI verify: GPT-6.1 Sol with `xhigh` by default.
+The planner records selected profile IDs and relevant escalation profiles in the
+project contract.
+
+Installed profiles and executor labels include each role's personal name, selected
+model and reasoning. Team titles use the short names for mentions. Custom model
+choices are reflected in the generated labels.
 
 The recommended planner (`coordinator_plan`) is Claude Opus 5.5 with `xhigh`
-reasoning. Its independent AI verifier uses Codex. Existing installations retain
-their saved role choices on update; to switch an earlier Codex planner, pass:
+reasoning. Its independent AI verifier uses GPT-6.1 Sol with `xhigh` through Codex.
+Existing installations retain their saved role choices on update; to switch an
+earlier Codex planner, pass:
 
 ```json
 {"roles":{"coordinator_plan":{"client":"claude","model":"claude-opus-5-5","reasoning":"xhigh"}}}
 ```
 
-The difficult-task writer (`writer_opus`, team ID `opus`) also uses Claude Opus
-5.5 with `xhigh` reasoning. Updates migrate saved choices from the previous writer
-role to `writer_opus`. Correctness review (`review_correctness`) uses GPT-6.1 Sol with
-`xhigh` reasoning. To apply these defaults to an existing installation, pass:
+To update an existing verifier and its shared review executor, pass:
 
 ```json
-{"roles":{"writer_opus":{"client":"claude","model":"claude-opus-5-5","reasoning":"xhigh"},"review_correctness":{"client":"codex","model":"gpt-6.1-sol","reasoning":"xhigh"}}}
+{"roles":{"verifier":{"client":"codex","model":"gpt-6.1-sol","reasoning":"xhigh"}}}
+```
+
+The difficult-task writer (`writer_opus`, team ID `opus`) also uses Claude Opus
+5.5 with `xhigh` reasoning. Updates migrate saved choices from the previous writer
+role to `writer_opus`. To apply this default to an existing installation, pass:
+
+```json
+{"roles":{"writer_opus":{"client":"claude","model":"claude-opus-5-5","reasoning":"xhigh"}}}
 ```
 
 The installer writes `pipelines/dev-pipeline/` and isolated AFM profiles in the
-project, binds all stage commands and reviewer profile names, and resolves the
+project, binds all stage commands and standing writers, and resolves the
 package skill library to the main checkout's absolute path. That makes the
 library available in linked worktrees, including when the package is not yet
 committed. The read-only memory path points to the main checkout's `.memory`;
@@ -175,7 +197,7 @@ skills, actual AFM flow validation, update, and removal.
 
 For an existing project using `pipelines/dev-pipeline-v1.yaml`, synchronize its
 ignored local files from this catalog while keeping its configured stage, writer
-and specialist model choices:
+model choices and existing configured helper profiles:
 
 ```sh
 node scripts/sync-dev-pipeline-v1.mjs /absolute/project/root

@@ -86,8 +86,8 @@ export function inspect(project, root = catalog) {
   };
 }
 
-function resolveRoles(manifest, config, global, choices, defaults) {
-  const roles = {}, profiles = {}, recipes = {}, dependencies = [];
+export function resolveRoles(manifest, config, global, choices, defaults) {
+  const roles = {}, profiles = {}, recipes = {}, commandNames = {}, dependencies = [];
   const declared = manifest.setup.models || [];
   for (const key of Object.keys(choices)) check(declared.some(role => role.role === key), 'Unknown role: ' + key);
   for (const role of declared) {
@@ -95,6 +95,26 @@ function resolveRoles(manifest, config, global, choices, defaults) {
     const choice = choices[role.role] || {};
     for (const key of Object.keys(choice)) check(['profile','client','model','reasoning'].includes(key), 'Unknown role option: ' + key);
     let profile = defaults.collaboration.profiles[role.profile], recipe = defaults.docker.agents[role.command];
+    if (role.reuse_existing && !choice.profile) {
+      const localProfiles = get(config,['collaboration','profiles']) || {};
+      const candidates = Object.entries({...get(global,['collaboration','profiles']),...localProfiles})
+        .sort(([a],[b]) => Number(Object.hasOwn(localProfiles,b))-Number(Object.hasOwn(localProfiles,a)) || a.localeCompare(b));
+      for (const [id,candidate] of candidates) {
+        if (!candidate?.command) continue;
+        if (!`${id} ${candidate.title || ''}`.toLowerCase().includes(role.reuse_existing)) continue;
+        const source = get(config,['docker','agents',candidate.command]) ?? get(global,['docker','agents',candidate.command]);
+        if (!source || source.type !== (choice.client ?? recipe.type) || source.model !== (choice.model ?? recipe.model) ||
+            (source.reasoning ?? '') !== (choice.reasoning ?? recipe.reasoning ?? '')) continue;
+        if (Object.keys(source).some(key => !['type','model','reasoning','auth','url'].includes(key))) continue;
+        if (source.url && !/^https?:\/\/[^@?#]+$/.test(source.url)) continue;
+        if (source.auth && (Object.keys(source.auth).some(key => !['from','to'].includes(key)) ||
+            Object.values(source.auth).some(value => !/^env:[A-Za-z_][A-Za-z0-9_]*$/.test(value)))) continue;
+        // Reuse connection settings while keeping the package's bounded consultation instructions.
+        recipe = source;
+        dependencies.push(id);
+        break;
+      }
+    }
     if (choice.profile) {
       check(identifier(choice.profile), 'Invalid profile reference');
       profile = get(config,['collaboration','profiles',choice.profile]) ?? get(global,['collaboration','profiles',choice.profile]);
@@ -122,14 +142,22 @@ function resolveRoles(manifest, config, global, choices, defaults) {
       for (const value of Object.values(recipe.auth)) check(/^env:[A-Za-z_][A-Za-z0-9_]*$/.test(value), 'Authentication must use env: references');
     }
     if (client === 'claude' && !recipe.auth) recipe.auth = {from:'env:CLAUDE_CODE_OAUTH_TOKEN',to:'env:CLAUDE_CODE_OAUTH_TOKEN'};
-    const suffix = sha(json({profile,recipe})).slice(0,12);
+    const modelName = recipe.model
+      .replace(/^claude-opus-(\d+)-(\d+)$/,'Opus $1.$2')
+      .replace(/^claude-sonnet-(\d+)-(\d+)$/,'Sonnet $1.$2')
+      .replace(/^gpt-(.+)-sol$/,'GPT-$1 Sol');
+    const title = role.title ? [role.title,modelName,recipe.reasoning].filter(Boolean).join(' · ') :
+      `${manifest.name} / ${role.role} / ${recipe.model}`;
+    const copiedProfile = role.title ? {...profile,title} : profile;
+    const suffix = sha(json({profile:copiedProfile,recipe})).slice(0,12);
     const name = `pipeline-${manifest.name}-${role.role.replaceAll('_','-')}-${suffix}`;
     // Every role gets a stable content-addressed copy, including reused profiles.
-    profiles[name] = {...profile, title:`${manifest.name} / ${role.role} / ${recipe.model}`, command:name};
+    profiles[name] = {...profile, title, command:name};
+    if (role.title) commandNames[name] = title;
     recipes[name] = recipe;
     roles[role.role] = {profile:name,command:name,client,model:recipe.model,reasoning:recipe.reasoning ?? '',execution:'docker'};
   }
-  return {roles,profiles,recipes,dependencies};
+  return {roles,profiles,recipes,commandNames,dependencies};
 }
 
 export function planInstall({project, name, options = {}, root = catalog}) {
@@ -144,6 +172,11 @@ export function planInstall({project, name, options = {}, root = catalog}) {
     if (!Object.hasOwn(roleChoices,oldRole)) continue;
     roleChoices[role.role]={...roleChoices[oldRole],...roleChoices[role.role]};
     delete roleChoices[oldRole];
+  }
+  const declaredRoles = new Set((manifest.setup.models || []).map(role => role.role));
+  for (const role of Object.keys(roleChoices)) {
+    // Retire saved choices for removed roles; explicit unknown options still fail validation.
+    if (!declaredRoles.has(role) && !Object.hasOwn(options.roles || {},role)) delete roleChoices[role];
   }
   options = {...(previous?.options || {}),...options,roles:roleChoices};
   const skills = options.skills || [];
@@ -241,6 +274,7 @@ export function planInstall({project, name, options = {}, root = catalog}) {
     check((get(config,keys) ?? get(global,keys)) === true, 'Enable required setting or choose settings=true: ' + keys.join('.'));
   for (const [key,value] of Object.entries(resolved.profiles)) patch(['collaboration','profiles',key],value,true);
   for (const [key,value] of Object.entries(resolved.recipes)) patch(['docker','agents',key],value,true);
+  for (const [key,value] of Object.entries(resolved.commandNames)) patch(['command_names',key],value,true);
   const writes = [], ownedFiles = {};
   for (const [file,bytes] of Object.entries(desired)) {
     const current = hash(contained(project,file)), next = sha(bytes), old = previous?.files?.[file];

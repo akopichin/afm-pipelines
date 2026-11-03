@@ -14,6 +14,13 @@ specialist profile name in a prompt. `profile`, `command`, `client`, `model` and
 `reasoning` describe recommended defaults from `config.example.yaml`.
 Optional `previous_roles` migrates saved choices when a role is renamed;
 `previous_team_members` lets legacy flow synchronization find renamed writers.
+An optional `title` supplies a short personal name; generated profile titles and
+`command_names` labels add the selected model and reasoning. `reuse_existing`
+matches a consultation role against configured profile IDs/titles, preferring
+project profiles over global ones and requiring the selected client/model/reasoning
+and a compatible recipe. Automatic reuse copies connection settings while retaining
+the package's role instructions; without a match the role uses package defaults.
+Explicit `profile` choices continue to copy the full profile and its instructions.
 Packages can declare different numbers of roles and different defaults. The
 installer does not assume every pipeline has two architects.
 

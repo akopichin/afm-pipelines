@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 // Preserve local role choices while deriving the legacy entry point from the package.
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
 import YAML from 'yaml';
+import {resolveRoles} from './pipelines.mjs';
 
 const root=path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 export function sync(project) {
@@ -17,6 +19,13 @@ export function sync(project) {
   const old=YAML.parse(fs.readFileSync(target,'utf8'));
   const flow=YAML.parse(fs.readFileSync(path.join(packageRoot,'flow.yaml'),'utf8'));
   const manifest=YAML.parse(fs.readFileSync(path.join(packageRoot,'pipeline.yaml'),'utf8'));
+  const configFile=path.join(project,'.afm/config.yaml');
+  const readConfig=file=>YAML.parseDocument(fs.existsSync(file)?fs.readFileSync(file,'utf8'):'{}\n');
+  const config=readConfig(configFile),global=readConfig(path.join(os.homedir(),'.afm/config.yaml'));
+  if(config.errors.length || global.errors.length)throw new Error('Invalid AFM configuration');
+  const defaults=YAML.parse(fs.readFileSync(path.join(packageRoot,'config.example.yaml'),'utf8'));
+  const consultationRoles=manifest.setup.models.filter(role=>role.reuse_existing);
+  const consultations=resolveRoles({...manifest,setup:{models:consultationRoles}},config,global,{},defaults);
   const files=[];
   function visit(relative) {
     const absolute=path.join(packageRoot,relative);
@@ -71,15 +80,9 @@ else
   node "$(dirname "$common")/pipelines/dev-pipeline-v1-planning/workbench.mjs" freeze --bootstrap "$AFM_STAGE_DIR"
 fi
 `;
-  const priorPlan=old.stages.find(stage=>stage.id==='plan').prompt;
-  const roles={ARCH_BACKEND:'arch-backend',ARCH_FRONTEND:'arch-frontend',UX:'ux',
-    REVIEW_CORRECTNESS:'review-correctness',REVIEW_DESIGN:'review-design',REVIEW_TESTS:'review-tests',REVIEW_SECURITY:'review-security'};
   let rendered=YAML.stringify(flow,{lineWidth:0});
-  for(const [token,role] of Object.entries(roles)) {
-    const match=priorPlan.match(new RegExp('^\\s*'+role+': ([^\\s]+)\\s*$','m'));
-    if(!match)throw new Error('Missing existing specialist: '+role);
-    rendered=rendered.replaceAll('__PROFILE_'+token+'__',match[1]);
-  }
+  for(const role of consultationRoles)
+    rendered=rendered.replaceAll(role.profile_token,consultations.roles[role.role].profile);
   rendered=rendered.replaceAll('__DEV_PIPELINE_SKILLS_DIR__',library)
     .replaceAll('--git-path dev-pipeline/','--git-path dev-pipeline-v1/');
   if(/__[_A-Z0-9]+__/.test(rendered))throw new Error('Unresolved flow binding');
@@ -95,8 +98,30 @@ fi
   fs.writeFileSync(path.join(project,'scripts/test_dev_pipeline.py'),tests);
   fs.copyFileSync(path.join(packageRoot,'docs/project-contract.md'),path.join(project,'pipelines/dev-pipeline-v1-contract.md'));
   fs.cpSync(path.join(packageRoot,'planning'),path.join(project,'pipelines/dev-pipeline-v1-planning'),{recursive:true});
+  const before=config.toString();
+  for(const [keys,values] of [
+    [['collaboration','profiles'],consultations.profiles],
+    [['docker','agents'],consultations.recipes],
+    [['command_names'],consultations.commandNames]
+  ]) for(const [name,value] of Object.entries(values)) {
+    const location=[...keys,name],current=config.getIn(location,true)?.toJSON();
+    if(current!==undefined && JSON.stringify(current)!==JSON.stringify(value))
+      throw new Error('Consultation configuration collision: '+location.join('.'));
+    if(current===undefined)config.setIn(location,value);
+  }
+  if(config.toString()!==before) {
+    const backup=path.join(project,'.afm/backups');
+    fs.mkdirSync(backup,{recursive:true,mode:0o700});
+    if(fs.existsSync(configFile)) {
+      const saved=path.join(backup,'sync-dev-pipeline-v1-'+Date.now()+'.yaml');
+      fs.copyFileSync(configFile,saved);fs.chmodSync(saved,0o600);
+    }
+    const temporary=configFile+'.sync-'+process.pid+'-'+Date.now();
+    fs.writeFileSync(temporary,config.toString(),{mode:0o600,flag:'wx'});
+    fs.renameSync(temporary,configFile);
+  }
   fs.writeFileSync(target,rendered);
-  return {flow:target,skills_dir:library,preserved:'Existing stage, writer and specialist model bindings; legacy skill libraries'};
+  return {flow:target,skills_dir:library,preserved:'Existing stage and writer model bindings; configured helper profiles and legacy skill libraries'};
 }
 
 if(process.argv[1] && path.resolve(process.argv[1])===fileURLToPath(import.meta.url)) {

@@ -9,6 +9,15 @@
 
 ### Improvement:
 
+- Use GPT-6.1 Sol with `xhigh` for AI verify and reuse its installed profile for
+  independent code, design, tests and security reviews. Select architecture and
+  diagnosis consultants from configured Opus 5.5 profiles with `xhigh`.
+- Give all roles personal names with model/reasoning executor labels, including
+  ЛинусБи and ЛинусФи for the backend and frontend standing writers.
+- Replace seven dedicated specialist roles with named architecture and UX
+  consultations that reuse matching configured connections or create their own
+  defaults. Keep the seven writer/coordinator/verifier roles; updates retire removed
+  role choices while preserving older generated profiles for existing runs.
 - Ask whether to use visual grooming before opening the planning workshop.
   Accepting opens the workshop; declining keeps the ordinary written plan and
   single AFM approval without requiring visual artifacts or browser feedback.

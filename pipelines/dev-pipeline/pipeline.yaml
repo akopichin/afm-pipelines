@@ -1,6 +1,6 @@
 schema_version: 1
 name: dev-pipeline
-version: 1.2.3
+version: 1.3.0
 description: Project-aware development with planning, standing writers, independent review, live acceptance, documentation, commit and optional merge.
 entrypoint: flow.yaml
 license: MIT
@@ -28,20 +28,15 @@ setup:
     memory_path: true
     skill_path_token: __DEV_PIPELINE_SKILLS_DIR__
   models:
-    - {role: writer_backend, team_member: dev-backend, profile: dev-default-writer-backend, command: dev-default-writer-backend, client: claude, model: claude-sonnet-5-5, reasoning: high}
-    - {role: writer_frontend, team_member: dev-frontend, profile: dev-default-writer-frontend, command: dev-default-writer-frontend, client: claude, model: claude-sonnet-5-5, reasoning: high}
-    - {role: writer_opus, previous_roles: [writer_astra], team_member: opus, previous_team_members: [astra], profile: dev-default-writer-opus, command: dev-default-writer-opus, client: claude, model: claude-opus-5-5, reasoning: xhigh}
-    - {role: coordinator_plan, stage_ids: [plan], profile: dev-default-coordinator-plan, command: dev-default-coordinator-plan, client: claude, model: claude-opus-5-5, reasoning: xhigh}
-    - {role: coordinator_work, stage_ids: [implement, live-run, commit, merge], profile: dev-default-coordinator-work, command: dev-default-coordinator-work, client: claude, model: claude-sonnet-5-5, reasoning: high}
-    - {role: coordinator_docs, stage_ids: [docs], profile: dev-default-coordinator-docs, command: dev-default-coordinator-docs, client: claude, model: claude-sonnet-5-5, reasoning: high}
-    - {role: verifier, verify_stage_ids: [plan, implement, live-run, docs], profile: dev-default-verifier, command: dev-default-verifier, client: codex, model: gpt-6.1-sol, reasoning: high}
-    - {role: arch_backend, profile_token: __PROFILE_ARCH_BACKEND__, profile: dev-default-arch-backend, command: dev-default-arch-backend, client: claude, model: claude-opus-5-5, reasoning: xhigh}
-    - {role: arch_frontend, profile_token: __PROFILE_ARCH_FRONTEND__, profile: dev-default-arch-frontend, command: dev-default-arch-frontend, client: claude, model: claude-opus-5-5, reasoning: xhigh}
-    - {role: ux, profile_token: __PROFILE_UX__, profile: dev-default-ux, command: dev-default-ux, client: claude, model: claude-opus-5-5, reasoning: high}
-    - {role: review_correctness, profile_token: __PROFILE_REVIEW_CORRECTNESS__, profile: dev-default-review-correctness, command: dev-default-review-correctness, client: codex, model: gpt-6.1-sol, reasoning: xhigh}
-    - {role: review_design, profile_token: __PROFILE_REVIEW_DESIGN__, profile: dev-default-review-design, command: dev-default-review-design, client: claude, model: claude-opus-5-5, reasoning: high}
-    - {role: review_tests, profile_token: __PROFILE_REVIEW_TESTS__, profile: dev-default-review-tests, command: dev-default-review-tests, client: claude, model: claude-opus-5-5, reasoning: high}
-    - {role: review_security, profile_token: __PROFILE_REVIEW_SECURITY__, profile: dev-default-review-security, command: dev-default-review-security, client: claude, model: claude-opus-5-5, reasoning: high}
+    - {role: writer_backend, title: ЛинусБи, team_member: dev-backend, profile: dev-default-writer-backend, command: dev-default-writer-backend, client: claude, model: claude-sonnet-5-5, reasoning: high}
+    - {role: writer_frontend, title: ЛинусФи, team_member: dev-frontend, profile: dev-default-writer-frontend, command: dev-default-writer-frontend, client: claude, model: claude-sonnet-5-5, reasoning: high}
+    - {role: writer_opus, title: Опусарх, previous_roles: [writer_astra], team_member: opus, previous_team_members: [astra], profile: dev-default-writer-opus, command: dev-default-writer-opus, client: claude, model: claude-opus-5-5, reasoning: xhigh}
+    - {role: coordinator_plan, title: ОпуПлан, stage_ids: [plan], profile: dev-default-coordinator-plan, command: dev-default-coordinator-plan, client: claude, model: claude-opus-5-5, reasoning: xhigh}
+    - {role: coordinator_work, title: ЛинусКор, stage_ids: [implement, live-run, commit, merge], profile: dev-default-coordinator-work, command: dev-default-coordinator-work, client: claude, model: claude-sonnet-5-5, reasoning: high}
+    - {role: coordinator_docs, title: Соня, stage_ids: [docs], profile: dev-default-coordinator-docs, command: dev-default-coordinator-docs, client: claude, model: claude-sonnet-5-5, reasoning: high}
+    - {role: verifier, title: Солянка, verify_stage_ids: [plan, implement, live-run, docs], profile: dev-default-verifier, command: dev-default-verifier, client: codex, model: gpt-6.1-sol, reasoning: xhigh}
+    - {role: architect, title: Архопус, reuse_existing: architect, profile_token: __PROFILE_ARCHITECT__, profile: dev-architect, command: dev-architect, client: claude, model: claude-opus-5-5, reasoning: xhigh}
+    - {role: ux, title: ВасЮкс, reuse_existing: ux, profile_token: __PROFILE_UX__, profile: dev-ux, command: dev-ux, client: claude, model: claude-opus-5-5, reasoning: xhigh}
   model_policy: resolved_bindings
   skills:
     - {name: afm-dev-planning, source: skills/afm-dev-planning, runtime_loading: flow_library, offer_client_installation: true}
@@ -62,4 +57,4 @@ development:
   node: ">=22"
   tests: npm test
 tested_with:
-  afm: 2.0.4
+  afm: 2.2.2

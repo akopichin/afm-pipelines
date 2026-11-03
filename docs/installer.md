@@ -28,8 +28,9 @@ a reproducible published revision.
 
 Read the selected `pipelines/<name>/pipeline.yaml` and its README. Each package
 has its own roles and recommended models. Dev-pipeline binds writers, stage
-coordinators, AI verify commands and on-demand specialist profiles; refactor
-binds two team architects. Create an options JSON file, for example:
+coordinators, AI verify and two consultation roles. Consultations reuse matching
+AFM profile settings or fall back to package defaults. Refactor binds two team
+architects. Create an options JSON file, for example:
 
 ```json
 {
@@ -51,7 +52,9 @@ binds two team architects. Create an options JSON file, for example:
 ```
 
 - Omitted roles use package recommendations on first install and saved choices
-  on updates. Partial role changes preserve its other selected fields.
+  on updates. Partial role changes preserve its other selected fields. Updates
+  drop saved choices for roles the package no longer declares; explicitly passing
+  an unknown role remains an error. Older generated profiles are retained for runs.
 - `profile` names an existing local or global AFM collaboration profile to copy.
   Optional `client`, `model` and `reasoning` override the copy. The source profile
   remains unchanged. It must resolve to a supported Docker recipe with an

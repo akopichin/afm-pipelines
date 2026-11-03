@@ -72,8 +72,8 @@ hooks:
 
 team:
   - id: dev-backend
-    profile: backend-developer-claude-sonnet-5-5-high
-    title: dev-backend
+    profile: dev-default-writer-backend
+    title: ЛинусБи
     skills: &writer_skills [afm-check-evidence, afm-dev-writer]
     instruction: &writer_instruction |
       Implement your assigned bounded task under the writer and check-evidence
@@ -83,13 +83,13 @@ team:
       Follow the coordinator's explicit check/review budgets. Do not commit or push;
       return the linked deliverable and evidence for independent acceptance.
   - id: dev-frontend
-    profile: frontend-developer-claude-sonnet-5-5-high
-    title: dev-frontend
+    profile: dev-default-writer-frontend
+    title: ЛинусФи
     skills: *writer_skills
     instruction: *writer_instruction
   - id: opus
     profile: dev-default-writer-opus
-    title: opus
+    title: Опусарх
     skills: *writer_skills
     instruction: *writer_instruction
 
@@ -235,17 +235,24 @@ stages:
       checks always cover the whole tree. Reference shared protocols, do not copy
       them into the plan. Recover incoming task additions before asking approval.
 
-      Default specialist profile catalog (role names are not standing participants):
-        arch-backend: __PROFILE_ARCH_BACKEND__
-        arch-frontend: __PROFILE_ARCH_FRONTEND__
-        ux: __PROFILE_UX__
-        review-correctness: __PROFILE_REVIEW_CORRECTNESS__
-        review-design: __PROFILE_REVIEW_DESIGN__
-        review-tests: __PROFILE_REVIEW_TESTS__
-        review-security: __PROFILE_REVIEW_SECURITY__
+      Architecture and root-cause diagnosis use __PROFILE_ARCHITECT__;
+      UX consultation uses __PROFILE_UX__. The installer first reuses matching
+      global/project profile connection settings, otherwise creates its own
+      Opus 5.5 / xhigh profiles. Both are isolated copies available to this run.
+      Keep consultants independent from the implementation writer and inspect
+      their actual command recipes when recording the review contract.
+      For correctness, design, tests and security reviews, use the configured
+      collaboration profile whose command matches this run's AI verify command
+      in bootstrap/flow.yaml. It shares the verifier's model and reasoning;
+      the package default is GPT-6.1 Sol with xhigh. Do not silently substitute
+      the global codex command, which may have different settings.
+      Match the selected perspective to the bounded instruction and check executor
+      availability. No separate design/tests/security reviewer profiles are needed.
+      A profile may cover several perspectives through separate bounded tasks.
       Save selected mappings in review.profiles and the relevant architect mappings
-      in review.escalation_profiles. A configured, available equivalent may replace
-      a default; record the reason. Unused catalog profiles need not be available.
+      in review.escalation_profiles, recording why each profile fits. Never invent
+      profile IDs. If a required perspective or escalation has no suitable profile,
+      resolve the missing configuration with the user before approving the plan.
 
       Review budget follows risk, with a reason per selected/skipped perspective:
       - small: one coherent change without risky boundaries; no mandatory consultants
@@ -282,7 +289,7 @@ stages:
             python3 "$(git rev-parse --git-path dev-pipeline/helper.py)" identity
             node "$(dirname "$AFM_STAGE_DIR")/bootstrap/planning/workbench.mjs" verify-plan --session "$AFM_STAGE_DIR"
           timeout: 2m
-        - command: codex
+        - command: dev-default-verifier
           timeout: 15m
           prompt: |
             Before reviewing, read these assigned skills (verify does not inherit them):
@@ -324,14 +331,16 @@ stages:
     name: "Implement and review according to risk"
     depends_on: [plan]
     inputs: [plan.plan, plan.project, {ref: plan.grooming, optional: true}]
-    command: claude-sonnet-5-5-high
+    command: dev-default-coordinator-work
     agents: [auto]
     interactive: true
     script_before: *bind_run
     skills: [afm-check-evidence, afm-dev-coordinator]
     prompt: |
-      Implement the approved sections with dev-backend/dev-frontend/opus under the
-      coordinator and check-evidence skills. Use opus for difficult fixes and work
+      Implement the approved sections with the declared backend/frontend/Opus writers
+      under the coordinator and check-evidence skills. Resolve their current
+      participant IDs from the roster. Use the declared Opus writer for difficult
+      fixes and work
       spanning subsystem boundaries. Keep the plan as a file reference. Publish task
       ownership/progress on the Board; save IDs, acceptance, completed-command evidence
       and applied brief revisions in team-progress.json before review dispatch.
@@ -375,7 +384,7 @@ stages:
             python3 "$(git rev-parse --git-path dev-pipeline/helper.py)" checks --group implement --stage implement
             python3 "$(git rev-parse --git-path dev-pipeline/helper.py)" ui-gate
           timeout: 30m
-        - command: codex
+        - command: dev-default-verifier
           timeout: 20m
           prompt: |
             Before reviewing, read these assigned skills (verify does not inherit them):
@@ -406,7 +415,7 @@ stages:
     name: "Exercise the project's real acceptance scenario"
     depends_on: [plan, implement]
     inputs: [plan.plan, plan.project]
-    command: claude-sonnet-5-5-high
+    command: dev-default-coordinator-work
     agents: [auto]
     interactive: true
     script_before: *bind_run
@@ -467,8 +476,9 @@ stages:
       2. Turn concrete failures into bounded work items with repro steps, expected
          versus actual behavior, tested tree/contract, evidence paths, prior
          hypotheses, explicit owned files/tests and acceptance criteria. Resolve
-         dev-backend/dev-frontend/opus from the roster and send each repair to the
-         appropriate standing writer; use opus for difficult fixes or changes
+         the declared backend/frontend/Opus writers from the roster and send each
+         repair to the appropriate standing writer; use the Opus writer for difficult
+         fixes or changes
          spanning subsystem boundaries. Reuse reachable writers; temporary helpers
          are for read-only diagnosis/review, not product implementation. If a
          writer is unavailable, follow the coordinator skill's replacement protocol and
@@ -546,7 +556,7 @@ stages:
       steps:
         - run: python3 "$(git rev-parse --git-path dev-pipeline/helper.py)" live-gate
           timeout: 10m
-        - command: codex
+        - command: dev-default-verifier
           timeout: 15m
           prompt: |
             Before reviewing, read these assigned skills (verify does not inherit them):
@@ -589,7 +599,7 @@ stages:
     name: "Update required documentation"
     depends_on: [plan, live-run]
     inputs: [plan.plan, plan.project]
-    command: docfixer
+    command: dev-default-coordinator-docs
     agents: [auto]
     interactive: true
     script_before: *bind_run
@@ -613,7 +623,7 @@ stages:
             python3 "$(git rev-parse --git-path dev-pipeline/helper.py)" receipt --group docs --stage docs ||
             python3 "$(git rev-parse --git-path dev-pipeline/helper.py)" checks --group docs --stage docs
           timeout: 15m
-        - command: codex
+        - command: dev-default-verifier
           timeout: 10m
           prompt: |
             Before reviewing, read these assigned skills (verify does not inherit them):
@@ -631,7 +641,7 @@ stages:
   - id: commit
     name: "Validate and commit the delivered change"
     depends_on: [docs]
-    command: claude-sonnet-5-5-high
+    command: dev-default-coordinator-work
     agents: [auto]
     interactive: true
     script_before: *bind_run
@@ -662,7 +672,7 @@ stages:
   - id: merge
     name: "Optionally integrate into the project's base branch"
     depends_on: [commit]
-    command: claude-sonnet-5-5-high
+    command: dev-default-coordinator-work
     agents: [auto]
     interactive: true
     script_before: *bind_run
