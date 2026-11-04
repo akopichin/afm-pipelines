@@ -5,14 +5,14 @@ docker:
     dev-default-writer-backend:
       type: claude
       model: claude-sonnet-5-5
-      reasoning: high
+      reasoning: medium
       auth:
         from: env:CLAUDE_CODE_OAUTH_TOKEN
         to: env:CLAUDE_CODE_OAUTH_TOKEN
     dev-default-writer-frontend:
       type: claude
       model: claude-sonnet-5-5
-      reasoning: high
+      reasoning: medium
       auth:
         from: env:CLAUDE_CODE_OAUTH_TOKEN
         to: env:CLAUDE_CODE_OAUTH_TOKEN
@@ -33,14 +33,14 @@ docker:
     dev-default-coordinator-work:
       type: claude
       model: claude-sonnet-5-5
-      reasoning: high
+      reasoning: medium
       auth:
         from: env:CLAUDE_CODE_OAUTH_TOKEN
         to: env:CLAUDE_CODE_OAUTH_TOKEN
     dev-default-coordinator-docs:
       type: claude
       model: claude-sonnet-5-5
-      reasoning: high
+      reasoning: medium
       auth:
         from: env:CLAUDE_CODE_OAUTH_TOKEN
         to: env:CLAUDE_CODE_OAUTH_TOKEN

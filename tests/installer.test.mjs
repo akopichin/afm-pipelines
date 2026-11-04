@@ -93,7 +93,14 @@ test('dev pipeline installs named core and fallback roles and preserves existing
     ['codex','gpt-6.1-sol','xhigh']);
   assert.equal(profiles[bindings.verifier.profile].command,bindings.verifier.command);
   const labels=YAML.parse(f.read('.afm/config.yaml')).command_names;
-  assert.equal(labels[bindings.writer_backend.command],'ЛинусБи · Sonnet 5.5 · high');
+  assert.equal(labels[bindings.writer_backend.command],'ЛинусБи · Sonnet 5.5 · medium');
+  for(const role of ['writer_backend','writer_frontend','coordinator_work','coordinator_docs']) {
+    const binding=bindings[role],recipe=recipes[binding.command];
+    assert.deepEqual([binding.client,binding.model,binding.reasoning],['claude','claude-sonnet-5-5','medium']);
+    assert.deepEqual([recipe.type,recipe.model,recipe.reasoning],['claude','claude-sonnet-5-5','medium']);
+    assert.match(labels[binding.command],/ · Sonnet 5\.5 · medium$/);
+    assert.equal(profiles[binding.profile].title,labels[binding.command]);
+  }
   assert.equal(labels[bindings.verifier.command],'Солянка · GPT-6.1 Sol · xhigh');
   for(const role of ['architect','ux']) {
     const recipe=recipes[bindings[role].command];

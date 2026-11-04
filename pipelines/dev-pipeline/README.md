@@ -47,6 +47,10 @@ The backend and frontend team members are named **ЛинусБи** and **Лин�
 their declaration IDs remain
 `dev-backend` and `dev-frontend`.
 
+The backend/frontend writers and the work/documentation coordinators use Claude
+Sonnet 5.5 with `medium` reasoning by default. Existing installations keep saved
+role choices; override `reasoning` for those roles when updating to change them.
+
 For architecture and UX consultations the installer first looks for matching
 global/project AFM profiles backed by Claude Opus 5.5 with `xhigh` reasoning.
 It copies compatible connection settings into isolated consultation profiles with

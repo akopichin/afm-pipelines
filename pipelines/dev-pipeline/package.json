@@ -1,7 +1,7 @@
 {
   "name": "afm-pipeline-dev-pipeline",
   "private": true,
-  "version": "1.3.0",
+  "version": "1.3.1",
   "scripts": {
     "test": "node --test tests/planning.test.mjs",
     "test:browser": "node tests/browser.test.mjs"

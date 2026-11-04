@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-04
+
+### Improvement:
+
+- Default the backend/frontend writers and work/documentation coordinators to
+  Claude Sonnet 5.5 with `medium` reasoning instead of `high`.
+
 ## 2026-11-03
 
 ### Fix:
