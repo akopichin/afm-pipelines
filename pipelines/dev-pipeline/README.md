@@ -91,10 +91,23 @@ to replace an installed Opus writer:
 {"roles":{"writer_opus":{"client":"claude","model":"claude-sonnet-5-5","reasoning":"xhigh"}}}
 ```
 
-From the catalog checkout, pass
-`--options pipelines/dev-pipeline/examples/sonnet-writers.options.json` to `plan` to apply
-all five Sonnet defaults on update: backend/frontend and work/docs coordinators
-at `medium`, reserve at `xhigh`. Other role choices remain unchanged.
+**Updating an existing installation to these Sonnet settings:** changing the
+catalog defaults alone does not replace saved models or reasoning. A plain
+`plan` without options can keep the old Opus writer and Sonnet `high` settings.
+When applying this migration, run from the catalog checkout:
+
+```sh
+node scripts/pipelines.mjs plan dev-pipeline \
+  --project /absolute/project/root \
+  --options pipelines/dev-pipeline/examples/sonnet-writers.options.json \
+  --out /private/dev-install-plan.json
+```
+
+Before `apply`, inspect the printed plan: `writer_backend`, `writer_frontend`,
+`coordinator_work` and `coordinator_docs` must use Sonnet 5.5 `medium`;
+`writer_opus` (ЛинусХ) must use Sonnet 5.5 `xhigh`. Other role choices remain
+unchanged. Older Opus profiles can remain in AFM configuration for existing
+runs; check the new role bindings rather than the mere presence of old profiles.
 
 All initial sections and first repairs go to the ordinary backend/frontend
 writers. The reserve receives a bounded correction only after two unsuccessful
