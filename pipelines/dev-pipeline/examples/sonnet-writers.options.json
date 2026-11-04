@@ -1,0 +1,9 @@
+{
+  "roles": {
+    "writer_backend": {"client": "claude", "model": "claude-sonnet-5-5", "reasoning": "medium"},
+    "writer_frontend": {"client": "claude", "model": "claude-sonnet-5-5", "reasoning": "medium"},
+    "writer_opus": {"client": "claude", "model": "claude-sonnet-5-5", "reasoning": "xhigh"},
+    "coordinator_work": {"client": "claude", "model": "claude-sonnet-5-5", "reasoning": "medium"},
+    "coordinator_docs": {"client": "claude", "model": "claude-sonnet-5-5", "reasoning": "medium"}
+  }
+}

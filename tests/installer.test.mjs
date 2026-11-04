@@ -58,9 +58,10 @@ test('dev pipeline installs named core and fallback roles and preserves existing
   const helper={title:'Existing reviewer',command:'existing-reviewer',instructions:'Review the assigned scope.'};
   f.write('.afm/config.yaml',YAML.stringify({collaboration:{profiles:{reviewer:helper}},
     docker:{agents:{'existing-reviewer':{type:'codex',model:'existing-model'}}}}));
-  const options={skills:['claude','codex'],roles:{writer_opus:{model:'custom-opus'}}};
+  const options={skills:['claude','codex']};
   const plan=planInstall({project:f.project,name:'dev-pipeline',options});
-  assert.equal(plan.receipt.bindings.writer_opus.model,'custom-opus');
+  assert.deepEqual([plan.receipt.bindings.writer_opus.client,plan.receipt.bindings.writer_opus.model,
+    plan.receipt.bindings.writer_opus.reasoning],['claude','claude-sonnet-5-5','xhigh']);
   assert.deepEqual(Object.keys(plan.receipt.bindings).sort(),[
     'architect','coordinator_docs','coordinator_plan','coordinator_work','ux','verifier',
     'writer_backend','writer_frontend','writer_opus'
@@ -76,6 +77,7 @@ test('dev pipeline installs named core and fallback roles and preserves existing
   assert(flow.skills_dir.startsWith(path.join(f.project,'pipelines/dev-pipeline/skill-libraries/')));
   assert.equal(flow.memory.path,path.join(f.project,'.memory'));
   assert.equal(flow.team.find(member=>member.id==='opus').profile,bindings.writer_opus.profile);
+  assert.equal(flow.team.find(member=>member.id==='opus').title,'ЛинусХ');
   assert.equal(flow.team.find(member=>member.id==='dev-backend').title,'ЛинусБи');
   assert.equal(flow.team.find(member=>member.id==='dev-frontend').title,'ЛинусФи');
   assert.equal(flow.stages.find(stage=>stage.id==='plan').command,bindings.coordinator_plan.command);
@@ -102,6 +104,15 @@ test('dev pipeline installs named core and fallback roles and preserves existing
     assert.equal(profiles[binding.profile].title,labels[binding.command]);
   }
   assert.equal(labels[bindings.verifier.command],'Солянка · GPT-6.1 Sol · xhigh');
+  assert.equal(labels[bindings.writer_opus.command],'ЛинусХ · Sonnet 5.5 · xhigh');
+  const reserveRecipe=recipes[bindings.writer_opus.command];
+  assert.deepEqual([reserveRecipe.type,reserveRecipe.model,reserveRecipe.reasoning],
+    ['claude','claude-sonnet-5-5','xhigh']);
+  assert.match(profiles[bindings.writer_opus.profile].instructions,/after a recorded escalation/);
+  const reserve=flow.team.find(member=>member.id==='opus');
+  assert.match(reserve.instruction,/escalation-only reserve writer/);
+  assert.match(reserve.instruction,/If this evidence is missing, ask the coordinator and do not edit/);
+  assert(reserve.instruction.includes(flow.skills_dir+'/afm-ui-acceptance/SKILL.md'));
   for(const role of ['architect','ux']) {
     const recipe=recipes[bindings[role].command];
     assert.deepEqual([recipe.type,recipe.model,recipe.reasoning],['claude','claude-opus-5-5','xhigh']);
@@ -205,7 +216,7 @@ test('consultations reuse compatible global and project connections without chan
   assert.equal(repeat.writes.length,0);assert.equal(repeat.patches.length,0);
 });
 
-test('renamed writer migrates saved choices and accepts explicit Opus settings',t=>{
+test('renamed writer migrates saved choices and accepts explicit Sonnet settings',t=>{
   const f=fixture(t), root=path.join(f.root,'old catalog');
   fs.cpSync(path.join(catalog,'pipelines/dev-pipeline'),path.join(root,'pipelines/dev-pipeline'),{recursive:true});
   const manifestFile=path.join(root,'pipelines/dev-pipeline/pipeline.yaml');
@@ -230,15 +241,46 @@ test('renamed writer migrates saved choices and accepts explicit Opus settings',
   assert(flow.team.some(member=>member.id==='opus'));
   assert(!flow.team.some(member=>member.id==='astra'));
   const changed=planInstall({project:f.project,name:'dev-pipeline',options:{roles:{writer_opus:{
-    client:'claude',model:'claude-opus-5-5',reasoning:'xhigh'}}}});
+    client:'claude',model:'claude-sonnet-5-5',reasoning:'xhigh'}}}});
   apply(changed);
   const binding=changed.receipt.bindings.writer_opus;
   const config=YAML.parse(f.read('.afm/config.yaml'));
-  assert.deepEqual([binding.client,binding.model,binding.reasoning],['claude','claude-opus-5-5','xhigh']);
+  assert.deepEqual([binding.client,binding.model,binding.reasoning],['claude','claude-sonnet-5-5','xhigh']);
   assert.equal(config.docker.agents[binding.command].auth.from,'env:CLAUDE_CODE_OAUTH_TOKEN');
   assert(config.collaboration.profiles[original.receipt.bindings.writer_astra.profile]);
   assert.equal(verify(f.project,'dev-pipeline').status,'validated');
   assert.equal(planInstall({project:f.project,name:'dev-pipeline'}).writes.length,0);
+});
+
+test('Sonnet update options replace saved Opus and high settings while retaining old profiles',t=>{
+  const f=fixture(t);
+  const ordinary=['writer_backend','writer_frontend','coordinator_work','coordinator_docs'];
+  const roles=Object.fromEntries(ordinary.map(role=>[role,{reasoning:'high'}]));
+  roles.writer_opus={client:'claude',model:'claude-opus-5-5',reasoning:'xhigh'};
+  roles.coordinator_plan={model:'saved-planner'};
+  const original=planInstall({project:f.project,name:'dev-pipeline',options:{roles}});
+  apply(original);
+  const priorConfig=YAML.parse(f.read('.afm/config.yaml'));
+  const saved=planInstall({project:f.project,name:'dev-pipeline'});
+  assert.equal(saved.receipt.bindings.writer_opus.model,'claude-opus-5-5');
+  assert.equal(saved.receipt.bindings.writer_backend.reasoning,'high');
+  const options=JSON.parse(fs.readFileSync(path.join(catalog,
+    'pipelines/dev-pipeline/examples/sonnet-writers.options.json'),'utf8'));
+  const update=planInstall({project:f.project,name:'dev-pipeline',options});
+  assert.equal(update.receipt.bindings.coordinator_plan.model,'saved-planner');
+  apply(update);
+  const config=YAML.parse(f.read('.afm/config.yaml'));
+  for(const role of [...ordinary,'writer_opus']) {
+    const binding=update.receipt.bindings[role],recipe=config.docker.agents[binding.command];
+    const reasoning=role==='writer_opus'?'xhigh':'medium';
+    assert.deepEqual([recipe.type,recipe.model,recipe.reasoning],['claude','claude-sonnet-5-5',reasoning]);
+    const prior=original.receipt.bindings[role];
+    assert.deepEqual(config.docker.agents[prior.command],priorConfig.docker.agents[prior.command]);
+    assert.deepEqual(config.collaboration.profiles[prior.profile],priorConfig.collaboration.profiles[prior.profile]);
+  }
+  assert.equal(verify(f.project,'dev-pipeline').status,'validated');
+  const repeat=planInstall({project:f.project,name:'dev-pipeline'});
+  assert.equal(repeat.writes.length,0);assert.equal(repeat.patches.length,0);
 });
 
 test('dev pipeline updates preserve libraries referenced by both old and new runs',t=>{

@@ -16,6 +16,25 @@ durable commit and completion together. Reproduce relevant interleavings with
 controlled gates; prefer fixing the invariant to adding another local guard.
 A green rerun alone neither diagnoses a flake nor refutes a reported interleaving.
 
+## Escalation-only reserve writer
+
+Initial implementation and first repairs belong to the backend/frontend writers.
+The reserve writer (team ID `opus`, default Sonnet 5.5 `xhigh`) stays idle until
+two unsuccessful repairs or a second rejection of the same defect, followed by
+the independent diagnosis below. Task size, complexity, subsystem boundaries,
+parallel capacity and an unavailable ordinary writer do not qualify on their own.
+An explicit user instruction to hand off to the reserve is also an escalation.
+
+Before dispatch, save an `escalation` record in that task's team-progress.json
+entry: trigger and failed repair/review evidence or original user instruction,
+prior task/request IDs and repair counts, diagnosis result ID when required,
+previous owner's release of files and modifying commands, new bounded file/test
+grant and acceptance/check budget. Send the record's path with the assignment;
+persist its canonical request ID before waiting. The reserve must decline edits
+without this evidence.
+Infrastructure replacement below normally uses another ordinary writer; it must
+not bypass reserve eligibility. Keep the rescue within this task's approved scope.
+
 Request a bounded diagnosis from an independent configured architect/reviewer
 for the affected domain. Use a more capable configured model where appropriate,
 without inventing profiles. Include the logical task, current diff/owned files,

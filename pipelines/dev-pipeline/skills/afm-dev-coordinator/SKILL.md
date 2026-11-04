@@ -13,7 +13,9 @@ Agent/Task/fork subagents, nested orchestration or parent-run mutation APIs.
 
 Read [temporary helpers](references/helpers.md) before spawning a helper and when
 reconciling helpers before completion. Read [diagnosis and handoff](references/diagnosis.md)
-when a defect repeats or an owner/tool becomes unavailable. These are workflow
+before assigning the reserve writer, when a defect repeats or an owner/tool becomes
+unavailable. Initial work and first repairs use backend/frontend writers; reserve
+assignments require a recorded escalation and ownership handoff. These are workflow
 rules, not an automatic runtime watchdog or a grant of additional permissions.
 
 ## Recover before dispatch

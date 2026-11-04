@@ -1,7 +1,7 @@
 # Dev pipeline
 
-A project-aware AFM workflow that plans a requested change, coordinates three
-standing writers and selected read-only specialists, runs declared checks,
+A project-aware AFM workflow that plans a requested change, coordinates two
+ordinary writers, an escalation-only reserve and selected read-only specialists, runs declared checks,
 exercises the real product, updates documentation, commits, and optionally merges
 after a separate user approval. The flow speaks to the user in Russian and follows
 the target project's own instructions, test commands, documentation language and
@@ -81,13 +81,30 @@ To update an existing verifier and its shared review executor, pass:
 {"roles":{"verifier":{"client":"codex","model":"gpt-6.1-sol","reasoning":"xhigh"}}}
 ```
 
-The difficult-task writer (`writer_opus`, team ID `opus`) also uses Claude Opus
-5.5 with `xhigh` reasoning. Updates migrate saved choices from the previous writer
-role to `writer_opus`. To apply this default to an existing installation, pass:
+The reserve writer **ЛинусХ** uses Claude Sonnet 5.5 with `xhigh` reasoning.
+The historical role ID `writer_opus`, team ID `opus` and profile/command keys stay
+unchanged for installation compatibility; updates still migrate `writer_astra`
+choices. Existing saved models are preserved, so explicitly override this role
+to replace an installed Opus writer:
 
 ```json
-{"roles":{"writer_opus":{"client":"claude","model":"claude-opus-5-5","reasoning":"xhigh"}}}
+{"roles":{"writer_opus":{"client":"claude","model":"claude-sonnet-5-5","reasoning":"xhigh"}}}
 ```
+
+From the catalog checkout, pass
+`--options pipelines/dev-pipeline/examples/sonnet-writers.options.json` to `plan` to apply
+all five Sonnet defaults on update: backend/frontend and work/docs coordinators
+at `medium`, reserve at `xhigh`. Other role choices remain unchanged.
+
+All initial sections and first repairs go to the ordinary backend/frontend
+writers. The reserve receives a bounded correction only after two unsuccessful
+repairs or a second rejection of the same defect and an independent diagnosis,
+or an explicit user handoff. Complexity or subsystem boundaries alone do not
+qualify. Before dispatch the coordinator records the trigger, evidence, prior
+repair counts, required diagnosis, previous owner's release, file/test grant and
+acceptance budget in the task ledger. The reserve checks that record before
+editing; independent acceptance remains required. If the bounded rescue fails,
+the coordinator asks the user instead of starting another rescue loop.
 
 The installer writes `pipelines/dev-pipeline/` and isolated AFM profiles in the
 project, binds all stage commands and standing writers, and resolves the

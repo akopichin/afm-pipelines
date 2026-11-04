@@ -38,6 +38,10 @@ prompt: |
   The assigned skills own check discipline, mesh coordination, writer delivery,
   read-only review and user-facing reporting. This flow owns ordering, role/profile
   selection, artifact contracts, approvals and gates. Its execution defaults are:
+  - Initial implementation and first repairs go to backend/frontend writers.
+    The reserve writer (team ID opus) writes only after a recorded escalation
+    under the coordinator's diagnosis/handoff protocol. Task complexity or
+    subsystem boundaries alone do not justify assigning work to the reserve.
   - One owner per check; broad checks belong to declared gates, not every agent.
   - One focused run; repeats above five require a named hypothesis and budget.
   - Mutation testing only for an explicit risk, with one owner and bounded mutants.
@@ -89,9 +93,20 @@ team:
     instruction: *writer_instruction
   - id: opus
     profile: dev-default-writer-opus
-    title: Опусарх
+    title: ЛинусХ
     skills: *writer_skills
-    instruction: *writer_instruction
+    instruction: |
+      You are the escalation-only reserve writer. Do not take initial implementation
+      or first repairs. Before editing, read the recorded escalation: logical task,
+      failed repair/review evidence and counters or the explicit user handoff,
+      independent diagnosis when required, previous owner's release of files and
+      modifying commands, bounded file/test grant and acceptance/check budget.
+      If this evidence is missing, ask the coordinator and do not edit.
+      Follow the afm-dev-writer and afm-check-evidence skills and project rules.
+      For UI work also read
+      __DEV_PIPELINE_SKILLS_DIR__/afm-ui-acceptance/SKILL.md.
+      Do not commit or push; return the linked deliverable and evidence for
+      independent acceptance. A failed bounded rescue needs a user decision.
 
 stages:
   - id: bootstrap
@@ -183,7 +198,10 @@ stages:
 
       Discover the actual project and inspect relevant instructions/build scripts.
       Read the sibling bootstrap/project-contract.md for the project.json
-      contract. Write under $AFM_STAGE_DIR:
+      contract. Assign all initial implementation sections to backend/frontend
+      writers. Keep the reserve writer (team ID opus) unassigned until a recorded
+      escalation; complexity or subsystem boundaries alone are not escalation.
+      Write under $AFM_STAGE_DIR:
       - dev-plan.md: confirmed Task and Non-goals; requirements table mapping each
         confirmed requirement/prototype behavior to a test or live step; grounded
         implementation Sections with task IDs, files, one writer owner, criteria,
@@ -309,6 +327,8 @@ stages:
             the whole tree. Selected consultations must have committed helper
             results with task/request IDs and dispositions; check profile mappings,
             escalation coverage, helper/check budgets and one owner per broad check.
+            Initial implementation must belong to backend/frontend writers;
+            reject initial task ownership assigned to the reserve (team ID opus).
             Required checks must stay covered; flag unjustified duplicate full suites
             or blanket stress/mutation passes. A summary reply alone is not a result;
             unselected roles need no ceremonial requests. Approval must cover the
@@ -337,11 +357,13 @@ stages:
     script_before: *bind_run
     skills: [afm-check-evidence, afm-dev-coordinator]
     prompt: |
-      Implement the approved sections with the declared backend/frontend/Opus writers
+      Implement the approved sections with the declared backend/frontend writers
       under the coordinator and check-evidence skills. Resolve their current
-      participant IDs from the roster. Use the declared Opus writer for difficult
-      fixes and work
-      spanning subsystem boundaries. Keep the plan as a file reference. Publish task
+      participant IDs from the roster. Keep the reserve writer (team ID opus) idle
+      until the diagnosis/handoff protocol records a justified escalation and
+      releases the previous owner's files and modifying commands. Initial work,
+      first repairs, complexity and subsystem boundaries do not qualify.
+      Keep the plan as a file reference. Publish task
       ownership/progress on the Board; save IDs, acceptance, completed-command evidence
       and applied brief revisions in team-progress.json before review dispatch.
 
@@ -402,6 +424,9 @@ stages:
             does not require previews or visual reviews;
             temporary reviews/diagnoses need committed helper results and IDs,
             with repeated-defect counters and required architect escalation preserved;
+            reserve-writer edits require a recorded escalation and ownership handoff,
+            including failed repair/review evidence or an explicit user handoff,
+            independent diagnosis when required and a bounded file/test grant;
             check canonical request IDs and linked replies; Board completion is
             not proof that a reply_to wait was answered. Recorded cancellations
             need accepted evidence and must not hide outstanding review work;
@@ -476,10 +501,12 @@ stages:
       2. Turn concrete failures into bounded work items with repro steps, expected
          versus actual behavior, tested tree/contract, evidence paths, prior
          hypotheses, explicit owned files/tests and acceptance criteria. Resolve
-         the declared backend/frontend/Opus writers from the roster and send each
-         repair to the appropriate standing writer; use the Opus writer for difficult
-         fixes or changes
-         spanning subsystem boundaries. Reuse reachable writers; temporary helpers
+         the declared backend/frontend writers from the roster and send each
+         initial repair to the appropriate standing writer. Use the reserve writer
+         (team ID opus) only after the diagnosis/handoff protocol records an
+         escalation and ownership release; difficult or cross-boundary work alone
+         does not qualify. Preserve earlier repair counts when checking eligibility.
+         Reuse reachable writers; temporary helpers
          are for read-only diagnosis/review, not product implementation. If a
          writer is unavailable, follow the coordinator skill's replacement protocol and
          report a real availability blocker only when no suitable owner exists.
@@ -587,6 +614,7 @@ stages:
             review results for the repaired candidate. An implement-stage approval
             predating those repairs is insufficient. Check that repeated-defect
             counters and required independent diagnosis were preserved, with no
+            reserve-writer edits before a recorded escalation and ownership handoff,
             pending writer/reviewer work or unaddressed acceptance defects hidden
             behind a summary. A FAIL may pass only with the exact explicit override
             already validated by live-gate; a verified override accepts its recorded

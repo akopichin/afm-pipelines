@@ -17,6 +17,10 @@ boundaries. Split the work into sections with stable task IDs, one writer and a
 file grant per task. Specify observable acceptance, focused tests and the full
 project checks, including who runs each check. Define a real product scenario
 with setup, expected observations, evidence and cleanup.
+Assign initial sections to backend/frontend writers. Leave the reserve writer
+(team ID `opus`) idle for a later recorded escalation, even for complex work or
+changes spanning subsystems. Read-only architecture consultation does not grant
+the reserve an implementation task.
 
 Explain WHAT changes and WHY for every implementation section/task, visual step,
 changed function, contract and planned check. Keep the current step's What/Why

@@ -4,6 +4,12 @@
 
 ### Improvement:
 
+- Replace the Opus implementation writer with ЛинусХ, Claude Sonnet 5.5 `xhigh`,
+  reserved for documented escalations after repeated failed repairs and independent
+  diagnosis or an explicit user handoff. Initial work and first repairs stay with
+  backend/frontend writers; complexity alone does not activate the reserve.
+- Include update options that explicitly apply all five Sonnet defaults while
+  preserving saved choices for other roles and profiles used by existing runs.
 - Default the backend/frontend writers and work/documentation coordinators to
   Claude Sonnet 5.5 with `medium` reasoning instead of `high`.
 

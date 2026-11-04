@@ -18,7 +18,7 @@ docker:
         to: env:CLAUDE_CODE_OAUTH_TOKEN
     dev-default-writer-opus:
       type: claude
-      model: claude-opus-5-5
+      model: claude-sonnet-5-5
       reasoning: xhigh
       auth:
         from: env:CLAUDE_CODE_OAUTH_TOKEN
@@ -78,11 +78,13 @@ collaboration:
       instructions: Follow the assigned stage or writer instructions, project rules
         and required checks. Keep evidence in the run directory.
     dev-default-writer-opus:
-      title: Опусарх
+      title: ЛинусХ
       command: dev-default-writer-opus
       delegate: false
-      instructions: Follow the assigned stage or writer instructions, project rules
-        and required checks. Keep evidence in the run directory.
+      instructions: Implement only a bounded correction after a recorded escalation
+        and ownership handoff. Read the escalation evidence and file grant before
+        editing; if missing, ask the coordinator and do not edit. Follow project
+        rules and required checks. Keep evidence in the run directory.
     dev-default-coordinator-plan:
       title: ОпуПлан
       command: dev-default-coordinator-plan
