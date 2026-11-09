@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-11-10
+
+### Improvement:
+
+- Use ordinary written planning by default without offering visual grooming or
+  asking a planning-mode question. Hide the Read grooming feedback button from
+  the standard flow while preserving the workshop and its manual feedback action.
+- Keep visual grooming available on explicit request and preserve saved choices
+  and full approval checks for requested or resumed workshops. Ordinary planning
+  needs no visual artifacts or mode receipt.
+
 ## 2026-11-04
 
 ### Improvement:

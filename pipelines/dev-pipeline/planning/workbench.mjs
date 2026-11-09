@@ -138,12 +138,15 @@ export function chooseGrooming(session, questionFile, answerFile) {
 }
 export function verifyPlan(session) {
   const choiceFile = path.join(session, 'grooming-choice.json');
+  const visualArtifacts = ['grooming-source.json', 'grooming.json', 'grooming-checkpoint.json',
+    'grooming-approval.json', 'grooming-preview.json', 'workbench.html', 'report.html'];
+  const hasWorkshop = fs.readdirSync(session).some(file => visualArtifacts.includes(file));
   if (fs.existsSync(choiceFile)) {
     const choice = read(choiceFile);
     requireValue(M.same(choice, groomingSelection(session, choice.question_file, choice.answer_file)), 'Grooming choice evidence changed');
-    if (!choice.enabled) return choice;
-  }
-  // Older visual sessions predate the choice receipt and retain their full gate.
+    if (!choice.enabled && !hasWorkshop) return choice;
+  } else if (!hasWorkshop) return {schema_version: 1, enabled: false};
+  // Requested and resumed workshops retain their full gate, even without a choice receipt.
   const checkpointFile = path.join(session, 'grooming-checkpoint.json');
   const state = M.restore(read(checkpointFile));
   const receipt = read(path.join(session, 'grooming-approval.json'));

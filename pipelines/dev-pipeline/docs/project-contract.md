@@ -7,8 +7,15 @@ Keep requirements and decisions in the plan and reference shared skill protocols
 
 ## Visual planning artifacts
 
-The plan stage additionally keeps a source-grounded `grooming.json`, a durable
-`grooming-checkpoint.json`, a sealed `grooming-approval.json` and a standalone
+Ordinary planning does not require visual artifacts or a planning-mode question.
+The workshop is available only on explicit user request or when resuming an
+existing visual session; do not offer it during ordinary planning. Saved mode
+choices retain their original dialog evidence. Existing workshop artifacts always
+require the complete visual approval gate.
+
+When using the workshop, the plan stage additionally keeps a source-grounded
+`grooming.json`, a durable `grooming-checkpoint.json`, a sealed
+`grooming-approval.json` and a standalone
 `report.html`. These do not change the `project.json` schema. Every plan section,
 task, visual step and technical detail must state What changes and Why.
 Function/contract details describe Before/After, references and preserved

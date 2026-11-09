@@ -1,15 +1,16 @@
 ---
 name: afm-dev-planning
-description: Discover a project change, offer optional visual architecture grooming, and write a grounded implementation and acceptance plan for the AFM dev pipeline. Use during planning, not ordinary implementation or product UI acceptance.
+description: Discover a project change and write a grounded implementation and acceptance plan for the AFM dev pipeline. Use during planning, not ordinary implementation or product UI acceptance.
 ---
 
 # Development planning
 
 Read the user's task, applicable AGENTS.md files, contribution guide, build commands,
 and the relevant code before proposing implementation. Reuse answers already given.
-Ask the flow's visual-grooming question before opening a workshop; reuse the saved
-choice on resume. Ask other questions only when scope or acceptance still materially
-depends on an unknown. Keep related questions together and record the answers.
+Use ordinary written planning by default. Do not offer visual grooming or ask a
+planning-mode question. Recover saved choices and workshop state on resume. Ask
+questions only when scope or acceptance still materially depends on an unknown.
+Keep related questions together and record the answers.
 
 Prefer the smallest coherent design that meets the confirmed behavior. Identify
 real integration points, existing primitives, tests, documentation and any risky
@@ -29,11 +30,12 @@ Name real source symbols and signatures, contract differences, preserved behavio
 and material tradeoffs. Distinguish observed code from proposed design and checks
 from completed verification. Explain categories with no applicable changes.
 
-If visual grooming is declined, discuss the written plan through the ordinary AFM
-dialog and obtain its single plan approval. No workshop, visual artifacts, browser
-feedback or readiness is required. Keep the same discovery and acceptance work.
+Discuss the written plan through the ordinary AFM dialog and obtain its single
+plan approval. No mode choice, workshop, visual artifacts, browser feedback or
+readiness is required by default. Keep the same discovery and acceptance work.
 
-If accepted, use the frozen bootstrap/planning/README.md for the workshop protocol.
+Only when explicitly requested by the user or resuming an existing visual session,
+use the frozen bootstrap/planning/README.md for the preserved workshop protocol.
 Publish the baseline and proposal early, update them with the plan during dialogue,
 and answer step/element/global comments in their original threads. Match the AFM
 theme. Preserve checkpoints, drafts and exact revision identity across resume.

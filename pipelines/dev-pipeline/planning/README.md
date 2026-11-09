@@ -5,18 +5,28 @@ not product UI acceptance and not a second approval authority. Use the human's
 language. Keep the existing AFM plan approval dialog as the final decision.
 Never simulate human comments, readiness clicks or approval selections.
 
-## Choose the planning mode
+## Ordinary planning by default
 
-Before opening the page, ask through the AFM dialog:
-**Использовать визуальный груминг при планировании?** Use these exact options:
+Discuss `dev-plan.md` and `project.json` in the ordinary AFM dialog, then obtain
+the existing single plan approval in `approval.md`. Do not offer visual grooming
+or ask a planning-mode question. No mode receipt, browser, visual artifacts, page
+readiness or visual approval seal is needed for ordinary planning.
 
-- **Да, использовать визуальный груминг** — show the interactive architecture
-  workshop and follow the visual protocol below.
-- **Нет, обычный план** — discuss `dev-plan.md` and `project.json` in the ordinary
-  AFM dialog, then obtain the existing single plan approval in `approval.md`.
-  No browser, visual artifacts, page readiness or visual approval seal is needed.
+Open this workshop only on an explicit user request or when resuming an existing
+visual session. A new explicit request needs no additional mode question; follow
+the protocol below, starting with `grooming-source.json`. Keep the full visual
+approval gate once workshop artifacts exist. Product UI acceptance remains
+separate and follows changed behavior.
 
-Record the real AFM question and explicit human answer before continuing:
+`verify-plan --session "$AFM_STAGE_DIR"` skips visual verification when neither a
+saved enabled choice nor workshop artifacts exist. It does not replace the project
+contract, independent plan review or ordinary AFM approval. Any workshop artifact,
+including an unfinished source snapshot or page, requires complete visual evidence.
+
+### Saved choices from earlier sessions
+
+Reuse `grooming-choice.json` and its original dialog evidence without asking again.
+The compatibility command remains available to record an existing AFM mode answer:
 
 ```sh
 TOOL="$(dirname "$AFM_STAGE_DIR")/bootstrap/planning/workbench.mjs"
@@ -25,15 +35,26 @@ node "$TOOL" choose-grooming --session "$AFM_STAGE_DIR" \
 ```
 
 This writes `grooming-choice.json` with the selected mode and hashes of the dialog
-evidence. Both dialog files must belong to this plan stage. Automatic, custom or
-unmatched answers are not a choice; clarify them through the dialog. On resume,
-reuse the saved choice without asking again. An older visual session without a
-choice receipt keeps its original workshop protocol and approval gate.
+evidence. Both dialog files must belong to this plan stage. It accepts the original
+options **Да, использовать визуальный груминг** and **Нет, обычный план**;
+automatic, custom or unmatched answers are rejected. A saved decline keeps ordinary
+planning when there are no workshop artifacts. Existing visual artifacts retain
+their original approval gate even without a choice receipt or after a saved decline.
 
-`verify-plan --session "$AFM_STAGE_DIR"` validates the choice evidence. An explicit
-opt-out skips only visual verification; the project contract, independent plan
-review and ordinary AFM approval still apply. Missing choice evidence never opts
-out implicitly. Product UI acceptance is separate and follows changed behavior.
+### Manual feedback action
+
+The standard flow does not register a grooming button. The action remains available
+for a deliberately customized visual workflow; the coordinator can also follow it
+directly when the user asks to read workshop feedback:
+
+```yaml
+buttons:
+  Read grooming feedback: |
+    Read window.devPlanning.readEvents through the managed browser now. Save
+    and acknowledge the checkpoint, address each original comment thread and
+    update the plan and visual document together. Do not select readiness or
+    approval for the human. Follow bootstrap/planning/README.md.
+```
 
 ## Start early
 

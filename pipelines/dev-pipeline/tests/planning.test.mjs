@@ -63,8 +63,38 @@ test('accepting grooming retains the complete visual approval gate', t => {
   assert.throws(() => verifyPlan(f.session), /Plan\/project changed/);
 });
 
-test('a missing choice cannot silently opt out of visual planning', t => {
-  assert.throws(() => verifyPlan(fixture(t)), /ENOENT/);
+test('ordinary planning needs no grooming question or visual artifacts by default', t => {
+  const session = fixture(t);
+  fs.writeFileSync(path.join(session, 'dev-plan.md'), '# Ordinary plan\n');
+  json(path.join(session, 'project.json'), {schema_version: 2});
+  assert.equal(verifyPlan(session).enabled, false);
+  const tool = path.join(planning, 'workbench.mjs');
+  assert.match(execFileSync(process.execPath, [tool, 'verify-plan', '--session', session], {encoding: 'utf8'}), /Standard planning selected/);
+  assert.deepEqual(fs.readdirSync(session).sort(), ['dev-plan.md', 'project.json']);
+});
+
+test('an unfinished workshop cannot fall back to ordinary planning without a choice', t => {
+  for (const file of ['grooming-source.json', 'grooming.json', 'grooming-checkpoint.json',
+    'grooming-approval.json', 'grooming-preview.json', 'workbench.html', 'report.html']) {
+    const session = fixture(t);
+    fs.writeFileSync(path.join(session, file), '{}');
+    assert.throws(() => verifyPlan(session), undefined, file);
+  }
+});
+
+test('requested and resumed workshops keep full approval checks without a mode question', t => {
+  const f = approved(t);
+  assert.throws(() => verifyPlan(f.session), /ENOENT/, 'Missing visual approval cannot pass');
+  f.seal(); assert.equal(verifyPlan(f.session).revision, 1);
+  fs.appendFileSync(f.plan, 'Changed after approval\n');
+  assert.throws(() => verifyPlan(f.session), /Plan\/project changed/);
+});
+
+test('a saved decline cannot bypass approval for existing workshop artifacts', t => {
+  const f = approved(t);
+  groomingChoice(f.session, false).choose();
+  assert.throws(() => verifyPlan(f.session), /ENOENT/);
+  f.seal(); assert.equal(verifyPlan(f.session).revision, 1);
 });
 
 test('grooming choice rejects automatic, custom, mismatched and foreign answers', t => {
