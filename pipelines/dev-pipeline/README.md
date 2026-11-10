@@ -1,7 +1,8 @@
 # Dev pipeline
 
 A project-aware AFM workflow that plans a requested change, coordinates two
-ordinary writers, an escalation-only reserve and selected read-only specialists, runs declared checks,
+ordinary writers, a standing escalation diagnostician, a reserve writer and selected
+read-only specialists, runs declared checks,
 exercises the real product, updates documentation, commits, and optionally merges
 after a separate user approval. The flow speaks to the user in Russian and follows
 the target project's own instructions, test commands, documentation language and
@@ -20,7 +21,7 @@ commit conventions.
   no workshop browser. Product UI acceptance is selected separately from planning
   and still depends on the actual changed behavior.
 
-The package includes all seven local skills, their reference files, the helper and
+The package includes all eight local skills, their reference files, the helper and
 its project contract. Planning uses `afm-dev-planning`; it does not require the
 external Superpowers plugin. Skills assigned to stages and standing writers are
 loaded from the package. Temporary reviewers and verify agents receive exact
@@ -41,8 +42,9 @@ node scripts/pipelines.mjs verify dev-pipeline --project /absolute/project/root
 
 Use `--options /private/options.json` with `plan` to choose `settings`, optional
 `skills` discovery copies, and per-role `client`, `model`, `reasoning` or a
-compatible `profile` to copy. The nine installed roles cover three writers,
-three stage coordinators, the AI verifier, an architect and a UX consultant.
+compatible `profile` to copy. The ten installed roles cover three writers, a
+standing escalation diagnostician, three stage coordinators, the AI verifier,
+an architect and a UX consultant.
 The backend and frontend team members are named **ЛинусБи** and **ЛинусФи**;
 their declaration IDs remain
 `dev-backend` and `dev-frontend`.
@@ -81,43 +83,61 @@ To update an existing verifier and its shared review executor, pass:
 {"roles":{"verifier":{"client":"codex","model":"gpt-6.1-sol","reasoning":"xhigh"}}}
 ```
 
-The reserve writer **ЛинусХ** uses Claude Sonnet 5.5 with `xhigh` reasoning.
-The historical role ID `writer_opus`, team ID `opus` and profile/command keys stay
-unchanged for installation compatibility; updates still migrate `writer_astra`
-choices. Existing saved models are preserved, so explicitly override this role
-to replace an installed Opus writer:
+## Repeated-failure escalation
 
-```json
-{"roles":{"writer_opus":{"client":"claude","model":"claude-sonnet-5-5","reasoning":"xhigh"}}}
-```
+The standing **Астра** agent (`escalation_architect`, team ID `rescue-architect`)
+uses GPT-6 Astra with `xhigh` reasoning by default. The reserve writer **Опусарх**
+(`writer_opus`, team ID `opus`) uses Claude Opus 5.5 with `xhigh` reasoning.
+They remain idle during initial implementation and the first correction.
+Ordinary architecture/UX consultants remain separate read-only helper roles.
 
-**Updating an existing installation to these Sonnet settings:** changing the
-catalog defaults alone does not replace saved models or reasoning. A plain
-`plan` without options can keep the old Opus writer and Sonnet `high` settings.
-When applying this migration, run from the catalog checkout:
+After **two rejected candidate rounds for one logical work item**, before a third
+correction/review round, the coordinator must:
+
+1. Finish the review batch, preserve its findings and release the old writer's files.
+2. Send the full history to Astra for diagnosis and a distinguishing reproduction.
+   Astra tests the smallest corrective design in scratch, separates product defects
+   from missing test coverage or faulty test harnesses, and returns a full report.
+3. Accept the diagnosis and transfer exclusive implementation ownership to Opus.
+   The original writer does not receive another repair after this checkpoint.
+4. Obtain fresh independent review and the required checks and live acceptance.
+
+Two unsuccessful repairs also trigger this route, even before formal review.
+A batch with several reviewers counts as one candidate round. New finding IDs,
+renamed tasks, stage changes, verify/live reruns and resumed sessions do not reset
+one logical task's history. Separate unrelated tasks do not share a counter.
+Optional polish, infrastructure failures, expected TDD red and diagnostic tests
+are not rejected candidate rounds. An explicit user handoff can change the route.
+
+One escalation permits one diagnosis and one specialist-guided implementation
+with independent acceptance. If it fails, the coordinator reports the concrete
+blocker for a user decision; it does not automatically restart Astra -> Opus.
+This is a pipeline coordination/verify rule, not an engine watchdog. Candidate
+rounds, diagnosis acceptance, file release, canonical requests/replies and actual
+role bindings are recorded in `team-progress.json` and checked by final verify.
+Astra does not edit product code or use the managed browser. A diagnostic prototype
+and green mock tests do not replace production implementation or live acceptance.
+
+**Updating an existing installation:** saved model choices remain authoritative.
+A plain update can keep the earlier Sonnet reserve or a custom diagnostician.
+After the current run finishes, explicitly select the new defaults with:
 
 ```sh
 node scripts/pipelines.mjs plan dev-pipeline \
   --project /absolute/project/root \
-  --options pipelines/dev-pipeline/examples/sonnet-writers.options.json \
+  --options pipelines/dev-pipeline/examples/astra-opus-escalation.options.json \
   --out /private/dev-install-plan.json
 ```
 
-Before `apply`, inspect the printed plan: `writer_backend`, `writer_frontend`,
-`coordinator_work` and `coordinator_docs` must use Sonnet 5.5 `medium`;
-`writer_opus` (ЛинусХ) must use Sonnet 5.5 `xhigh`. Other role choices remain
-unchanged. Older Opus profiles can remain in AFM configuration for existing
-runs; check the new role bindings rather than the mere presence of old profiles.
-
-All initial sections and first repairs go to the ordinary backend/frontend
-writers. The reserve receives a bounded correction only after two unsuccessful
-repairs or a second rejection of the same defect and an independent diagnosis,
-or an explicit user handoff. Complexity or subsystem boundaries alone do not
-qualify. Before dispatch the coordinator records the trigger, evidence, prior
-repair counts, required diagnosis, previous owner's release, file/test grant and
-acceptance budget in the task ledger. The reserve checks that record before
-editing; independent acceptance remains required. If the bounded rescue fails,
-the coordinator asks the user instead of starting another rescue loop.
+Inspect the plan before applying: `escalation_architect` must resolve to
+Codex / `gpt-6-astra` / `xhigh`, and `writer_opus` to
+Claude / `claude-opus-5-5` / `xhigh`. Other saved role choices remain unchanged.
+The historical `writer_astra` / team `astra` IDs still migrate to the reserve
+writer; the new `escalation_architect` / `rescue-architect` role is separate.
+Old profiles and skill libraries are retained for earlier runs. Publishing a new
+catalog version does not install it into projects or change an active run.
+The older `sonnet-writers.options.json` remains an explicit customization for
+users who want Sonnet in the reserve role; it is not the new escalation preset.
 
 The installer writes `pipelines/dev-pipeline/` and isolated AFM profiles in the
 project, binds all stage commands and standing writers, and resolves the
@@ -234,7 +254,9 @@ skills, actual AFM flow validation, update, and removal.
 
 For an existing project using `pipelines/dev-pipeline-v1.yaml`, synchronize its
 ignored local files from this catalog while keeping its configured stage, writer
-model choices and existing configured helper profiles:
+model choices and existing configured helper profiles. Synchronization adds the
+diagnosis agent with package defaults only when it is absent; an existing reserve
+keeps its saved model. Run it after the active run finishes:
 
 ```sh
 node scripts/sync-dev-pipeline-v1.mjs /absolute/project/root

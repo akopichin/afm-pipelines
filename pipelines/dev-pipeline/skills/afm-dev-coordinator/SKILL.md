@@ -14,8 +14,11 @@ Agent/Task/fork subagents, nested orchestration or parent-run mutation APIs.
 Read [temporary helpers](references/helpers.md) before spawning a helper and when
 reconciling helpers before completion. Read [diagnosis and handoff](references/diagnosis.md)
 before assigning the reserve writer, when a defect repeats or an owner/tool becomes
-unavailable. Initial work and first repairs use backend/frontend writers; reserve
-assignments require a recorded escalation and ownership handoff. These are workflow
+unavailable. After two rejected candidate rounds for one logical work item, route
+diagnosis to the standing rescue-architect and implementation to the reserve,
+before a third correction/review round. Initial work and first corrections use
+backend/frontend writers; reserve assignments require the accepted diagnosis and
+recorded ownership handoff, unless the user explicitly changes that route. These are workflow
 rules, not an automatic runtime watchdog or a grant of additional permissions.
 
 ## Recover before dispatch
@@ -24,7 +27,7 @@ At every resumed turn reconcile the flow's ledger (normally team-progress.json),
 `<your_requests>`, `<your_helpers>`, `<inbox>` and `afm agent wait-status`.
 AFM's durable records are authoritative: recover existing requests and receipts
 before creating work. Persist IDs, logical task/section, owner, brief revision,
-batch ID, last processed message sequence, acceptance decisions and repair counts
+batch ID, last processed message sequence, acceptance decisions, review-round history and repair counts
 atomically. Keep evidence in referenced artifacts rather than large messages.
 
 Resolve standing writer aliases with `afm agent list`. Temporary helpers are not
@@ -77,8 +80,10 @@ Inspect actual changes, ownership and required evidence before accepting work.
 The writer's edits are already in the shared tree: never reapply its diff. Missing
 test-first evidence cannot be invented from a green tree. During a review batch,
 freeze the candidate: no writer tasks, coordinator edits or file-rewriting checks.
-Collect all outcomes, deduplicate findings into bounded corrections per writer,
-and preserve earlier findings and repair counts. Gates remain the flow's decision.
+Collect all outcomes and count a rejected candidate once for the whole batch.
+Deduplicate findings by logical task/invariant, preserve earlier findings and
+counts, and apply the mandatory escalation checkpoint before dispatching the
+next correction. Gates remain the flow's decision.
 
 Tie each finding to an approved requirement/criterion before disposition. A
 pre-existing defect still blocks an explicit criterion; extend the writer's file

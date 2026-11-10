@@ -40,17 +40,22 @@ prompt: |
   read-only review and user-facing reporting. This flow owns ordering, role/profile
   selection, artifact contracts, approvals and gates. Its execution defaults are:
   - Initial implementation and first repairs go to backend/frontend writers.
-    The reserve writer (team ID opus) writes only after a recorded escalation
-    under the coordinator's diagnosis/handoff protocol. Task complexity or
+    After two rejected candidate rounds for one logical work item, the standing
+    diagnosis agent (team ID rescue-architect) must diagnose it, then the reserve
+    writer (team ID opus) implements the accepted design. Escalate BEFORE a third
+    correction/review round; do not send another fix to the original writer.
+    Use the coordinator's diagnosis/handoff protocol. Task complexity or
     subsystem boundaries alone do not justify assigning work to the reserve.
   - One owner per check; broad checks belong to declared gates, not every agent.
   - One focused run; repeats above five require a named hypothesis and budget.
   - Mutation testing only for an explicit risk, with one owner and bounded mutants.
   - One initial review and one focused correction review; normally 15 minutes per
-    review. Further rounds need a named defect and a revised budget, never auto-PASS.
-  - Finite mesh wait deadlines, normally 1800 seconds. After two failed repairs or
-    a second rejection of one defect, obtain independent diagnosis before a bounded
-    rescue. Count across stages/turns; unresolved rescue failures need a user decision.
+    review. Two rejections trigger the mandatory diagnosis -> reserve-writer route.
+    Count candidate rounds, not reviewers/findings; new finding IDs do not reset
+    the logical task/invariant. Preserve history across stages, verify and live runs.
+  - Finite mesh wait deadlines, normally 1800 seconds. Two failed repairs also
+    trigger the same route. One bounded rescue includes independent acceptance;
+    unresolved rescue failures need a user decision, not another automatic loop.
   Pass the applicable defaults, brief revision and evidence with every assignment;
   helpers do not inherit this prompt. Required project checks remain mandatory.
 
@@ -94,20 +99,35 @@ team:
     instruction: *writer_instruction
   - id: opus
     profile: dev-default-writer-opus
-    title: ЛинусХ
+    title: Опусарх
     skills: *writer_skills
     instruction: |
       You are the escalation-only reserve writer. Do not take initial implementation
       or first repairs. Before editing, read the recorded escalation: logical task,
       failed repair/review evidence and counters or the explicit user handoff,
-      independent diagnosis when required, previous owner's release of files and
+      accepted diagnosis from the standing rescue-architect after two rejected
+      candidate rounds or failed repairs, previous owner's release of files and
       modifying commands, bounded file/test grant and acceptance/check budget.
+      The user may explicitly change this route; preserve their original instruction.
       If this evidence is missing, ask the coordinator and do not edit.
       Follow the afm-dev-writer and afm-check-evidence skills and project rules.
       For UI work also read
       __DEV_PIPELINE_SKILLS_DIR__/afm-ui-acceptance/SKILL.md.
       Do not commit or push; return the linked deliverable and evidence for
       independent acceptance. A failed bounded rescue needs a user decision.
+  - id: rescue-architect
+    profile: dev-escalation-architect
+    title: Астра
+    skills: [afm-check-evidence, afm-dev-diagnosis]
+    instruction: |
+      You are the standing escalation diagnostician. Stay idle until the coordinator
+      sends a bounded repeated-failure diagnosis or explicit user-directed request.
+      Follow afm-dev-diagnosis and afm-check-evidence. Inspect the full logical task's
+      repair/review history; reproduce the cause and validate the smallest corrective
+      design in granted scratch. Product files are read-only; no managed browser or
+      delegation. Return a full linked diagnosis for the separate reserve writer,
+      not an ACK or an implementation. If assigned UI work, read
+      __DEV_PIPELINE_SKILLS_DIR__/afm-ui-acceptance/SKILL.md too.
 
 stages:
   - id: bootstrap
@@ -188,8 +208,9 @@ stages:
       Discover the actual project and inspect relevant instructions/build scripts.
       Read the sibling bootstrap/project-contract.md for the project.json
       contract. Assign all initial implementation sections to backend/frontend
-      writers. Keep the reserve writer (team ID opus) unassigned until a recorded
-      escalation; complexity or subsystem boundaries alone are not escalation.
+      writers. Keep rescue-architect and the reserve writer (team ID opus)
+      unassigned until a recorded escalation; complexity or subsystem boundaries
+      alone are not escalation.
       Write under $AFM_STAGE_DIR:
       - dev-plan.md: confirmed Task and Non-goals; requirements table mapping each
         confirmed requirement/prototype behavior to a test or live step; grounded
@@ -203,8 +224,10 @@ stages:
         sections: [{id, reviewers, reason}]}.
         profiles maps selected consultation/review roles to actual configured
         profile IDs; escalation_profiles maps relevant architect roles to their
-        profiles even when no initial consultation is needed. Read-only escalation
-        specialists stay available for later unexpected defects. Record a projected
+        profiles even when no initial consultation is needed. Include
+        escalation_profiles.repeated_failure = __PROFILE_ESCALATION_ARCHITECT__
+        for the standing rescue-architect, distinct from ordinary consultants.
+        Record a projected
         helper count plus a correction/escalation reserve against configured limits;
         completed helpers still count toward any whole-run max_tasks limit.
         Commands use argv arrays. For shell syntax use bash -o pipefail -c explicitly.
@@ -242,7 +265,9 @@ stages:
       checks always cover the whole tree. Reference shared protocols, do not copy
       them into the plan. Recover incoming task additions before asking approval.
 
-      Architecture and root-cause diagnosis use __PROFILE_ARCHITECT__;
+      Initial architecture and domain consultations use __PROFILE_ARCHITECT__;
+      mandatory repeated-failure diagnosis uses the standing rescue-architect
+      bound to __PROFILE_ESCALATION_ARCHITECT__, followed by implementation by opus.
       UX consultation uses __PROFILE_UX__. The installer first reuses matching
       global/project profile connection settings, otherwise creates its own
       Opus 5.5 / xhigh profiles. Both are isolated copies available to this run.
@@ -317,7 +342,9 @@ stages:
             results with task/request IDs and dispositions; check profile mappings,
             escalation coverage, helper/check budgets and one owner per broad check.
             Initial implementation must belong to backend/frontend writers;
-            reject initial task ownership assigned to the reserve (team ID opus).
+            reject initial task ownership assigned to opus or rescue-architect.
+            Check that the repeated-failure escalation maps to the standing diagnosis
+            role and a separate reserve implementation owner with actual bindings.
             Required checks must stay covered; flag unjustified duplicate full suites
             or blanket stress/mutation passes. A summary reply alone is not a result;
             unselected roles need no ceremonial requests. Approval must cover the
@@ -374,10 +401,13 @@ stages:
       round two reviews only perspectives affected by blockers, with prior evidence.
       Unselected reviewers are not missing work. Defer optional refinements once.
 
-      Apply the coordinator skill's diagnosis/handoff protocol, including during verify
-      corrections. Use review.escalation_profiles for the affected domain: backend/CLI/
-      data or frontend/client state; both only for cross-boundary diagnosis. Preserve
-      prior counters and read the architect's full result before another writer fix.
+      Apply the coordinator skill's mandatory diagnosis/handoff protocol, including
+      verify corrections. After two rejected candidate rounds for one logical task
+      or two failed repairs, send the full history to standing rescue-architect,
+      then transfer the accepted corrective design to opus. Do not dispatch a third
+      ordinary-writer correction. Use review.escalation_profiles.repeated_failure
+      and the roster to verify the binding; domain consultations do not substitute
+      for this route. Read the full linked diagnosis and preserve prior counters.
       Record diagnosis IDs, dispositions, owner and evidence in the same task's ledger
       and team-review.md. Unresolved bounded rescue or material scope changes go to the
       dialog; a new helper never resets the repair count.
@@ -413,7 +443,14 @@ stages:
             violating an approved criterion remains blocking. Backend-only work
             does not require previews or visual reviews;
             temporary reviews/diagnoses need committed helper results and IDs,
-            with repeated-defect counters and required architect escalation preserved;
+            standing rescue-architect diagnoses need full canonical linked replies,
+            accepted evidence and candidate identity, not helper-result IDs;
+            reconcile the logical task's complete candidate-round history across
+            stages/verify/live and count each rejected batch once. After two rejected
+            rounds or failed repairs, require rescue-architect diagnosis followed by
+            a separate opus implementation before another correction/review round;
+            reject continued original-writer fixes or a restarted rescue loop unless
+            the original user instruction explicitly authorized that exception;
             reserve-writer edits require a recorded escalation and ownership handoff,
             including failed repair/review evidence or an explicit user handoff,
             independent diagnosis when required and a bounded file/test grant;
@@ -493,8 +530,8 @@ stages:
          hypotheses, explicit owned files/tests and acceptance criteria. Resolve
          the declared backend/frontend writers from the roster and send each
          initial repair to the appropriate standing writer. Use the reserve writer
-         (team ID opus) only after the diagnosis/handoff protocol records an
-         escalation and ownership release; difficult or cross-boundary work alone
+         (team ID opus) after mandatory rescue-architect diagnosis at the repeat
+         threshold and recorded ownership release; difficult or cross-boundary work alone
          does not qualify. Preserve earlier repair counts when checking eligibility.
          Reuse reachable writers; temporary helpers
          are for read-only diagnosis/review, not product implementation. If a
@@ -514,14 +551,20 @@ stages:
          relevant approved requirements, repair history and exact candidate tree.
          Freeze the tree for the whole review batch. Read every committed
          helper-result and record IDs/findings/dispositions in live-repair-review.md.
-         Before every correction apply step 5's escalation checkpoint. Route
-         concrete blockers back to the writer, then repeat affected checks and
+         Count the whole rejected candidate batch once. Before every correction
+         apply step 5's mandatory escalation checkpoint; do not reset it for new
+         finding IDs in the same logical task/invariant. Route concrete blockers
+         to the eligible owner, then repeat affected checks and
          independent review. A writer reply or green tests alone is not review
          acceptance; implement-stage reviews do not cover later repairs.
-      5. Apply the coordinator skill's repeated-defect diagnosis/handoff protocol
-         before further correction, using review.escalation_profiles. Import and
-         preserve earlier counters; inspect the full independent result before the
-         bounded rescue. If it fails, report the concrete blocker for a user decision.
+      5. Before a third correction/review round for one logical task, or after two
+         failed repairs, stop ordinary-writer fixes and send the full history to
+         the standing rescue-architect. Verify its configured binding against
+         review.escalation_profiles.repeated_failure. Accept the full linked
+         diagnosis, then transfer implementation to opus with exclusive file/test
+         ownership. Import earlier stage/verify/live counters. Require independent
+         review and live acceptance of this bounded rescue. If it fails, report the
+         concrete blocker for a user decision; never restart the route automatically.
       6. Once repairs and reviews are accepted, check the implement receipt with
          helper receipt --group implement --stage implement. Reuse it only after
          confirming the environment; if missing/stale/failed, archive the previous
@@ -603,7 +646,11 @@ stages:
             regression evidence, current declared checks and independent committed
             review results for the repaired candidate. An implement-stage approval
             predating those repairs is insufficient. Check that repeated-defect
-            counters and required independent diagnosis were preserved, with no
+            candidate-round history and repair counters survive stage/verify/live
+            transitions. Two rejected rounds or failed repairs require a full linked
+            standing rescue-architect diagnosis and separate opus implementation;
+            reject original-writer continuation or a repeated rescue loop without
+            an explicit recorded user exception. Verify actual role bindings, with no
             reserve-writer edits before a recorded escalation and ownership handoff,
             pending writer/reviewer work or unaddressed acceptance defects hidden
             behind a summary. A FAIL may pass only with the exact explicit override

@@ -1,59 +1,88 @@
-# Repeated defects and ownership handoff
+# Repeated defects and mandatory ownership handoff
 
-Use the calling flow's repair ceiling; by default, two unsuccessful repairs or a
-second rejection of the same underlying defect require independent diagnosis
-before another correction. Count across requests, helpers, stages, sessions and
-verify/live reruns. Renaming a task or narrowing a reproduction does not reset
-the count. Expected TDD red and planned diagnostic checks are not failed repairs.
-Group related symptoms by the underlying invariant, not just finding IDs. Several
-focus failures across one panel/dialog transition, or contrast failures across
-shared tokens, warrant a bounded diagnosis of that mechanism before more local
-patches, even when each individual symptom has only one attempted repair.
+## Count the work, not the reviewers
 
-State the invariant, symptom, suspected cause, distinguishing check and observed
-result. A published status may precede deferred cleanup: reason about ownership,
-durable commit and completion together. Reproduce relevant interleavings with
-controlled gates; prefer fixing the invariant to adding another local guard.
-A green rerun alone neither diagnoses a flake nor refutes a reported interleaving.
+Initial implementation and the first correction belong to backend/frontend
+writers. After **two rejected candidate rounds for the same logical work item**,
+escalate before a third correction/review round. Two unsuccessful repairs also
+trigger escalation even if they failed checks before review. A lower explicit
+flow ceiling still applies; a higher budget never postpones this checkpoint.
 
-## Escalation-only reserve writer
+A round is the complete selected review batch for one candidate: two reviewers
+rejecting it count once. Include blocking AI verify and live acceptance outcomes
+in the same history; the same candidate rejected by multiple gates is not several
+repair attempts. Count only completed outcomes requiring an in-scope correction,
+not individual findings, ACKs, optional polish, expected TDD red, diagnostic
+experiments, infrastructure failures or cancelled/inconclusive reviews.
 
-Initial implementation and first repairs belong to the backend/frontend writers.
-The reserve writer (team ID `opus`, default Sonnet 5.5 `xhigh`) stays idle until
-two unsuccessful repairs or a second rejection of the same defect, followed by
-the independent diagnosis below. Task size, complexity, subsystem boundaries,
-parallel capacity and an unavailable ordinary writer do not qualify on their own.
-An explicit user instruction to hand off to the reserve is also an escalation.
+Group changing symptoms by logical task and underlying invariant. A new finding
+ID, narrower reproduction, helper, writer, stage, session or restart does not
+reset the history. Import earlier implement/live/verify evidence before dispatch.
+Unrelated work items have separate histories; a stage's total review count is
+not the trigger for every task in it.
+If the grouping is uncertain, ask the diagnosis agent to resolve it; do not start
+another ordinary repair while deciding. A user-requested handoff can happen earlier.
 
-Before dispatch, save an `escalation` record in that task's team-progress.json
-entry: trigger and failed repair/review evidence or original user instruction,
-prior task/request IDs and repair counts, diagnosis result ID when required,
-previous owner's release of files and modifying commands, new bounded file/test
-grant and acceptance/check budget. Send the record's path with the assignment;
-persist its canonical request ID before waiting. The reserve must decline edits
-without this evidence.
-Infrastructure replacement below normally uses another ordinary writer; it must
-not bypass reserve eligibility. Keep the rescue within this task's approved scope.
+Keep in the task's team-progress.json entry: logical task/invariant, `review_rounds`
+(each round's candidate identity, result/request IDs, verdict and dispositions),
+`rejected_rounds`, `failed_repairs`, and an `escalation` record. Reconcile counts
+against durable AFM replies and reports, rather than trusting a stale number.
 
-Request a bounded diagnosis from an independent configured architect/reviewer
-for the affected domain. Use a more capable configured model where appropriate,
-without inventing profiles. Include the logical task, current diff/owned files,
-invariant, failing command/logs, attempted hypotheses, prior IDs and counters.
-Ask for root cause, a check distinguishing alternatives and the smallest corrective
-design. Read the committed result before another fix; a finished consultant is
-not an active participant. Resolve concrete findings with changes or evidence.
+## Required route: Astra diagnosis, Opus implementation
 
-If a different implementation owner is needed, first confirm the previous writer
-AND its modifying commands stopped. Record the new owner, explicit file/test
-grant, diagnosis, prior IDs and acceptance checks, then send the bounded fix.
-Neither the old owner nor coordinator touches those files during the handoff.
-A read-only architect cannot replace the implementation writer. An explicit user
-request to hand off takes effect immediately, without another self-fix attempt.
+The standing diagnosis agent is team ID `rescue-architect` (default GPT-6 Astra
+`xhigh`); the reserve writer is team ID `opus` (default Opus 5.5 `xhigh`). Resolve
+participant IDs and actual model/command bindings from the run's roster and frozen
+configuration. The historical IDs are not model identities. Use the configured
+bindings; report a missing role or incompatible access rather than silently
+substituting another writer. Both roles remain idle during ordinary work.
 
-After the specialist-guided correction, evaluate evidence and required gates.
-If the defect persists, or the design requires material scope changes, report
-the concrete blocker through the flow's dialog protocol rather than starting
-another rescue loop. A successful handoff does not waive independent review.
+At the threshold the route is mandatory, not an optional consultation followed
+by another fix from the original writer:
+
+1. Finish the selected review batch and preserve every full result. Confirm the
+   old writer AND its modifying commands have stopped; freeze the candidate.
+2. Record `escalation.trigger`, prior task/request IDs and counts, candidate and
+   evidence paths, previous owner's release, diagnosis assignee, canonical request
+   ID and finite budget. Send ONE bounded diagnosis request to `rescue-architect`,
+   using the afm-dev-diagnosis skill. This is a standing run agent: use `send`/`reply`
+   and save its full linked deliverable, not `helper-result` or a new helper.
+3. Give the diagnosis agent the original requirement, all repair/review history,
+   current diff, failing commands/logs, attempted hypotheses and scratch grant.
+   Require root cause, a distinguishing reproduction, the smallest corrective
+   design, evidence testing that design and required regression scenarios.
+   Separate product defects, missing regression guards and faulty test harnesses.
+   A green rerun alone does not refute a failure. The diagnosis may use scratch
+   prototypes; it does not edit the product or weaken approved acceptance.
+4. Read and accept the diagnosis, including counterevidence and limitations.
+   Store its request/reply IDs, artifact and acceptance in the same escalation
+   record. Acknowledgement or untested advice is not an accepted diagnosis. If
+   bounded experiments cannot distinguish the cause, report the concrete blocker.
+5. Transfer the bounded implementation to `opus`, NEVER back to the original
+   writer after this threshold. Record the new owner, file/test grant, diagnosis,
+   canonical request ID and acceptance/check budget before waiting. The writer
+   requires this record before editing. Other writers and the coordinator leave
+   the granted files untouched. Do not use a temporary read-only helper as writer.
+6. Obtain fresh independent review of the corrected candidate and regression
+   evidence, then the required checks and affected live acceptance. Astra's
+   diagnosis, the writer's reply and green unit tests are not final acceptance.
+   Preserve the logical task and counters throughout this rescue.
+
+An explicit user direction can override the route or assign implementation to
+Astra: record the original instruction, changed owner/access and grant. Anyone
+who edited product code cannot independently approve that candidate. Such an
+exception does not silently become the normal pipeline route.
+
+## Bound the rescue
+
+One escalation permits one diagnosis and one specialist-guided implementation
+with independent acceptance. If that correction is rejected or fails the same
+invariant in live acceptance, report the concrete blocker through the flow's
+dialog protocol. Do not restart Astra -> Opus, return to an ordinary writer or
+reset counters automatically. A user-authorized retry records the new input and
+bounded budget on the same work item; unchanged failure alone is not permission.
+Task size, subsystem boundaries and spare capacity do not activate these roles.
+Routine escalation within the approved scope needs no additional user approval.
 
 ## Unavailable participants or capabilities
 

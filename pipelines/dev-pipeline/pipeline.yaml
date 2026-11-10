@@ -1,6 +1,6 @@
 schema_version: 1
 name: dev-pipeline
-version: 1.3.3
+version: 1.4.0
 description: Project-aware development with planning, standing writers, independent review, live acceptance, documentation, commit and optional merge.
 entrypoint: flow.yaml
 license: MIT
@@ -30,7 +30,8 @@ setup:
   models:
     - {role: writer_backend, title: ЛинусБи, team_member: dev-backend, profile: dev-default-writer-backend, command: dev-default-writer-backend, client: claude, model: claude-sonnet-5-5, reasoning: medium}
     - {role: writer_frontend, title: ЛинусФи, team_member: dev-frontend, profile: dev-default-writer-frontend, command: dev-default-writer-frontend, client: claude, model: claude-sonnet-5-5, reasoning: medium}
-    - {role: writer_opus, title: ЛинусХ, previous_roles: [writer_astra], team_member: opus, previous_team_members: [astra], profile: dev-default-writer-opus, command: dev-default-writer-opus, client: claude, model: claude-sonnet-5-5, reasoning: xhigh}
+    - {role: writer_opus, title: Опусарх, previous_roles: [writer_astra], team_member: opus, previous_team_members: [astra], profile: dev-default-writer-opus, command: dev-default-writer-opus, client: claude, model: claude-opus-5-5, reasoning: xhigh}
+    - {role: escalation_architect, title: Астра, team_member: rescue-architect, profile_token: __PROFILE_ESCALATION_ARCHITECT__, profile: dev-escalation-architect, command: dev-escalation-architect, client: codex, model: gpt-6-astra, reasoning: xhigh}
     - {role: coordinator_plan, title: ОпуПлан, stage_ids: [plan], profile: dev-default-coordinator-plan, command: dev-default-coordinator-plan, client: claude, model: claude-opus-5-5, reasoning: xhigh}
     - {role: coordinator_work, title: ЛинусКор, stage_ids: [implement, live-run, commit, merge], profile: dev-default-coordinator-work, command: dev-default-coordinator-work, client: claude, model: claude-sonnet-5-5, reasoning: medium}
     - {role: coordinator_docs, title: Соня, stage_ids: [docs], profile: dev-default-coordinator-docs, command: dev-default-coordinator-docs, client: claude, model: claude-sonnet-5-5, reasoning: medium}
@@ -43,6 +44,7 @@ setup:
     - {name: afm-ui-acceptance, source: skills/afm-ui-acceptance, runtime_loading: conditional, offer_client_installation: true}
     - {name: afm-check-evidence, source: skills/afm-check-evidence, runtime_loading: flow_library, offer_client_installation: true}
     - {name: afm-dev-coordinator, source: skills/afm-dev-coordinator, runtime_loading: flow_library, offer_client_installation: true}
+    - {name: afm-dev-diagnosis, source: skills/afm-dev-diagnosis, runtime_loading: flow_library, offer_client_installation: true}
     - {name: afm-dev-writer, source: skills/afm-dev-writer, runtime_loading: flow_library, offer_client_installation: true}
     - {name: afm-review-work, source: skills/afm-review-work, runtime_loading: explicit_package_path, offer_client_installation: true}
     - {name: afm-delivery-report, source: skills/afm-delivery-report, runtime_loading: flow_library, offer_client_installation: true}

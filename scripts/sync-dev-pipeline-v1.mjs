@@ -24,8 +24,12 @@ export function sync(project) {
   const config=readConfig(configFile),global=readConfig(path.join(os.homedir(),'.afm/config.yaml'));
   if(config.errors.length || global.errors.length)throw new Error('Invalid AFM configuration');
   const defaults=YAML.parse(fs.readFileSync(path.join(packageRoot,'config.example.yaml'),'utf8'));
-  const consultationRoles=manifest.setup.models.filter(role=>role.reuse_existing);
-  const consultations=resolveRoles({...manifest,setup:{models:consultationRoles}},config,global,{},defaults);
+  const priorMember=role=>old.team.find(item=>item.id===role.team_member) ||
+    old.team.find(item=>role.previous_team_members?.includes(item.id));
+  // Older entry points have no diagnosis agent; existing team bindings still win.
+  const generatedRoles=manifest.setup.models.filter(role=>role.reuse_existing ||
+    (role.role==='escalation_architect' && !priorMember(role)));
+  const generated=resolveRoles({...manifest,setup:{models:generatedRoles}},config,global,{},defaults);
   const files=[];
   function visit(relative) {
     const absolute=path.join(packageRoot,relative);
@@ -49,10 +53,10 @@ export function sync(project) {
   flow.memory.path=path.join(project,'.memory');
   for(const member of flow.team) {
     const role=manifest.setup.models.find(item=>item.team_member===member.id);
-    const prior=old.team.find(item=>item.id===member.id) ||
-      old.team.find(item=>role?.previous_team_members?.includes(item.id));
-    if(!prior)throw new Error('Missing existing writer: '+member.id);
-    member.profile=prior.profile;
+    const prior=priorMember(role);
+    const profile=prior?.profile ?? generated.roles[role.role]?.profile;
+    if(!profile)throw new Error('Missing existing writer: '+member.id);
+    member.profile=profile;
   }
   for(const stage of flow.stages) {
     const prior=old.stages.find(item=>item.id===stage.id);
@@ -81,8 +85,11 @@ else
 fi
 `;
   let rendered=YAML.stringify(flow,{lineWidth:0});
-  for(const role of consultationRoles)
-    rendered=rendered.replaceAll(role.profile_token,consultations.roles[role.role].profile);
+  for(const role of manifest.setup.models.filter(role=>role.profile_token)) {
+    const profile=role.team_member ? flow.team.find(member=>member.id===role.team_member).profile :
+      generated.roles[role.role].profile;
+    rendered=rendered.replaceAll(role.profile_token,profile);
+  }
   rendered=rendered.replaceAll('__DEV_PIPELINE_SKILLS_DIR__',library)
     .replaceAll('--git-path dev-pipeline/','--git-path dev-pipeline-v1/');
   if(/__[_A-Z0-9]+__/.test(rendered))throw new Error('Unresolved flow binding');
@@ -100,13 +107,13 @@ fi
   fs.cpSync(path.join(packageRoot,'planning'),path.join(project,'pipelines/dev-pipeline-v1-planning'),{recursive:true});
   const before=config.toString();
   for(const [keys,values] of [
-    [['collaboration','profiles'],consultations.profiles],
-    [['docker','agents'],consultations.recipes],
-    [['command_names'],consultations.commandNames]
+    [['collaboration','profiles'],generated.profiles],
+    [['docker','agents'],generated.recipes],
+    [['command_names'],generated.commandNames]
   ]) for(const [name,value] of Object.entries(values)) {
     const location=[...keys,name],current=config.getIn(location,true)?.toJSON();
     if(current!==undefined && JSON.stringify(current)!==JSON.stringify(value))
-      throw new Error('Consultation configuration collision: '+location.join('.'));
+      throw new Error('Generated configuration collision: '+location.join('.'));
     if(current===undefined)config.setIn(location,value);
   }
   if(config.toString()!==before) {

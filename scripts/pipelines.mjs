@@ -145,6 +145,7 @@ export function resolveRoles(manifest, config, global, choices, defaults) {
     const modelName = recipe.model
       .replace(/^claude-opus-(\d+)-(\d+)$/,'Opus $1.$2')
       .replace(/^claude-sonnet-(\d+)-(\d+)$/,'Sonnet $1.$2')
+      .replace(/^gpt-(.+)-astra$/,'GPT-$1 Astra')
       .replace(/^gpt-(.+)-sol$/,'GPT-$1 Sol');
     const title = role.title ? [role.title,modelName,recipe.reasoning].filter(Boolean).join(' · ') :
       `${manifest.name} / ${role.role} / ${recipe.model}`;

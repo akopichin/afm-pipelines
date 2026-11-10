@@ -1,0 +1,6 @@
+{
+  "roles": {
+    "escalation_architect": {"client": "codex", "model": "gpt-6-astra", "reasoning": "xhigh"},
+    "writer_opus": {"client": "claude", "model": "claude-opus-5-5", "reasoning": "xhigh"}
+  }
+}

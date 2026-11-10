@@ -61,9 +61,9 @@ test('dev pipeline installs named core and fallback roles and preserves existing
   const options={skills:['claude','codex']};
   const plan=planInstall({project:f.project,name:'dev-pipeline',options});
   assert.deepEqual([plan.receipt.bindings.writer_opus.client,plan.receipt.bindings.writer_opus.model,
-    plan.receipt.bindings.writer_opus.reasoning],['claude','claude-sonnet-5-5','xhigh']);
+    plan.receipt.bindings.writer_opus.reasoning],['claude','claude-opus-5-5','xhigh']);
   assert.deepEqual(Object.keys(plan.receipt.bindings).sort(),[
-    'architect','coordinator_docs','coordinator_plan','coordinator_work','ux','verifier',
+    'architect','coordinator_docs','coordinator_plan','coordinator_work','escalation_architect','ux','verifier',
     'writer_backend','writer_frontend','writer_opus'
   ]);
   const planner=plan.receipt.bindings.coordinator_plan;
@@ -77,14 +77,22 @@ test('dev pipeline installs named core and fallback roles and preserves existing
   assert(flow.skills_dir.startsWith(path.join(f.project,'pipelines/dev-pipeline/skill-libraries/')));
   assert.equal(flow.memory.path,path.join(f.project,'.memory'));
   assert.equal(flow.team.find(member=>member.id==='opus').profile,bindings.writer_opus.profile);
-  assert.equal(flow.team.find(member=>member.id==='opus').title,'ЛинусХ');
+  assert.equal(flow.team.find(member=>member.id==='opus').title,'Опусарх');
+  const escalation=flow.team.find(member=>member.id==='rescue-architect');
+  assert.equal(escalation.profile,bindings.escalation_architect.profile);
+  assert.equal(escalation.title,'Астра');
+  assert.deepEqual(escalation.skills,['afm-check-evidence','afm-dev-diagnosis']);
   assert.equal(flow.team.find(member=>member.id==='dev-backend').title,'ЛинусБи');
   assert.equal(flow.team.find(member=>member.id==='dev-frontend').title,'ЛинусФи');
   assert.equal(flow.stages.find(stage=>stage.id==='plan').command,bindings.coordinator_plan.command);
   const recipes=YAML.parse(f.read('.afm/config.yaml')).docker.agents;
   const profiles=YAML.parse(f.read('.afm/config.yaml')).collaboration.profiles;
-  assert.equal(Object.keys(recipes).length,10);
-  assert.equal(Object.keys(profiles).length,10);
+  assert.equal(Object.keys(recipes).length,11);
+  assert.equal(Object.keys(profiles).length,11);
+  const escalationRecipe=recipes[bindings.escalation_architect.command];
+  assert.deepEqual([escalationRecipe.type,escalationRecipe.model,escalationRecipe.reasoning],
+    ['codex','gpt-6-astra','xhigh']);
+  assert.match(flow.stages.find(stage=>stage.id==='plan').prompt,new RegExp(bindings.escalation_architect.profile));
   assert.deepEqual(profiles.reviewer,helper);
   const plannerRecipe=recipes[bindings.coordinator_plan.command];
   assert.deepEqual([plannerRecipe.type,plannerRecipe.model,plannerRecipe.reasoning],['claude','claude-opus-5-5','xhigh']);
@@ -95,6 +103,7 @@ test('dev pipeline installs named core and fallback roles and preserves existing
     ['codex','gpt-6.1-sol','xhigh']);
   assert.equal(profiles[bindings.verifier.profile].command,bindings.verifier.command);
   const labels=YAML.parse(f.read('.afm/config.yaml')).command_names;
+  assert.equal(labels[bindings.escalation_architect.command],'Астра · GPT-6 Astra · xhigh');
   assert.equal(labels[bindings.writer_backend.command],'ЛинусБи · Sonnet 5.5 · medium');
   for(const role of ['writer_backend','writer_frontend','coordinator_work','coordinator_docs']) {
     const binding=bindings[role],recipe=recipes[binding.command];
@@ -104,15 +113,23 @@ test('dev pipeline installs named core and fallback roles and preserves existing
     assert.equal(profiles[binding.profile].title,labels[binding.command]);
   }
   assert.equal(labels[bindings.verifier.command],'Солянка · GPT-6.1 Sol · xhigh');
-  assert.equal(labels[bindings.writer_opus.command],'ЛинусХ · Sonnet 5.5 · xhigh');
+  assert.equal(labels[bindings.writer_opus.command],'Опусарх · Opus 5.5 · xhigh');
   const reserveRecipe=recipes[bindings.writer_opus.command];
   assert.deepEqual([reserveRecipe.type,reserveRecipe.model,reserveRecipe.reasoning],
-    ['claude','claude-sonnet-5-5','xhigh']);
+    ['claude','claude-opus-5-5','xhigh']);
   assert.match(profiles[bindings.writer_opus.profile].instructions,/after a recorded escalation/);
   const reserve=flow.team.find(member=>member.id==='opus');
   assert.match(reserve.instruction,/escalation-only reserve writer/);
   assert.match(reserve.instruction,/If this evidence is missing, ask the coordinator and do not edit/);
   assert(reserve.instruction.includes(flow.skills_dir+'/afm-ui-acceptance/SKILL.md'));
+  for(const stageId of ['implement','live-run']) {
+    const stage=flow.stages.find(stage=>stage.id===stageId);
+    assert.match(stage.prompt,/rescue-architect/);
+    const gate=stage.verify.steps.find(step=>step.command).prompt;
+    assert.match(gate,/two rejected/i);
+    assert.match(gate,/rescue-architect diagnosis/);
+    assert.match(gate,/opus implementation/);
+  }
   for(const role of ['architect','ux']) {
     const recipe=recipes[bindings[role].command];
     assert.deepEqual([recipe.type,recipe.model,recipe.reasoning],['claude','claude-opus-5-5','xhigh']);
@@ -123,7 +140,7 @@ test('dev pipeline installs named core and fallback roles and preserves existing
   assert.match(flow.stages.find(stage=>stage.id==='plan').verify.steps[1].prompt,/afm-review-work\/SKILL\.md/);
   assert(!f.read('pipelines/dev-pipeline/flow.yaml').includes('__PROFILE_'));
   assert(!f.read('pipelines/dev-pipeline/flow.yaml').includes('__DEV_PIPELINE_'));
-  for(const skill of ['afm-dev-planning','afm-ui-acceptance','afm-check-evidence','afm-dev-coordinator','afm-dev-writer','afm-review-work','afm-delivery-report']) {
+  for(const skill of ['afm-dev-planning','afm-ui-acceptance','afm-check-evidence','afm-dev-coordinator','afm-dev-diagnosis','afm-dev-writer','afm-review-work','afm-delivery-report']) {
     assert(fs.existsSync(path.join(flow.skills_dir,`${skill}/SKILL.md`)));
     assert(fs.existsSync(path.join(f.project,`.agents/skills/${skill}/SKILL.md`)));
     assert(fs.existsSync(path.join(f.project,`.claude/skills/${skill}/SKILL.md`)));
@@ -177,7 +194,7 @@ test('updates retire removed specialist choices and retain their profiles for ol
   const priorConfig=YAML.parse(f.read('.afm/config.yaml'));
   const update=planInstall({project:f.project,name:'dev-pipeline'});
   assert.equal(update.receipt.bindings.writer_opus.model,'saved-opus');
-  assert.equal(Object.keys(update.receipt.bindings).length,9);
+  assert.equal(Object.keys(update.receipt.bindings).length,10);
   assert(!Object.hasOwn(update.receipt.options.roles,'review_security'));
   apply(update);
   const config=YAML.parse(f.read('.afm/config.yaml'));
@@ -224,10 +241,15 @@ test('renamed writer migrates saved choices and accepts explicit Sonnet settings
   const writer=manifest.setup.models.find(role=>role.role==='writer_opus');
   writer.role='writer_astra';writer.team_member='astra';
   delete writer.previous_roles;delete writer.previous_team_members;
+  manifest.setup.models=manifest.setup.models.filter(role=>role.role!=='escalation_architect');
   fs.writeFileSync(manifestFile,YAML.stringify(manifest));
   const flowFile=path.join(root,'pipelines/dev-pipeline/flow.yaml');
   const oldFlow=YAML.parse(fs.readFileSync(flowFile,'utf8'));
   oldFlow.team.find(member=>member.id==='opus').id='astra';
+  oldFlow.team=oldFlow.team.filter(member=>member.id!=='rescue-architect');
+  // The pre-escalation package had no prompt binding for the new diagnosis role.
+  oldFlow.stages.find(stage=>stage.id==='plan').prompt=oldFlow.stages.find(stage=>stage.id==='plan').prompt
+    .replaceAll('__PROFILE_ESCALATION_ARCHITECT__','legacy-architect');
   fs.writeFileSync(flowFile,YAML.stringify(oldFlow));
   const original=planInstall({project:f.project,name:'dev-pipeline',root,
     options:{roles:{writer_astra:{client:'codex',model:'saved-writer',reasoning:'high'}}}});
@@ -235,11 +257,14 @@ test('renamed writer migrates saved choices and accepts explicit Sonnet settings
   const update=planInstall({project:f.project,name:'dev-pipeline'});
   assert.equal(update.receipt.bindings.writer_opus.model,'saved-writer');
   assert.equal(update.receipt.bindings.writer_opus.client,'codex');
+  assert.deepEqual([update.receipt.bindings.escalation_architect.client,update.receipt.bindings.escalation_architect.model,
+    update.receipt.bindings.escalation_architect.reasoning],['codex','gpt-6-astra','xhigh']);
   assert(!Object.hasOwn(update.receipt.options.roles,'writer_astra'));
   apply(update);
   const flow=YAML.parse(f.read('pipelines/dev-pipeline/flow.yaml'));
   assert(flow.team.some(member=>member.id==='opus'));
   assert(!flow.team.some(member=>member.id==='astra'));
+  assert.equal(flow.team.find(member=>member.id==='rescue-architect').profile,update.receipt.bindings.escalation_architect.profile);
   const changed=planInstall({project:f.project,name:'dev-pipeline',options:{roles:{writer_opus:{
     client:'claude',model:'claude-sonnet-5-5',reasoning:'xhigh'}}}});
   apply(changed);
@@ -283,6 +308,41 @@ test('Sonnet update options replace saved Opus and high settings while retaining
   assert.equal(repeat.writes.length,0);assert.equal(repeat.patches.length,0);
 });
 
+test('Astra and Opus update options preserve saved choices until explicitly selected and retain prior run inputs',t=>{
+  const f=fixture(t);
+  const original=planInstall({project:f.project,name:'dev-pipeline',options:{roles:{
+    writer_opus:{client:'claude',model:'claude-sonnet-5-5',reasoning:'xhigh'},
+    escalation_architect:{client:'codex',model:'saved-diagnostician',reasoning:'high'},
+    coordinator_plan:{model:'saved-planner'}
+  }}});
+  apply(original);
+  const oldFlow=YAML.parse(f.read('pipelines/dev-pipeline/flow.yaml'));
+  const oldSkill=path.join(oldFlow.skills_dir,'afm-dev-diagnosis/SKILL.md');
+  const oldBytes=fs.readFileSync(oldSkill,'utf8');
+  const priorConfig=YAML.parse(f.read('.afm/config.yaml'));
+  const saved=planInstall({project:f.project,name:'dev-pipeline'});
+  assert.equal(saved.receipt.bindings.writer_opus.model,'claude-sonnet-5-5');
+  assert.equal(saved.receipt.bindings.escalation_architect.model,'saved-diagnostician');
+  const options=JSON.parse(fs.readFileSync(path.join(catalog,
+    'pipelines/dev-pipeline/examples/astra-opus-escalation.options.json'),'utf8'));
+  const update=planInstall({project:f.project,name:'dev-pipeline',options});
+  assert.equal(update.receipt.bindings.coordinator_plan.model,'saved-planner');
+  apply(update);
+  const config=YAML.parse(f.read('.afm/config.yaml'));
+  for(const [role,client,model] of [['writer_opus','claude','claude-opus-5-5'],
+    ['escalation_architect','codex','gpt-6-astra']]) {
+    const binding=update.receipt.bindings[role],recipe=config.docker.agents[binding.command];
+    assert.deepEqual([recipe.type,recipe.model,recipe.reasoning],[client,model,'xhigh']);
+    const prior=original.receipt.bindings[role];
+    assert.deepEqual(config.docker.agents[prior.command],priorConfig.docker.agents[prior.command]);
+    assert.deepEqual(config.collaboration.profiles[prior.profile],priorConfig.collaboration.profiles[prior.profile]);
+  }
+  assert.equal(fs.readFileSync(oldSkill,'utf8'),oldBytes);
+  assert.equal(verify(f.project,'dev-pipeline').status,'validated');
+  const repeat=planInstall({project:f.project,name:'dev-pipeline'});
+  assert.equal(repeat.writes.length,0);assert.equal(repeat.patches.length,0);
+});
+
 test('dev pipeline updates preserve libraries referenced by both old and new runs',t=>{
   const f=fixture(t), root=path.join(f.root,'catalog');
   fs.cpSync(path.join(catalog,'pipelines/dev-pipeline'),path.join(root,'pipelines/dev-pipeline'),{recursive:true});
@@ -319,7 +379,7 @@ test('legacy synchronization preserves role choices and older libraries and is r
   const before=YAML.parse(f.read('pipelines/dev-pipeline/flow.yaml'));
   const bindings=JSON.parse(f.read('pipelines/dev-pipeline/bindings.json')).roles;
   const config=YAML.parse(f.read('.afm/config.yaml'));
-  for(const role of ['architect','ux']) {
+  for(const role of ['architect','ux','escalation_architect']) {
     delete config.collaboration.profiles[bindings[role].profile];
     delete config.docker.agents[bindings[role].command];
     delete config.command_names[bindings[role].command];
@@ -327,6 +387,7 @@ test('legacy synchronization preserves role choices and older libraries and is r
   f.write('.afm/config.yaml',YAML.stringify(config));
   const legacy=structuredClone(before);
   legacy.team.find(member=>member.id==='opus').id='astra';
+  legacy.team=legacy.team.filter(member=>member.id!=='rescue-architect');
   f.write('pipelines/dev-pipeline-v1.yaml',YAML.stringify(legacy));
   f.write('pipelines/skills/old/SKILL.md','Existing active instructions');
   const first=sync(f.project), text=f.read('pipelines/dev-pipeline-v1.yaml');
@@ -338,7 +399,7 @@ test('legacy synchronization preserves role choices and older libraries and is r
   assert.deepEqual(flow.stages.map(s=>s.command),before.stages.map(s=>s.command));
   assert.deepEqual(flow.stages.map(s=>s.buttons),before.stages.map(s=>s.buttons));
   const restored=YAML.parse(f.read('.afm/config.yaml'));
-  for(const role of ['architect','ux'])assert(restored.collaboration.profiles[bindings[role].profile]);
+  for(const role of ['architect','ux','escalation_architect'])assert(restored.collaboration.profiles[bindings[role].profile]);
   assert.equal(f.read('pipelines/skills/old/SKILL.md'),'Existing active instructions');
   assert(fs.existsSync(path.join(first.skills_dir,'afm-ui-acceptance/SKILL.md')));
   assert(flow.stages.find(s=>s.id==='implement').verify.steps[0].run.includes('--git-path dev-pipeline-v1/'));

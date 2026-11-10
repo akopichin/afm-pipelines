@@ -27,8 +27,9 @@ a reproducible published revision.
 ## Select models, settings and skills
 
 Read the selected `pipelines/<name>/pipeline.yaml` and its README. Each package
-has its own roles and recommended models. Dev-pipeline binds writers, stage
-coordinators, AI verify and two consultation roles. Consultations reuse matching
+has its own roles and recommended models. Dev-pipeline binds writers, a standing
+repeated-failure diagnostician, stage coordinators, AI verify and two consultation
+roles. Consultations reuse matching
 AFM profile settings or fall back to package defaults. Refactor binds two team
 architects. Create an options JSON file, for example:
 

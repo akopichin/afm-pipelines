@@ -39,6 +39,12 @@ the execution contract still declares ignored inputs and acceptance scope.
 Required fields: `base_branch`, `environment_id`, `input_paths`, `checks`, `live`,
 `acceptance` and `review`. Review selection, role mappings, escalation profiles
 and budgets retain their existing flow-defined format.
+`review.escalation_profiles.repeated_failure` names the installed profile of the
+standing `rescue-architect` diagnosis agent. After two rejected candidate rounds
+or failed repairs for one logical task, the coordinator must obtain its accepted
+diagnosis and hand implementation to `opus` before another correction/review round.
+The task ledger preserves round/candidate identities, full diagnosis reply,
+ownership release and independent rescue acceptance across stages and resumes.
 
 - `environment_id` identifies the actual toolchain/dependency environment. A
   receipt may be reused only after confirming the environment is unchanged.

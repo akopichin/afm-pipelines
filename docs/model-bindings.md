@@ -14,6 +14,10 @@ specialist profile name in a prompt. `profile`, `command`, `client`, `model` and
 `reasoning` describe recommended defaults from `config.example.yaml`.
 Optional `previous_roles` migrates saved choices when a role is renamed;
 `previous_team_members` lets legacy flow synchronization find renamed writers.
+Dev-pipeline's `escalation_architect` / `rescue-architect` role is separate from
+its historical `writer_astra` / `astra` aliases, which still migrate to
+`writer_opus` / `opus`. Legacy synchronization adds the new diagnosis role using
+package defaults when absent, while retaining every existing team's profile.
 An optional `title` supplies a short personal name; generated profile titles and
 `command_names` labels add the selected model and reasoning. `reuse_existing`
 matches a consultation role against configured profile IDs/titles, preferring

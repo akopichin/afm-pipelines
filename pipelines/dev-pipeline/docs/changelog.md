@@ -4,6 +4,15 @@
 
 ### Improvement:
 
+- Add a standing Astra `xhigh` diagnosis agent and restore Opus 5.5 `xhigh` as
+  the reserve implementation writer. After two rejected candidate rounds for one
+  logical task, require Astra diagnosis and an ownership handoff to Opus before
+  the third correction/review round, including verify and live-run repairs.
+- Count complete candidate batches across stages/resumes, validate minimal fixes
+  in scratch, and require independent acceptance after one bounded rescue. Preserve
+  explicit user handoffs and report unresolved rescues instead of restarting them.
+- Add explicit Astra/Opus update options, preserve saved model choices and old-run
+  profiles/skills, and add the new diagnosis agent when synchronizing legacy flows.
 - Use ordinary written planning by default without offering visual grooming or
   asking a planning-mode question. Hide the Read grooming feedback button from
   the standard flow while preserving the workshop and its manual feedback action.

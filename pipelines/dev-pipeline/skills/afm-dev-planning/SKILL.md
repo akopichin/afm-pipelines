@@ -19,7 +19,8 @@ file grant per task. Specify observable acceptance, focused tests and the full
 project checks, including who runs each check. Define a real product scenario
 with setup, expected observations, evidence and cleanup.
 Assign initial sections to backend/frontend writers. Leave the reserve writer
-(team ID `opus`) idle for a later recorded escalation, even for complex work or
+(team ID `opus`) and diagnosis agent (`rescue-architect`) idle for the mandatory
+escalation before a third correction/review round, even for complex work or
 changes spanning subsystems. Read-only architecture consultation does not grant
 the reserve an implementation task.
 
