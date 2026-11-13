@@ -3,10 +3,19 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "engines": {"node": ">=22"},
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "test": "node --test tests/*.test.mjs pipelines/dev-pipeline/tests/planning.test.mjs",
+    "test": "node --test tests/*.test.mjs pipelines/dev-pipeline/tests/planning.test.mjs pipelines/dev-pipeline/tests/c4.test.mjs",
+    "build:c4": "node scripts/build-dev-c4.mjs",
     "test:planning-browser": "node pipelines/dev-pipeline/tests/browser.test.mjs"
   },
-  "dependencies": {"yaml": "2.8.1"}
+  "dependencies": {
+    "yaml": "2.8.1"
+  },
+  "devDependencies": {
+    "@resvg/resvg-wasm": "2.6.2",
+    "elkjs": "0.12.0"
+  }
 }

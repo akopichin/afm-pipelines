@@ -32,8 +32,14 @@ and material tradeoffs. Distinguish observed code from proposed design and check
 from completed verification. Explain categories with no applicable changes.
 
 Discuss the written plan through the ordinary AFM dialog and obtain its single
-plan approval. No mode choice, workshop, visual artifacts, browser feedback or
-readiness is required by default. Keep the same discovery and acceptance work.
+plan approval. Before approval follow bootstrap/planning/C4.md: create grounded
+architecture images from the finished plan and include their exact presentation
+in that question. Default to one primary After image and a Before/After link table.
+Use C2 for container boundaries, C3 for components and C4 only for meaningful code
+detail; keep views focused and explain inapplicable levels. A non-architectural
+change may record an honest skip_reason. Bind the real question to the generated
+images and retain older revisions. No mode choice, workshop, browser feedback or
+readiness click is required. Keep the same discovery and acceptance work.
 
 Only when explicitly requested by the user or resuming an existing visual session,
 use the frozen bootstrap/planning/README.md for the preserved workshop protocol.

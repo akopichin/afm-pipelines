@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-11-13
+
+### Improvement:
+
+- Show a source-grounded C4 After image in the ordinary plan approval question,
+  with compact Before/After links for C2/C3/C4 views. Keep shared positions and
+  clear labels/colors for existing, changed, added and removed elements.
+- Bundle an offline Node.js renderer, layout engine and Cyrillic fonts; freeze
+  them into each run. Bind source, plan, model, PNGs and the actual approval
+  question while retaining earlier image revisions. Non-architectural changes
+  can explain why no diagram is useful. No AFM code change or extra approval.
+
 ## 2026-11-10
 
 ### Improvement:

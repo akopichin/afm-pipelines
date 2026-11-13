@@ -160,6 +160,8 @@ test('dev pipeline installs named core and fallback roles and preserves existing
   assert(fs.existsSync(path.join(stage,'planning/.snapshot.json')));
   assert(fs.existsSync(path.join(stage,'planning/workbench.mjs')));
   assert(fs.existsSync(path.join(stage,'planning/template.html')));
+  assert(fs.existsSync(path.join(stage,'planning/c4.mjs')));
+  assert(fs.existsSync(path.join(stage,'planning/vendor/c4/resvg.wasm')));
   assert(fs.existsSync(path.join(flow.skills_dir,'afm-ui-acceptance/SKILL.md')));
   assert.equal(planInstall({project:f.project,name:'dev-pipeline'}).writes.length,0);
   apply(planRemove({project:f.project,name:'dev-pipeline'}));

@@ -21,7 +21,7 @@ pipelines/
     flow.yaml              AFM entry point
     config.example.yaml    Default roles and Docker recipes
     scripts/               Evidence and live-app helper
-    planning/              Architecture workshop, discussion and approval binding
+    planning/              C4 approval images, optional workshop and approval binding
     skills/                Planning, coordination, writer and review rules
     docs/                  Project contract
     tests/                 Helper regression checks (catalog only)
@@ -97,8 +97,11 @@ Keep packages self-contained. Do not depend on another checkout, personal skill
 directories, stored credentials, or sample data copied from a real private run.
 Document behavior in English and ship the licenses for bundled dependencies.
 The refactor package's build command regenerates its checked-in graphics bundle.
-Dev-pipeline's planning page uses bundled HTML/CSS/JavaScript with no runtime npm
-dependencies. Its browser check uses Node.js 22+ and Chrome (`CHROME_PATH` on
+Dev-pipeline's optional planning page uses bundled HTML/CSS/JavaScript. Its ordinary
+C4 approval images use a bundled layout engine, WebAssembly renderer and fonts,
+without runtime npm installation or a browser. Rebuild the npm bundles with
+`npm run build:c4`; third-party provenance/licenses are in `planning/vendor/c4/`.
+Its browser check uses Node.js 22+ and Chrome (`CHROME_PATH` on
 non-macOS hosts). See its [changelog](pipelines/dev-pipeline/docs/changelog.md).
 
 ## License

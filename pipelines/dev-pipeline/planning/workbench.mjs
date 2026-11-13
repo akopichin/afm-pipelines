@@ -8,7 +8,9 @@ import {fileURLToPath} from 'node:url';
 import M from './model.cjs';
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
-const runtimeFiles = ['workbench.mjs', 'model.cjs', 'template.html', 'view.js', 'style.css', 'example.json', 'README.md'];
+const runtimeFiles = ['workbench.mjs', 'model.cjs', 'template.html', 'view.js', 'style.css', 'example.json', 'README.md',
+  'c4.mjs', 'c4-example.json', 'C4.md', ...['elk.cjs','elk-LICENSE.txt','resvg.mjs','resvg.wasm','resvg-LICENSE.txt',
+    'NotoSans-Regular.ttf','NotoSans-Bold.ttf','NotoSans-LICENSE.txt','README.md'].map(file => 'vendor/c4/' + file)];
 const digest = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 const fileHash = file => digest(fs.readFileSync(file));
 const read = file => JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -38,6 +40,7 @@ export function freeze(bootstrap, source = directory) {
     const files = {};
     for (const file of runtimeFiles) {
       requireValue(fs.lstatSync(path.join(source, file)).isFile(), 'Planning toolkit contains a non-regular file');
+      fs.mkdirSync(path.dirname(path.join(temporary,file)),{recursive:true});
       fs.copyFileSync(path.join(source, file), path.join(temporary, file));
       files[file] = fileHash(path.join(temporary, file));
     }

@@ -161,6 +161,9 @@ stages:
     artifacts:
       - {name: plan, path: ./dev-plan.md, inline: false}
       - {name: project, path: ./project.json, inline: false}
+      - {name: architecture, path: ./c4.json, inline: false}
+      - {name: architecture-evidence, path: ./c4-manifest.json, inline: false}
+      - {name: architecture-presentation, path: ./c4-approval.md, inline: false}
       - {name: grooming-choice, path: ./grooming-choice.json, inline: false}
       - {name: grooming, path: ./grooming.json, inline: false}
       - {name: grooming-report, path: ./report.html, inline: false}
@@ -308,6 +311,24 @@ stages:
       or non-executable change can justify live.required false. A missing browser
       for a required UI scenario is a blocker, not grounds to disable that scenario.
 
+      Before approval, read bootstrap/planning/C4.md. Describe the affected
+      architecture in c4.json using real source references and task IDs from the
+      finished plan. Use focused C3 component views, C2 for container/system
+      boundaries, and C4 code views only when they clarify the changed component.
+      Produce separate Before/After images with shared positions. Explain an
+      inapplicable requested level in the plan; non-architectural changes may use
+      an explicit skip_reason instead of inventing a diagram.
+      Run the frozen c4.mjs render with --session "$AFM_STAGE_DIR" and --root set
+      to the effective project's Git root. Use the default compact presentation:
+      one primary After image inline, plus Before/After links for the other levels.
+      Do not emit HTML details blocks; AFM currently escapes them. Include the
+      exact c4-approval.md contents in the existing plan approval question. Keep
+      generated image links out of dev-plan.md to avoid a circular plan hash.
+      Once AFM creates the actual question file, run c4.mjs bind-question with
+      --session and --question before waiting for the human. Never fabricate the
+      question file. A changed plan/model requires new images and a new bound
+      question; preserve the old image artifacts. No extra approval is introduced.
+
       Validate the contract with the helper before approval. Present the full plan,
       commands, review budget and material tradeoffs in ONE plan approval dialog.
       Record its question/answer paths in approval.md. Material changes after
@@ -320,6 +341,7 @@ stages:
             set -eu
             python3 "$(git rev-parse --git-path dev-pipeline/helper.py)" identity
             node "$(dirname "$AFM_STAGE_DIR")/bootstrap/planning/workbench.mjs" verify-plan --session "$AFM_STAGE_DIR"
+            node "$(dirname "$AFM_STAGE_DIR")/bootstrap/planning/c4.mjs" verify --session "$AFM_STAGE_DIR"
           timeout: 2m
         - command: dev-default-verifier
           timeout: 15m
@@ -349,8 +371,16 @@ stages:
             or blanket stress/mutation passes. A summary reply alone is not a result;
             unselected roles need no ceremonial requests. Approval must cover the
             task and material design; report missing evidence truthfully.
+            Inspect c4.json, c4-manifest.json and the actual bound approval
+            question/answer. Check that the C4 views describe the real affected
+            scope at the named abstraction level, reference actual source and
+            implementation task IDs, and include the exact generated presentation
+            in the question approved by the human. Before/After must reflect the
+            plan, not a synthetic example. A skip_reason is valid only when no
+            architecture view would help explain the change. Question binding is
+            evidence of presentation, not human approval by itself.
             Ordinary planning is the default: inspect the written plan and
-            approval.md without requiring a grooming choice, visual artifacts,
+            approval.md without requiring a grooming choice, workshop artifacts,
             browser feedback or readiness. If grooming-choice.json exists,
             validate its actual AFM question/answer evidence and respect the choice.
             For a requested/resumed workshop or existing visual artifacts, inspect

@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "revision": 1,
+  "title": "Синтетический пример: повторная отправка заказа",
+  "primary_view": "order-components",
+  "views": [
+    {
+      "id": "order-components",
+      "level": 3,
+      "title": "Один заказ при повторном запросе",
+      "scope": "Контейнер: сервис заказов · Node.js",
+      "what": "Добавляем проверку ключа запроса перед созданием заказа.",
+      "why": "Повторный клик или сетевой повтор не должен создавать второй заказ.",
+      "nodes": [
+        {
+          "id": "handler",
+          "before": {"name":"HTTP-обработчик", "type":"component", "technology":"TypeScript", "description":"Принимает запрос создания заказа"},
+          "after": {"name":"HTTP-обработчик", "type":"component", "technology":"TypeScript", "description":"Передаёт ключ повторного запроса"},
+          "source_refs": ["src/orders.ts:10"], "task_ids": ["T1"]
+        },
+        {
+          "id": "service",
+          "before": {"name":"Сервис заказов", "type":"component", "technology":"TypeScript", "description":"Создаёт заказ для каждого запроса"},
+          "after": {"name":"Сервис заказов", "type":"component", "technology":"TypeScript", "description":"Возвращает прежний заказ при повторе"},
+          "source_refs": ["src/orders.ts:30"], "task_ids": ["T2"]
+        },
+        {
+          "id": "repository",
+          "before": {"name":"Репозиторий заказов", "type":"component", "technology":"SQL", "description":"Сохраняет заказ в транзакции"},
+          "after": {"name":"Репозиторий заказов", "type":"component", "technology":"SQL", "description":"Сохраняет заказ в транзакции"},
+          "source_refs": ["src/orders.ts:70"]
+        },
+        {
+          "id": "keys",
+          "after": {"name":"Реестр ключей", "type":"component", "technology":"TypeScript + SQL", "description":"Связывает ключ запроса с заказом"},
+          "task_ids": ["T2"]
+        }
+      ],
+      "relations": [
+        {"id":"request", "from":"handler", "to":"service", "before":{"label":"Создать заказ", "technology":"Вызов функции"}, "after":{"label":"Создать или вернуть заказ", "technology":"Вызов функции + ключ"}},
+        {"id":"save", "from":"service", "to":"repository", "before":{"label":"Сохраняет заказ", "technology":"Вызов функции"}, "after":{"label":"Сохраняет новый заказ", "technology":"Вызов функции"}},
+        {"id":"reserve", "from":"service", "to":"keys", "after":{"label":"Резервирует ключ", "technology":"Транзакция SQL"}}
+      ]
+    },
+    {
+      "id": "order-code",
+      "level": 4,
+      "title": "Изменение функции createOrder",
+      "scope": "Компонент: сервис заказов",
+      "what": "createOrder получает ключ; новая reserveKey защищает конкурентные повторы.",
+      "why": "Проверки только в HTTP-обработчике недостаточно для двух одновременных запросов.",
+      "nodes": [
+        {"id":"create", "before":{"name":"createOrder(input)", "type":"code", "technology":"TypeScript · функция", "description":"Безусловно создаёт новый заказ"}, "after":{"name":"createOrder(input, key)", "type":"code", "technology":"TypeScript · функция", "description":"Создаёт заказ только для нового ключа"}, "source_refs":["src/orders.ts:30"], "task_ids":["T2"]},
+        {"id":"insert", "before":{"name":"insertOrder(tx, input)", "type":"code", "technology":"TypeScript · функция", "description":"Записывает заказ в переданной транзакции"}, "after":{"name":"insertOrder(tx, input)", "type":"code", "technology":"TypeScript · функция", "description":"Записывает заказ в переданной транзакции"}, "source_refs":["src/orders.ts:70"]},
+        {"id":"reserve", "after":{"name":"reserveKey(tx, key)", "type":"code", "technology":"TypeScript · функция", "description":"Атомарно резервирует уникальный ключ"}, "task_ids":["T2"]}
+      ],
+      "relations": [
+        {"id":"insert-call", "from":"create", "to":"insert", "before":{"label":"Записывает заказ", "technology":"Вызов функции"}, "after":{"label":"Записывает для нового ключа", "technology":"Вызов функции"}},
+        {"id":"reserve-call", "from":"create", "to":"reserve", "after":{"label":"Проверяет уникальность", "technology":"Вызов функции"}}
+      ]
+    }
+  ]
+}

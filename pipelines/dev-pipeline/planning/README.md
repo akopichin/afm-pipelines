@@ -9,8 +9,10 @@ Never simulate human comments, readiness clicks or approval selections.
 
 Discuss `dev-plan.md` and `project.json` in the ordinary AFM dialog, then obtain
 the existing single plan approval in `approval.md`. Do not offer visual grooming
-or ask a planning-mode question. No mode receipt, browser, visual artifacts, page
+or ask a planning-mode question. No mode receipt, browser, workshop artifacts, page
 readiness or visual approval seal is needed for ordinary planning.
+Ordinary approval uses the separate [C4 image protocol](C4.md) for source-grounded
+architecture snapshots. Those images do not start this workshop or its gates.
 
 Open this workshop only on an explicit user request or when resuming an existing
 visual session. A new explicit request needs no additional mode question; follow

@@ -5,9 +5,24 @@ path. New plans use `schema_version: 2`. Frozen helpers for existing runs retain
 their old contract; the new helper also reads version 1 without the new gates.
 Keep requirements and decisions in the plan and reference shared skill protocols.
 
-## Visual planning artifacts
+## Architecture images for approval
 
-Ordinary planning does not require visual artifacts or a planning-mode question.
+Ordinary planning generates `c4.json`, `c4-manifest.json`, `c4-approval.md` and
+revisioned PNGs under `artifacts/`. Focused Before/After views use real source
+references and plan task IDs. The primary After view is inline in the existing
+approval question; a compact table links all Before/After images. C2 describes
+containers, C3 components and C4 meaningful code detail. An explicit `skip_reason`
+is permitted when no architecture view would help explain the change.
+
+The frozen [C4 helper](../planning/C4.md) binds the source, plan/project bytes,
+model, image hashes and actual AFM question. It does not approve implementation;
+`approval.md` and the independent plan review still check the real human answer.
+Keep generated links separate from the hashed `dev-plan.md`. A changed proposal
+needs fresh images and question binding, preserving the earlier artifacts.
+
+## Optional grooming artifacts
+
+Ordinary planning does not require workshop artifacts or a planning-mode question.
 The workshop is available only on explicit user request or when resuming an
 existing visual session; do not offer it during ordinary planning. Saved mode
 choices retain their original dialog evidence. Existing workshop artifacts always

@@ -165,7 +165,22 @@ still follows the target project's Git and review rules.
 Planning uses the ordinary written plan, AFM discussion and single plan approval
 by default. The agent does not offer visual grooming or ask a planning-mode
 question, and the plan stage has no **Read grooming feedback** button. Ordinary
-planning requires no mode receipt, visual artifacts, browser feedback or readiness.
+planning requires no grooming mode receipt, workshop feedback or readiness.
+
+Before the single approval, the planner generates focused C4 architecture images
+from the actual source and implementation plan. The default presentation embeds
+one primary **After** image in the question and a compact **Before / After** link
+table for the remaining views. C2 covers containers, C3 covers components and C4
+is used only for meaningful code detail. Each image opens at full resolution.
+The current AFM question renderer does not support HTML disclosure blocks, so the
+pipeline uses ordinary Markdown images and links without changing AFM itself.
+
+The bundled renderer runs offline with Node.js, including its layout engine,
+WebAssembly rasterizer and Cyrillic fonts; it needs no browser, target npm install
+or image-generation API. Before/After views share node positions and mark changes
+with both colors and words. Source, plan, model, PNGs and the real approval question
+are bound together; revisions retain earlier images. Non-architectural work can
+record an explicit reason to omit diagrams. See [the C4 protocol](planning/C4.md).
 
 The architecture workshop remains available on explicit user request, with its
 feedback action documented in the [workshop protocol](planning/README.md). Existing
@@ -207,6 +222,8 @@ hash, environment identity, command result and log path. See
 [project contract](docs/project-contract.md) for the fields and gates.
 
 The complete planning toolkit is frozen at `bootstrap/planning/`. The plan stage
+keeps `c4.json`, `c4-manifest.json`, `c4-approval.md` and revisioned PNGs under
+`artifacts/`. The optional grooming workshop
 preserves any existing `grooming-choice.json` and, when enabled, keeps `grooming.json`,
 `grooming-checkpoint.json`, `grooming-approval.json` and the portable `report.html`.
 Updates preserve existing toolkit snapshots. Only the
