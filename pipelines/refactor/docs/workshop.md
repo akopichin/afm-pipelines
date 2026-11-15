@@ -6,10 +6,9 @@ architecture map, a live browser discussion, and an explicitly approved plan.
 
 ## Run
 
-Keep the complete package at `pipelines/refactor/` in the target Git repository. The flow enables an isolated worktree and analyzes
-that worktree. Uncommitted changes in the main checkout are not automatically
-part of the analyzed source. Independent stages are not globally serialized;
-the current sequence is defined by `depends_on`.
+Run with `afm run --pipeline <source> --worktree architecture` on AFM 3.1.4+.
+The package snapshot lives outside the project. The flow analyzes the effective
+worktree; uncommitted changes in the main checkout are not copied automatically.
 Use Node.js 18+. The scope hook reuses an available Strictacode executable. If
 it is missing inside a container, `setup-strictacode.sh` installs version 0.0.12
 into `<run-dir>/scope/tools/strictacode/` using Python's venv and uv (or pip).
@@ -22,23 +21,16 @@ branch. The flow reads `skills/strictacode/SKILL.md` from its frozen package; no
 The coordinator and workshop inherit that client; use a browser-capable Claude
 or Codex adapter. Analysis additionally requires two configured team profiles.
 
-Merge `pipelines/refactor/config.example.yaml` into the project's
-`.afm/config.yaml`, preserving existing settings. It defines isolated commands
-and architect profiles for **Claude Opus 5.5** (`claude-opus-5-5`) and
-**GPT-6.1 Sol** (`gpt-6.1-sol`), both with `xhigh` reasoning. These are recommendations; the installer can override them and records both roles
-in `bindings.json`. Other flows' model
-defaults are unchanged. These recipes use Docker with `autoShim: true` and the
-existing provider authentication. The Claude recipe explicitly forwards
-`CLAUDE_CODE_OAUTH_TOKEN` using `auth.from` and `auth.to` environment references;
-no token value belongs in YAML. Codex uses its mounted authentication state.
-On a native host, configure available commands
-and profiles with equivalent model and file-writing capabilities instead; the
-Docker wrapper names alone are not host executables.
+The package supplies namespaced architect recipes in `agents.yaml`. Override
+complete recipes or profiles with `--pipeline-options`. Configure Docker
+autoShim, collaboration, browser access and provider authentication in AFM.
+The per-run bindings record durable executor identities, not default model names.
+See [role settings](../../../docs/model-bindings.md).
 
 Enable the [managed browser](https://github.com/akopichin/afm/blob/main/docs/browser.md), then run:
 
 ```bash
-AFM_COLLABORATION=1 AFM_BROWSER=1 afm run pipelines/refactor/flow.yaml --idle-timeout 24h
+AFM_COLLABORATION=1 AFM_BROWSER=1 afm run --pipeline github.com/akopichin/afm-pipelines//pipelines/refactor@v2.0.0 --idle-timeout 24h
 ```
 
 The scope hook freezes a per-run toolkit copy. It can find the toolkit in the
@@ -108,7 +100,7 @@ To use this new analysis workflow, start a fresh run, for example with a new
 worktree name, keeping the old artifacts intact:
 
 ```bash
-AFM_COLLABORATION=1 AFM_BROWSER=1 afm run pipelines/refactor/flow.yaml \
+AFM_COLLABORATION=1 AFM_BROWSER=1 afm run --pipeline github.com/akopichin/afm-pipelines//pipelines/refactor@v2.0.0 \
   --worktree refactor-dual --port 3435 --idle-timeout 24h
 ```
 
@@ -352,7 +344,7 @@ Save the latest checkpoint and stop the running flow with Ctrl+C. Restart with t
 same flow and worktree name, **without** `--worktree-clear`:
 
 ```bash
-AFM_BROWSER=1 afm run pipelines/refactor/flow.yaml --worktree refactor --port 3434 --idle-timeout 24h
+AFM_BROWSER=1 afm run --pipeline github.com/akopichin/afm-pipelines//pipelines/refactor@v2.0.0 --worktree refactor --port 3434 --idle-timeout 24h
 ```
 
 AFM resumes the latest unfinished run; completed scope and analyze stages are

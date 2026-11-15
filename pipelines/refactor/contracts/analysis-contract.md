@@ -8,11 +8,11 @@ may belong to a team task: use the supplied ANALYZE_DIR for these deliverables.
 Use the human's language. Do not access the managed browser during analysis.
 
 Read ../bindings.json in this frozen toolkit. The independent reviewers are
-`architect_a` and `architect_b`; their clients, models and reasoning settings are
-configured per installation. Use your assigned role ID and its exact requested
-model in reports and approvals. The coordinator manages messages and artifacts;
-it does not replace either architect's analysis or signoff. A reported model is
-not proof of execution identity; the coordinator also checks AFM participants.
+`architect_a` and `architect_b`. Use your assigned role ID and its exact durable
+`executor` identity in reports and approvals. The bindings record the resolved
+command, profile and task ID after package/options layering. The coordinator manages messages and artifacts;
+it does not replace either architect's analysis or signoff. A reported executor digest is
+not provider attestation; the coordinator also checks AFM participants.
 
 ## Independent pass
 
@@ -27,9 +27,9 @@ Write only your assigned `<ANALYZE_DIR>/<reviewer>-findings.json`:
 
 ```json
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "reviewer": "architect_a",
-  "model": "COPY YOUR MODEL FROM bindings.json",
+  "executor": "COPY YOUR EXECUTOR IDENTITY FROM bindings.json",
   "source": {"revision": "COPY RECEIPT", "fingerprint": "COPY RECEIPT"},
   "architecture_notes": "Responsibilities, boundaries and interactions observed in source",
   "limitations": ["Specific unverified areas and how to check them"],
@@ -131,7 +131,7 @@ Write only `<reviewer>-approval.json`:
 
 ```json
 {
-  "reviewer": "architect_a", "model": "COPY YOUR MODEL FROM bindings.json",
+  "reviewer": "architect_a", "executor": "COPY YOUR EXECUTOR IDENTITY FROM bindings.json",
   "packet_sha256": "EXACT HASH RECOMPUTED FROM THE BINDINGS AND FIVE FILES",
   "verdict": "pass", "ranking_accepted": true,
   "finding_ids": ["ALL final finding IDs"],

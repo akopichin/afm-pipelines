@@ -3,14 +3,14 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const M = require('./model.cjs');
 
-const bindingPath = path.join(__dirname, '..', 'bindings.json');
-function modelsForRun() {
-  const binding = JSON.parse(fs.readFileSync(bindingPath, 'utf8'));
-  check(binding.schema_version === 1 && binding.pipeline === 'refactor' &&
+const bindingPath = dir => path.join(dir, '..', 'scope', 'toolkit', 'bindings.json');
+function modelsForRun(dir) {
+  const binding = JSON.parse(fs.readFileSync(bindingPath(dir), 'utf8'));
+  check(binding.schema_version === 2 && binding.pipeline === 'refactor' &&
     Object.keys(binding.roles || {}).sort().join(',') === 'architect_a,architect_b', 'Invalid reviewer bindings');
   return Object.fromEntries(Object.entries(binding.roles).map(([role, value]) => {
-    check(text(value.model) && text(value.profile) && text(value.client), 'Incomplete binding: ' + role);
-    return [role, value.model];
+    check(text(value.executor) && text(value.profile) && text(value.command), 'Incomplete binding: ' + role);
+    return [role, value.executor];
   }));
 }
 const files = ['source.json', 'architect_a-findings.json', 'architect_b-findings.json', 'architecture.json', 'consensus.json'];
@@ -19,9 +19,9 @@ const text = value => typeof value === 'string' && value.trim().length > 0;
 const read = (dir, name) => JSON.parse(fs.readFileSync(path.join(dir, name), 'utf8'));
 
 function digest(dir) {
-  modelsForRun();
+  modelsForRun(dir);
   const hash = crypto.createHash('sha256');
-  hash.update(fs.readFileSync(bindingPath));
+  hash.update(fs.readFileSync(bindingPath(dir)));
   for (const name of files) {
     const bytes = fs.readFileSync(path.join(dir, name));
     hash.update(name + '\0' + bytes.length + '\0');
@@ -41,7 +41,7 @@ function priority(value, context) {
 }
 
 function validate(dir) {
-  const models = modelsForRun();
+  const models = modelsForRun(dir);
   const source = read(dir, 'source.json');
   const doc = M.validate(read(dir, 'architecture.json'));
   check(doc.revision === 1 && doc.addressed_event_id === 0, 'Initial consensus must precede workshop feedback');
@@ -49,7 +49,7 @@ function validate(dir) {
   const reports = {};
   for (const [reviewer, model] of Object.entries(models)) {
     const report = read(dir, reviewer + '-findings.json');
-    check(report.schema_version === 2 && report.reviewer === reviewer && report.model === model, `Wrong architect: ${reviewer}`);
+    check(report.schema_version === 3 && report.reviewer === reviewer && report.executor === model, `Wrong architect: ${reviewer}`);
     check(report.source?.fingerprint === source.fingerprint && report.source?.revision === source.revision, `Report source mismatch: ${reviewer}`);
     check(Array.isArray(report.findings) && Array.isArray(report.limitations) && text(report.architecture_notes), `Incomplete report: ${reviewer}`);
     const ids = new Set();
@@ -94,7 +94,7 @@ function validate(dir) {
   const packet = digest(dir);
   for (const [reviewer, model] of Object.entries(models)) {
     const approval = read(dir, reviewer + '-approval.json');
-    check(approval.reviewer === reviewer && approval.model === model, `Wrong approval author: ${reviewer}`);
+    check(approval.reviewer === reviewer && approval.executor === model, `Wrong approval author: ${reviewer}`);
     check(approval.packet_sha256 === packet, `Stale approval: ${reviewer}`);
     check(approval.verdict === 'pass' && approval.ranking_accepted === true && text(approval.rationale) &&
       Array.isArray(approval.blocking_issues) && approval.blocking_issues.length === 0, `Consensus not approved: ${reviewer}`);

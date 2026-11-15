@@ -1,65 +1,63 @@
-# Installer defaults; preserve unrelated project settings.
 docker:
-  autoShim: true
   agents:
-    dev-default-writer-backend:
+    dev-pipeline-default-writer-backend:
       type: claude
       model: claude-sonnet-5-5
       reasoning: medium
       auth:
         from: env:CLAUDE_CODE_OAUTH_TOKEN
         to: env:CLAUDE_CODE_OAUTH_TOKEN
-    dev-default-writer-frontend:
+    dev-pipeline-default-writer-frontend:
       type: claude
       model: claude-sonnet-5-5
       reasoning: medium
       auth:
         from: env:CLAUDE_CODE_OAUTH_TOKEN
         to: env:CLAUDE_CODE_OAUTH_TOKEN
-    dev-default-writer-opus:
+    dev-pipeline-default-writer-opus:
       type: claude
       model: claude-opus-5-5
       reasoning: xhigh
       auth:
         from: env:CLAUDE_CODE_OAUTH_TOKEN
         to: env:CLAUDE_CODE_OAUTH_TOKEN
-    dev-escalation-architect:
+    dev-pipeline-escalation-architect:
       type: codex
       model: gpt-6-astra
       reasoning: xhigh
-    dev-default-coordinator-plan:
+    dev-pipeline-default-coordinator-plan:
       type: claude
       model: claude-opus-5-5
       reasoning: xhigh
       auth:
         from: env:CLAUDE_CODE_OAUTH_TOKEN
         to: env:CLAUDE_CODE_OAUTH_TOKEN
-    dev-default-coordinator-work:
+    dev-pipeline-default-coordinator-work:
       type: claude
       model: claude-sonnet-5-5
       reasoning: medium
       auth:
         from: env:CLAUDE_CODE_OAUTH_TOKEN
         to: env:CLAUDE_CODE_OAUTH_TOKEN
-    dev-default-coordinator-docs:
+    dev-pipeline-default-coordinator-docs:
       type: claude
       model: claude-sonnet-5-5
       reasoning: medium
       auth:
         from: env:CLAUDE_CODE_OAUTH_TOKEN
         to: env:CLAUDE_CODE_OAUTH_TOKEN
-    dev-default-verifier:
+    dev-pipeline-default-verifier:
       type: codex
       model: gpt-6.1-sol
       reasoning: xhigh
-    dev-architect:
+    dev-pipeline-architect:
       type: claude
       model: claude-opus-5-5
       reasoning: xhigh
       auth:
         from: env:CLAUDE_CODE_OAUTH_TOKEN
         to: env:CLAUDE_CODE_OAUTH_TOKEN
-    dev-ux:
+    dev-pipeline-ux:
       type: claude
       model: claude-opus-5-5
       reasoning: xhigh
@@ -67,75 +65,74 @@ docker:
         from: env:CLAUDE_CODE_OAUTH_TOKEN
         to: env:CLAUDE_CODE_OAUTH_TOKEN
 collaboration:
-  enabled: true
   profiles:
-    dev-default-writer-backend:
-      title: "ЛинусБи"
-      command: dev-default-writer-backend
+    dev-pipeline-default-writer-backend:
+      title: ЛинусБи
+      command: dev-pipeline-default-writer-backend
       delegate: false
       instructions: Follow the assigned stage or writer instructions, project rules
         and required checks. Keep evidence in the run directory.
-    dev-default-writer-frontend:
-      title: "ЛинусФи"
-      command: dev-default-writer-frontend
+    dev-pipeline-default-writer-frontend:
+      title: ЛинусФи
+      command: dev-pipeline-default-writer-frontend
       delegate: false
       instructions: Follow the assigned stage or writer instructions, project rules
         and required checks. Keep evidence in the run directory.
-    dev-default-writer-opus:
+    dev-pipeline-default-writer-opus:
       title: Опусарх
-      command: dev-default-writer-opus
+      command: dev-pipeline-default-writer-opus
       delegate: false
       instructions: Implement only a bounded correction after a recorded escalation
         and ownership handoff. Read the escalation evidence and file grant before
         editing; require the accepted rescue-architect diagnosis after the repeat
-        threshold, unless the user explicitly directed a different handoff.
-        If missing, ask the coordinator and do not edit. Follow project rules
-        and required checks. Keep evidence in the run directory.
-    dev-escalation-architect:
+        threshold, unless the user explicitly directed a different handoff. If missing,
+        ask the coordinator and do not edit. Follow project rules and required checks.
+        Keep evidence in the run directory.
+    dev-pipeline-escalation-architect:
       title: Астра
-      command: dev-escalation-architect
+      command: dev-pipeline-escalation-architect
       delegate: false
-      instructions: Diagnose repeated failures as the standing rescue-architect.
-        Inspect the full repair and review history, reproduce the failure and
-        validate the smallest corrective design in scratch. Do not edit product
-        files, delegate or use the managed browser. Return the diagnosis and
-        evidence with a linked reply to the canonical request for the Opus writer.
-    dev-default-coordinator-plan:
+      instructions: Diagnose repeated failures as the standing rescue-architect. Inspect
+        the full repair and review history, reproduce the failure and validate the
+        smallest corrective design in scratch. Do not edit product files, delegate
+        or use the managed browser. Return the diagnosis and evidence with a linked
+        reply to the canonical request for the Opus writer.
+    dev-pipeline-default-coordinator-plan:
       title: ОпуПлан
-      command: dev-default-coordinator-plan
+      command: dev-pipeline-default-coordinator-plan
       delegate: false
       instructions: Follow the assigned stage or writer instructions, project rules
         and required checks. Keep evidence in the run directory.
-    dev-default-coordinator-work:
+    dev-pipeline-default-coordinator-work:
       title: ЛинусКор
-      command: dev-default-coordinator-work
+      command: dev-pipeline-default-coordinator-work
       delegate: false
       instructions: Follow the assigned stage or writer instructions, project rules
         and required checks. Keep evidence in the run directory.
-    dev-default-coordinator-docs:
+    dev-pipeline-default-coordinator-docs:
       title: Соня
-      command: dev-default-coordinator-docs
+      command: dev-pipeline-default-coordinator-docs
       delegate: false
       instructions: Follow the assigned stage or writer instructions, project rules
         and required checks. Keep evidence in the run directory.
-    dev-default-verifier:
+    dev-pipeline-default-verifier:
       title: Солянка · Review / verify · GPT-6.1 Sol · xhigh
-      command: dev-default-verifier
+      command: dev-pipeline-default-verifier
       delegate: false
-      instructions: Perform the assigned bounded independent read-only review.
-        Follow its scope, acceptance criteria, evidence and skill paths. Report
-        findings and limitations without editing project files or delegating.
-    dev-architect:
+      instructions: Perform the assigned bounded independent read-only review. Follow
+        its scope, acceptance criteria, evidence and skill paths. Report findings
+        and limitations without editing project files or delegating.
+    dev-pipeline-architect:
       title: Архопус
-      command: dev-architect
+      command: dev-pipeline-architect
       delegate: false
       instructions: Give an independent bounded read-only architecture consultation
         or root-cause diagnosis for the assigned domain. Follow the supplied skill
         paths, scope, evidence and check budget; do not edit files or delegate.
-    dev-ux:
+    dev-pipeline-ux:
       title: ВасЮкс
-      command: dev-ux
+      command: dev-pipeline-ux
       delegate: false
-      instructions: Give a bounded read-only UX consultation for the assigned
-        interactions and acceptance criteria. Follow the supplied skill paths,
-        references and evidence budget; do not edit files or delegate.
+      instructions: Give a bounded read-only UX consultation for the assigned interactions
+        and acceptance criteria. Follow the supplied skill paths, references and evidence
+        budget; do not edit files or delegate.

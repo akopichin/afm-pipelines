@@ -1,0 +1,13 @@
+docker:
+  agents:
+    dev-pipeline-escalation-architect:
+      type: codex
+      model: gpt-6-astra
+      reasoning: xhigh
+    dev-pipeline-default-writer-opus:
+      type: claude
+      model: claude-opus-5-5
+      reasoning: xhigh
+      auth:
+        from: env:CLAUDE_CODE_OAUTH_TOKEN
+        to: env:CLAUDE_CODE_OAUTH_TOKEN

@@ -1,3 +1,9 @@
+## 2026-11-15
+
+### Improvement:
+
+- Migrate to AFM manifest v2, package recipes and direct Git execution with pipeline options; remove project installation.
+
 # Changelog
 
 ## 2026-11-13

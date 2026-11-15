@@ -1,16 +1,15 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/akopichin/afm/main/schema/flow.schema.json
-# Install this complete package at pipelines/dev-pipeline/ in the target project.
+# Run with AFM 3.1.4+: afm run --pipeline <package-source>.
 # Python 3, Node.js 18+ and the named commands/profiles are required.
 # The helper's --help and source describe the project contract and helper commands.
 name: dev-pipeline
 description: "Project-aware planning, standing writers, on-demand specialists, real acceptance checks and local merge"
 worktrees: true
-# The installer binds this to the main checkout for linked worktrees.
-skills_dir: ./pipelines/dev-pipeline/skills
+skills_dir: ./skills
 
 # Read existing lessons without paying for reflection/finalization on every task.
 memory:
-  path: __DEV_PIPELINE_MEMORY_DIR__
+  path: .memory
   mode: r
   memory_use: true
 
@@ -31,7 +30,7 @@ prompt: |
 
   Route acceptance by project.json acceptance.interfaces and acceptance.ui.mode.
   Only participants assigned UI work read
-  __DEV_PIPELINE_SKILLS_DIR__/afm-ui-acceptance/SKILL.md.
+  $AFM_PIPELINE_DIR/skills/afm-ui-acceptance/SKILL.md.
   Backend-only tasks use their API/CLI/library acceptance criteria. The visual
   planning workshop is available only on explicit user request; do not offer it.
   It is independent of product UI acceptance.
@@ -61,8 +60,8 @@ prompt: |
 
   Temporary helpers and AI verify agents do NOT inherit stage/team skills. Every
   spawn instruction must explicitly require reading these exact files before work:
-    __DEV_PIPELINE_SKILLS_DIR__/afm-review-work/SKILL.md
-    __DEV_PIPELINE_SKILLS_DIR__/afm-check-evidence/SKILL.md
+    $AFM_PIPELINE_DIR/skills/afm-review-work/SKILL.md
+    $AFM_PIPELINE_DIR/skills/afm-check-evidence/SKILL.md
   Include the bounded question, scope, criteria, prior findings and check budget.
   For UI review/consultation include the exact afm-ui-acceptance skill path too;
   backend-only helpers do not load that skill.
@@ -82,23 +81,23 @@ hooks:
 
 team:
   - id: dev-backend
-    profile: dev-default-writer-backend
+    profile: dev-pipeline-default-writer-backend
     title: ЛинусБи
     skills: &writer_skills [afm-check-evidence, afm-dev-writer]
     instruction: &writer_instruction |
       Implement your assigned bounded task under the writer and check-evidence
       skills. Use the task's canonical request ID, file grant and current brief.
       If assigned UI behavior/appearance work, also read
-      __DEV_PIPELINE_SKILLS_DIR__/afm-ui-acceptance/SKILL.md; otherwise skip it.
+      $AFM_PIPELINE_DIR/skills/afm-ui-acceptance/SKILL.md; otherwise skip it.
       Follow the coordinator's explicit check/review budgets. Do not commit or push;
       return the linked deliverable and evidence for independent acceptance.
   - id: dev-frontend
-    profile: dev-default-writer-frontend
+    profile: dev-pipeline-default-writer-frontend
     title: ЛинусФи
     skills: *writer_skills
     instruction: *writer_instruction
   - id: opus
-    profile: dev-default-writer-opus
+    profile: dev-pipeline-default-writer-opus
     title: Опусарх
     skills: *writer_skills
     instruction: |
@@ -112,11 +111,11 @@ team:
       If this evidence is missing, ask the coordinator and do not edit.
       Follow the afm-dev-writer and afm-check-evidence skills and project rules.
       For UI work also read
-      __DEV_PIPELINE_SKILLS_DIR__/afm-ui-acceptance/SKILL.md.
+      $AFM_PIPELINE_DIR/skills/afm-ui-acceptance/SKILL.md.
       Do not commit or push; return the linked deliverable and evidence for
       independent acceptance. A failed bounded rescue needs a user decision.
   - id: rescue-architect
-    profile: dev-escalation-architect
+    profile: dev-pipeline-escalation-architect
     title: Астра
     skills: [afm-check-evidence, afm-dev-diagnosis]
     instruction: |
@@ -127,19 +126,14 @@ team:
       design in granted scratch. Product files are read-only; no managed browser or
       delegation. Return a full linked diagnosis for the separate reserve writer,
       not an ACK or an implementation. If assigned UI work, read
-      __DEV_PIPELINE_SKILLS_DIR__/afm-ui-acceptance/SKILL.md too.
+      $AFM_PIPELINE_DIR/skills/afm-ui-acceptance/SKILL.md too.
 
 stages:
   - id: bootstrap
     name: "Bind pipeline tools to this run"
     script: |
       set -eu
-      package=pipelines/dev-pipeline
-      if [ ! -f "$package/scripts/helper.py" ]; then
-        common=$(git rev-parse --path-format=absolute --git-common-dir)
-        package="$(dirname "$common")/pipelines/dev-pipeline"
-      fi
-      test -f "$package/scripts/helper.py" || { echo "Install the complete dev-pipeline package" >&2; exit 1; }
+      package="${AFM_PIPELINE_DIR:?Run this package with afm run --pipeline}"
       cp "$package/docs/project-contract.md" "$AFM_STAGE_DIR/project-contract.md"
       python3 "$package/scripts/helper.py" init --run-dir "$(dirname "$AFM_STAGE_DIR")" --flow "$package/flow.yaml"
       if [ -f "$AFM_STAGE_DIR/planning/workbench.mjs" ]; then
@@ -151,7 +145,7 @@ stages:
   - id: plan
     name: "Confirm task and project contract"
     depends_on: [bootstrap]
-    command: dev-default-coordinator-plan
+    command: dev-pipeline-default-coordinator-plan
     agents: [auto]
     interactive: true
     script_before: &bind_run |
@@ -228,7 +222,7 @@ stages:
         profiles maps selected consultation/review roles to actual configured
         profile IDs; escalation_profiles maps relevant architect roles to their
         profiles even when no initial consultation is needed. Include
-        escalation_profiles.repeated_failure = __PROFILE_ESCALATION_ARCHITECT__
+        escalation_profiles.repeated_failure = dev-pipeline-escalation-architect
         for the standing rescue-architect, distinct from ordinary consultants.
         Record a projected
         helper count plus a correction/escalation reserve against configured limits;
@@ -254,7 +248,7 @@ stages:
       Choose interfaces from changed observable behavior, not file suffixes. Set
       ui.mode none for backend-only work; behavior for interaction fixes, visual for
       appearance changes, prototype for reference parity. If UI is affected read
-      __DEV_PIPELINE_SKILLS_DIR__/afm-ui-acceptance/SKILL.md now.
+      $AFM_PIPELINE_DIR/skills/afm-ui-acceptance/SKILL.md now.
       Bound ui.surfaces to affected states; do not prescribe all themes/widths for
       every UI task. Write atomic criteria with stable IDs, requirement, interface,
       action, expected observation and evidence_kind. Separately required actions
@@ -268,12 +262,11 @@ stages:
       checks always cover the whole tree. Reference shared protocols, do not copy
       them into the plan. Recover incoming task additions before asking approval.
 
-      Initial architecture and domain consultations use __PROFILE_ARCHITECT__;
+      Initial architecture and domain consultations use dev-pipeline-architect;
       mandatory repeated-failure diagnosis uses the standing rescue-architect
-      bound to __PROFILE_ESCALATION_ARCHITECT__, followed by implementation by opus.
-      UX consultation uses __PROFILE_UX__. The installer first reuses matching
-      global/project profile connection settings, otherwise creates its own
-      Opus 5.5 / xhigh profiles. Both are isolated copies available to this run.
+      bound to dev-pipeline-escalation-architect, followed by implementation by opus.
+      UX consultation uses dev-pipeline-ux. Package defaults are independent recipes;
+      --pipeline-options can replace their recipes or profiles for this run.
       Keep consultants independent from the implementation writer and inspect
       their actual command recipes when recording the review contract.
       For correctness, design, tests and security reviews, use the configured
@@ -343,15 +336,15 @@ stages:
             node "$(dirname "$AFM_STAGE_DIR")/bootstrap/planning/workbench.mjs" verify-plan --session "$AFM_STAGE_DIR"
             node "$(dirname "$AFM_STAGE_DIR")/bootstrap/planning/c4.mjs" verify --session "$AFM_STAGE_DIR"
           timeout: 2m
-        - command: dev-default-verifier
+        - command: dev-pipeline-default-verifier
           timeout: 15m
           prompt: |
             Before reviewing, read these assigned skills (verify does not inherit them):
-            __DEV_PIPELINE_SKILLS_DIR__/afm-review-work/SKILL.md
-            __DEV_PIPELINE_SKILLS_DIR__/afm-check-evidence/SKILL.md
+            $AFM_PIPELINE_DIR/skills/afm-review-work/SKILL.md
+            $AFM_PIPELINE_DIR/skills/afm-check-evidence/SKILL.md
             Use the injected verify result contract; the review below defines its scope.
             If this contract selects UI acceptance, also read
-            __DEV_PIPELINE_SKILLS_DIR__/afm-ui-acceptance/SKILL.md; otherwise skip it.
+            $AFM_PIPELINE_DIR/skills/afm-ui-acceptance/SKILL.md; otherwise skip it.
             Independently inspect this run's plan/dev-plan.md, project.json,
             approval.md and any consultation evidence via the paths in the summary.
             Check task fit and requirement/prototype coverage, real integration
@@ -398,7 +391,7 @@ stages:
     name: "Implement and review according to risk"
     depends_on: [plan]
     inputs: [plan.plan, plan.project, {ref: plan.grooming, optional: true}]
-    command: dev-default-coordinator-work
+    command: dev-pipeline-default-coordinator-work
     agents: [auto]
     interactive: true
     script_before: *bind_run
@@ -456,15 +449,15 @@ stages:
             python3 "$(git rev-parse --git-path dev-pipeline/helper.py)" checks --group implement --stage implement
             python3 "$(git rev-parse --git-path dev-pipeline/helper.py)" ui-gate
           timeout: 30m
-        - command: dev-default-verifier
+        - command: dev-pipeline-default-verifier
           timeout: 20m
           prompt: |
             Before reviewing, read these assigned skills (verify does not inherit them):
-            __DEV_PIPELINE_SKILLS_DIR__/afm-review-work/SKILL.md
-            __DEV_PIPELINE_SKILLS_DIR__/afm-check-evidence/SKILL.md
+            $AFM_PIPELINE_DIR/skills/afm-review-work/SKILL.md
+            $AFM_PIPELINE_DIR/skills/afm-check-evidence/SKILL.md
             Use the injected verify result contract; the review below defines its scope.
             If this contract selects UI acceptance, also read
-            __DEV_PIPELINE_SKILLS_DIR__/afm-ui-acceptance/SKILL.md; otherwise skip it.
+            $AFM_PIPELINE_DIR/skills/afm-ui-acceptance/SKILL.md; otherwise skip it.
             Independently inspect the actual change against the approved plan and
             project contract. Read the linked team-review/check evidence. Verify
             required task coverage and the selected risk-based review policy;
@@ -497,7 +490,7 @@ stages:
     name: "Exercise the project's real acceptance scenario"
     depends_on: [plan, implement]
     inputs: [plan.plan, plan.project]
-    command: dev-default-coordinator-work
+    command: dev-pipeline-default-coordinator-work
     agents: [auto]
     interactive: true
     script_before: *bind_run
@@ -646,15 +639,15 @@ stages:
       steps:
         - run: python3 "$(git rev-parse --git-path dev-pipeline/helper.py)" live-gate
           timeout: 10m
-        - command: dev-default-verifier
+        - command: dev-pipeline-default-verifier
           timeout: 15m
           prompt: |
             Before reviewing, read these assigned skills (verify does not inherit them):
-            __DEV_PIPELINE_SKILLS_DIR__/afm-review-work/SKILL.md
-            __DEV_PIPELINE_SKILLS_DIR__/afm-check-evidence/SKILL.md
+            $AFM_PIPELINE_DIR/skills/afm-review-work/SKILL.md
+            $AFM_PIPELINE_DIR/skills/afm-check-evidence/SKILL.md
             Use the injected verify result contract; the review below defines its scope.
             If this contract selects UI acceptance, also read
-            __DEV_PIPELINE_SKILLS_DIR__/afm-ui-acceptance/SKILL.md; otherwise skip it.
+            $AFM_PIPELINE_DIR/skills/afm-ui-acceptance/SKILL.md; otherwise skip it.
             Read-only: inspect live-run/result.json, live-run/execution_summary.md,
             the approved live scenario,
             actual observations and any team-progress.json/live-repair-review.md
@@ -694,7 +687,7 @@ stages:
     name: "Update required documentation"
     depends_on: [plan, live-run]
     inputs: [plan.plan, plan.project]
-    command: dev-default-coordinator-docs
+    command: dev-pipeline-default-coordinator-docs
     agents: [auto]
     interactive: true
     script_before: *bind_run
@@ -718,12 +711,12 @@ stages:
             python3 "$(git rev-parse --git-path dev-pipeline/helper.py)" receipt --group docs --stage docs ||
             python3 "$(git rev-parse --git-path dev-pipeline/helper.py)" checks --group docs --stage docs
           timeout: 15m
-        - command: dev-default-verifier
+        - command: dev-pipeline-default-verifier
           timeout: 10m
           prompt: |
             Before reviewing, read these assigned skills (verify does not inherit them):
-            __DEV_PIPELINE_SKILLS_DIR__/afm-review-work/SKILL.md
-            __DEV_PIPELINE_SKILLS_DIR__/afm-check-evidence/SKILL.md
+            $AFM_PIPELINE_DIR/skills/afm-review-work/SKILL.md
+            $AFM_PIPELINE_DIR/skills/afm-check-evidence/SKILL.md
             Use the injected verify result contract; the review below defines its scope.
             Read-only: check the documentation diff against the actual implemented
             behavior and project's requirements. Confirm required Docs notes are
@@ -736,7 +729,7 @@ stages:
   - id: commit
     name: "Validate and commit the delivered change"
     depends_on: [docs]
-    command: dev-default-coordinator-work
+    command: dev-pipeline-default-coordinator-work
     agents: [auto]
     interactive: true
     script_before: *bind_run
@@ -767,7 +760,7 @@ stages:
   - id: merge
     name: "Optionally integrate into the project's base branch"
     depends_on: [commit]
-    command: dev-default-coordinator-work
+    command: dev-pipeline-default-coordinator-work
     agents: [auto]
     interactive: true
     script_before: *bind_run

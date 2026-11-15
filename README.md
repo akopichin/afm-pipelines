@@ -1,86 +1,38 @@
-# AFM Pipelines
+# AFM Pipelines v2
 
-Reusable, self-contained workflows for [AFM](https://github.com/akopichin/afm).
-Each package combines a flow definition with the scripts, agent instructions,
-interfaces, examples, and tests it needs. Install a package into a project with
-the catalog helper, then run it with AFM; the AFM engine does not need to be modified.
+Reusable workflow packages for AFM 3.1.4 or later. Run packages directly from
+Git or a local checkout; no catalog installer, npm install or project copies
+are needed. AFM resolves the Git revision, caches an immutable snapshot and
+assembles recipes/profiles in memory without editing your configuration.
 
-## Available pipelines
-
-| Pipeline | Purpose | Status |
-| --- | --- | --- |
-| [Refactor](pipelines/refactor/README.md) | Analyze a codebase with two architects, explore changes in an interactive architecture workshop, and export approved, separately executable plans. | Initial portable package; plans changes but does not execute them. |
-| [Dev pipeline](pipelines/dev-pipeline/README.md) | Plan and implement a project change with coordinated writers, selected reviews, real acceptance, documentation, commit and optional merge. | Portable package; executes approved changes. |
-
-## Repository layout
-
-```text
-pipelines/
-  dev-pipeline/
-    pipeline.yaml          Package metadata and setup requirements
-    flow.yaml              AFM entry point
-    config.example.yaml    Default roles and Docker recipes
-    scripts/               Evidence and live-app helper
-    planning/              C4 approval images, optional workshop and approval binding
-    skills/                Planning, coordination, writer and review rules
-    docs/                  Project contract
-    tests/                 Helper regression checks (catalog only)
-  refactor/
-    pipeline.yaml          Package metadata and setup requirements
-    flow.yaml              AFM entry point
-    config.example.yaml    Model commands and AFM team profiles
-    scripts/               Runtime helpers and build tools
-    ui/                    Interface sources and prebuilt graphics bundle
-    skills/                Package-local agent instructions
-    contracts/             Analysis and approval contracts
-    examples/              Synthetic sample data
-    tests/                 Package, model, layout, and browser checks
-    docs/                  Detailed usage documentation
-```
-
-Packages live in this catalog and are installed under `pipelines/<name>/` in the
-target project. Refactor freezes its complete toolkit into each run. Dev-pipeline
-freezes its helper, flow and planning toolkit in bootstrap and references an immutable, content-hashed
-skill library. Updates retain older libraries for active runs.
-
-## Getting started
-
-Install and configure AFM first. Then follow the chosen package's README for
-its environment, model, and authentication requirements. The refactor package
-includes a prebuilt interface; users do not need to build its frontend.
-
-The bundled AFM skill `afm-pipelines` can guide installation: ask your agent to
-"install dev-pipeline in this project" or choose refactor. Its helper is shipped
-here and can also be used directly from a catalog checkout:
+| Package | Purpose |
+| --- | --- |
+| [dev-pipeline](pipelines/dev-pipeline/README.md) | Plan, implement, review, exercise, document and commit a project change. |
+| [refactor](pipelines/refactor/README.md) | Two-architect analysis and a user-approved architecture workshop; does not implement changes. |
 
 ```sh
-npm ci --ignore-scripts --no-audit --no-fund
-node scripts/pipelines.mjs list
-node scripts/pipelines.mjs inspect --project /absolute/path/to/your-project
-node scripts/pipelines.mjs plan dev-pipeline \
-  --project /absolute/path/to/your-project --out /absolute/path/to/install-plan.json
-node scripts/pipelines.mjs apply /absolute/path/to/install-plan.json
-node scripts/pipelines.mjs verify dev-pipeline --project /absolute/path/to/your-project
+afm pipelines inspect github.com/akopichin/afm-pipelines//pipelines/dev-pipeline@v2.0.0
+afm run --pipeline github.com/akopichin/afm-pipelines//pipelines/dev-pipeline@v2.0.0 \
+  --worktree my-change --pipeline-options ./pipeline-options.yaml
 ```
 
-Review the printed plan before applying it. Use `--options options.json` to
-choose each role's models/profiles and optional project skills. The helper
-preserves unrelated configuration, creates isolated profiles, backs up changes,
-and validates the installed flow. It supports updates, removal and interrupted
-transaction recovery. It does not start a paid model run or install Docker and
-provider clients automatically.
+Omit `--pipeline-options` to use package defaults. Use the same command to resume.
+Choose a new worktree name for a new task. A tag or full commit makes the source
+reproducible. Local development works with `--pipeline ./pipelines/dev-pipeline`.
 
-See [installation and options](docs/installer.md) for the complete procedure,
-including cloning an immutable catalog revision, authentication requirements,
-worktrees and limitations. The first adapters target Claude/Codex Docker recipes.
-[Model bindings](docs/model-bindings.md) describe how each pipeline keeps its
-own settings and freezes them into runs. AFM itself does not read `pipeline.yaml`.
+Configure Docker, `docker.autoShim`, collaboration, browser access and provider
+authentication in AFM before running. Package requirements report missing setup;
+packages cannot change your Docker image, mounts or global settings. Native host
+execution does not provide the same read-only guarantees as Docker.
+
+See [running and migration](docs/installer.md) and [role settings](docs/model-bindings.md).
+Packages contain their flow, `agents.yaml`, skills, scripts, UI and contracts.
+Model overrides replace complete recipe records, so include `auth` for Claude.
+No provider calls are made by `inspect`.
 
 ## Development
 
-The installer needs Node.js 22+. Package runtime helpers need Node.js 18+.
-Maintainer checks need Node.js 22+, npm, and
-an AFM binary; browser checks also need Chrome.
+Node.js 22+, Python 3.9+, AFM 3.1.4+ and Chrome for browser checks:
 
 ```sh
 npm ci
@@ -93,18 +45,10 @@ npm test
 npm run test:browser
 ```
 
-Keep packages self-contained. Do not depend on another checkout, personal skill
-directories, stored credentials, or sample data copied from a real private run.
-Document behavior in English and ship the licenses for bundled dependencies.
-The refactor package's build command regenerates its checked-in graphics bundle.
-Dev-pipeline's optional planning page uses bundled HTML/CSS/JavaScript. Its ordinary
-C4 approval images use a bundled layout engine, WebAssembly renderer and fonts,
-without runtime npm installation or a browser. Rebuild the npm bundles with
-`npm run build:c4`; third-party provenance/licenses are in `planning/vendor/c4/`.
-Its browser check uses Node.js 22+ and Chrome (`CHROME_PATH` on
-non-macOS hosts). See its [changelog](pipelines/dev-pipeline/docs/changelog.md).
+`AFM_BIN` selects the executable for integration checks. Rebuild bundled C4
+assets with `npm run build:c4`. Keep packages self-contained, include third-party
+licenses, and exclude tests/build dependencies from runtime resources.
 
 ## License
 
-Repository code is MIT-licensed. Bundled third-party code retains its own
-licenses; see each package's license notices.
+MIT; bundled third-party components retain their own licenses.

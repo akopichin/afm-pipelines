@@ -22,6 +22,27 @@ export function verifySnapshot(directory) {
   return receipt;
 }
 
+export function runtimeBindings(run) {
+  const roles = {};
+  const journal = fs.readFileSync(path.join(run, 'events.jsonl'), 'utf8');
+  for (const line of journal.split('\n').slice(0, -1)) {
+    if (!line.trim()) continue;
+    const record = JSON.parse(line);
+    if (record.kind !== 'operation_committed' || record.actor?.kind !== 'system' || record.actor?.id !== 'flow') continue;
+    for (const [role, member] of [['architect_a', 'refactor-architect-a'], ['architect_b', 'refactor-architect-b']]) {
+      if (record.operation_id !== 'team/' + member) continue;
+      const created = record.payload?.effects?.find(effect => effect.kind === 'task_created');
+      const p = created?.payload, command = p?.profile_snapshot?.Command;
+      if (p?.scope !== 'run' || p?.created_by !== 'system' || !command || !p.execution?.recipe_identity)
+        throw new Error('Missing durable executor binding: ' + role);
+      roles[role] = {profile:p.profile_id, command, task_id:created.target.task_id,
+        executor:crypto.createHash('sha256').update(JSON.stringify({command, execution:p.execution})).digest('hex')};
+    }
+  }
+  if (Object.keys(roles).length !== 2) throw new Error('Both team members must be admitted before scope starts');
+  return {schema_version:2, pipeline:'refactor', roles};
+}
+
 export function freeze(stage, source = packageRoot) {
   if (!path.isAbsolute(stage)) throw new Error('AFM_STAGE_DIR must be absolute');
   fs.mkdirSync(stage, {recursive:true});
@@ -48,6 +69,9 @@ export function freeze(stage, source = packageRoot) {
   }
   try {
     for (const name of metadata.afmRuntimeFiles) copy(name);
+    const bindings = JSON.stringify(runtimeBindings(path.dirname(stage)), null, 2) + '\n';
+    fs.writeFileSync(path.join(temporary, 'bindings.json'), bindings);
+    files['bindings.json'] = digest(path.join(temporary, 'bindings.json'));
     fs.writeFileSync(path.join(temporary, '.snapshot.json'), JSON.stringify({
       schema_version:1, name:'refactor', version:metadata.version, files
     }, null, 2) + '\n');

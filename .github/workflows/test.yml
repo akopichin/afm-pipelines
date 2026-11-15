@@ -1,0 +1,42 @@
+name: Packages v2
+on:
+  push:
+    branches: [main]
+    tags: ['v2.*']
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  packages:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            pipelines/refactor/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install AFM 3.1.4
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download v3.1.4 --repo akopichin/afm --pattern afm_linux_amd64.tar.gz --dir "$RUNNER_TEMP/afm"
+          tar -xzf "$RUNNER_TEMP/afm/afm_linux_amd64.tar.gz" -C "$RUNNER_TEMP/afm" afm
+          echo "$RUNNER_TEMP/afm" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/afm/afm" --version
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm --prefix pipelines/refactor ci --ignore-scripts --no-audit --no-fund
+      - run: npm test
+      - run: python3 -B -m unittest discover -s pipelines/dev-pipeline/tests -p 'test_*.py'
+      - run: npm --prefix pipelines/refactor test
+      - name: Browser checks
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+        run: |
+          npm run test:planning-browser
+          npm --prefix pipelines/refactor run test:browser

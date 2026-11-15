@@ -7,8 +7,11 @@ const {digest, validate} = require('../scripts/consensus.cjs');
 const example = require('../examples/example.json');
 
 function fixture(t) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'refactor-consensus-'));
-  t.after(() => fs.rmSync(dir, {recursive:true, force:true}));
+  const run = fs.mkdtempSync(path.join(os.tmpdir(), 'refactor-consensus-'));
+  const dir = path.join(run, 'analyze');fs.mkdirSync(dir);
+  const toolkit = path.join(run, 'scope/toolkit');fs.mkdirSync(toolkit,{recursive:true});
+  fs.writeFileSync(path.join(toolkit,'bindings.json'),JSON.stringify({schema_version:2,pipeline:'refactor',roles:{architect_a:{executor:'claude-opus-5-5',profile:'a',command:'a'},architect_b:{executor:'gpt-6.1-sol',profile:'b',command:'b'}}}));
+  t.after(() => fs.rmSync(run, {recursive:true, force:true}));
   const write = (name, data) => fs.writeFileSync(path.join(dir, name), JSON.stringify(data, null, 2));
   const read = name => JSON.parse(fs.readFileSync(path.join(dir, name), 'utf8'));
   const doc = structuredClone(example);
@@ -17,14 +20,14 @@ function fixture(t) {
   const consensus = {schema_version:2, source_fingerprint:doc.source.fingerprint, ranking_policy:'benefit_then_ease',
     summary:'Both reports agree on the concrete coupling problem.', dispositions:[], joint_findings:[], open_questions:[]};
   for (const [reviewer, model] of [['architect_a','claude-opus-5-5'],['architect_b','gpt-6.1-sol']]) {
-    write(reviewer+'-findings.json', {schema_version:2, reviewer, model, source:doc.source,
+    write(reviewer+'-findings.json', {schema_version:3, reviewer, executor:model, source:doc.source,
       architecture_notes:'Source inspected: API and imports share pricing rules.', limitations:[], findings:doc.findings});
     for (const f of doc.findings)consensus.dispositions.push({reviewer, finding_id:f.id, status:'accepted', merged_finding_ids:[f.id], reason:'Confirmed from source.'});
   }
   write('consensus.json', consensus);
   function approve() {
     for (const [reviewer, model] of [['architect_a','claude-opus-5-5'],['architect_b','gpt-6.1-sol']])
-      write(reviewer+'-approval.json',{reviewer,model,packet_sha256:digest(dir),verdict:'pass',ranking_accepted:true,
+      write(reviewer+'-approval.json',{reviewer,executor:model,packet_sha256:digest(dir),verdict:'pass',ranking_accepted:true,
         finding_ids:read('architecture.json').findings.map(f=>f.id),proposal_ids:read('architecture.json').proposals.map(p=>p.id),
         blocking_issues:[],rationale:'Reviewed source, merged coverage and priority tradeoffs.'});
   }
@@ -67,9 +70,9 @@ test('deferred claims cannot be presented as an agreed finding', t => {
 
 test('source, architect identities and complete-list review are mandatory', t => {
   const f=fixture(t),report=f.read('architect_b-findings.json');
-  report.model='gpt-6-sol';f.write('architect_b-findings.json',report);f.approve();
+  report.executor='gpt-6-sol';f.write('architect_b-findings.json',report);f.approve();
   assert.throws(()=>validate(f.dir),/Wrong architect/);
-  report.model='gpt-6.1-sol';report.source.fingerprint='other';f.write('architect_b-findings.json',report);f.approve();
+  report.executor='gpt-6.1-sol';report.source.fingerprint='other';f.write('architect_b-findings.json',report);f.approve();
   assert.throws(()=>validate(f.dir),/source mismatch/);
   report.source=f.read('source.json');f.write('architect_b-findings.json',report);f.approve();
   const approval=f.read('architect_b-approval.json');approval.proposal_ids.pop();f.write('architect_b-approval.json',approval);

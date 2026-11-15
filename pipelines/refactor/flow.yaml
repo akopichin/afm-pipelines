@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/akopichin/afm/main/schema/flow.schema.json
-# Install this complete package at pipelines/refactor/ in the target project.
+# Run with AFM 3.1.4+: afm run --pipeline <package-source>.
 # Run: AFM_COLLABORATION=1 AFM_BROWSER=1 afm run pipelines/refactor/flow.yaml --idle-timeout 24h
 name: refactor
 description: "Explore architecture, discuss changes in a live 3D map, and approve a refactoring plan"
@@ -7,16 +7,16 @@ worktrees: true
 collaboration:
   mode: team
 team:
-  - id: pipeline-refactor-architect-a
-    profile: pipeline-refactor-architect-a
+  - id: refactor-architect-a
+    profile: refactor-architect-a
     title: Refactor architect A
     instruction: >-
       You are the primary architect for independent analysis, joint synthesis and
       final packet review. Follow the coordinator's absolute artifact paths and
       scope/toolkit/contracts/analysis-contract.md. Write only your assigned artifacts;
       never change target source or the other architect's report/approval.
-  - id: pipeline-refactor-architect-b
-    profile: pipeline-refactor-architect-b
+  - id: refactor-architect-b
+    profile: refactor-architect-b
     title: Refactor architect B
     instruction: >-
       You are the second architect for independent analysis and critical review of
@@ -64,15 +64,7 @@ stages:
       if [ -f "$toolkit/scripts/freeze.mjs" ]; then
         node "$toolkit/scripts/freeze.mjs" --stage "$AFM_STAGE_DIR"
       else
-        package=pipelines/refactor
-        if [ ! -f "$package/scripts/freeze.mjs" ]; then
-          common=$(git rev-parse --path-format=absolute --git-common-dir)
-          package="$(dirname "$common")/pipelines/refactor"
-        fi
-        test -f "$package/scripts/freeze.mjs" || {
-          echo "Install the complete refactor package at pipelines/refactor/ in the target Git project." >&2
-          exit 1
-        }
+        package="${AFM_PIPELINE_DIR:?Run this package with afm run --pipeline}"
         node "$package/scripts/freeze.mjs" --stage "$AFM_STAGE_DIR"
       fi
       node "$toolkit/scripts/workbench.mjs" --help
@@ -136,8 +128,8 @@ stages:
 
       You coordinate TWO required architects; you do not substitute your own
       analysis for either. Read <run-dir>/scope/toolkit/contracts/analysis-contract.md.
-      Read <run-dir>/scope/toolkit/bindings.json for this run's role IDs,
-      profiles, clients, models and reasoning settings. Resolve BOTH independent
+      Read <run-dir>/scope/toolkit/bindings.json for this run's role IDs and executor identities,
+      resolved commands, profiles and task IDs. Resolve BOTH independent
       participants with afm agent list using their configured profile/title.
       architect_a is the merger; architect_b independently challenges the result.
       If either is unavailable or its configuration disagrees with the bindings,

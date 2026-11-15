@@ -1,111 +1,43 @@
-# Pipeline roles and model bindings
+# Role settings and durable identities
 
-Installer protocol 1 supports per-pipeline model choices. Refactor and dev-pipeline
-use stable roles and configurable bindings instead of hard-coded model identities.
-Older runs retain their original frozen scripts and contracts.
+The package manifest maps stable role IDs to commands and helper profiles.
+`agents.yaml` supplies default recipes/profiles; `--pipeline-options` replaces
+selected records in memory. Run `afm pipelines inspect SOURCE --json` to see
+clients, requested models, reasoning, command/profile layers and requirements.
 
-## Roles, profiles and choices
-
-A role describes work inside one pipeline. The package declares roles in
-`pipeline.yaml` under `setup.models`: `role` is a stable identifier,
-`team_member` identifies a flow team entry; `stage_ids` selects stage commands;
-`verify_stage_ids` selects AI verify commands; and `profile_token` identifies a
-specialist profile name in a prompt. `profile`, `command`, `client`, `model` and
-`reasoning` describe recommended defaults from `config.example.yaml`.
-Optional `previous_roles` migrates saved choices when a role is renamed;
-`previous_team_members` lets legacy flow synchronization find renamed writers.
-Dev-pipeline's `escalation_architect` / `rescue-architect` role is separate from
-its historical `writer_astra` / `astra` aliases, which still migrate to
-`writer_opus` / `opus`. Legacy synchronization adds the new diagnosis role using
-package defaults when absent, while retaining every existing team's profile.
-An optional `title` supplies a short personal name; generated profile titles and
-`command_names` labels add the selected model and reasoning. `reuse_existing`
-matches a consultation role against configured profile IDs/titles, preferring
-project profiles over global ones and requiring the selected client/model/reasoning
-and a compatible recipe. Automatic reuse copies connection settings while retaining
-the package's role instructions; without a match the role uses package defaults.
-Explicit `profile` choices continue to copy the full profile and its instructions.
-Packages can declare different numbers of roles and different defaults. The
-installer does not assume every pipeline has two architects.
-
-The user's options JSON maps `roles.<role>` to a profile reference and/or explicit
-client/model/reasoning choices. See [setup options](installer.md#select-models-settings-and-skills).
-Resolution uses explicit choices first, then the selected profile, then package
-defaults when no profile is selected. A missing profile is an error. Changing
-client requires a model choice and clears the previous client's recipe options.
-
-Existing profiles are copied, even when no overrides were supplied. Each role
-gets a command/profile named `pipeline-<pipeline>-<role>-<configuration-hash>`.
-This separates its settings from shared profiles and preserves older profile
-versions across updates. Profile instructions are copied; generated titles show
-the selected role and model. Authentication values must remain `env:` references.
-The original profile is never edited as part of pipeline customization.
-
-The installer saves user choices in its local receipt and writes the effective
-configuration into the installed package's `bindings.json`:
-
-```json
-{
-  "schema_version": 1,
-  "pipeline": "refactor",
-  "roles": {
-    "architect_a": {
-      "profile": "pipeline-refactor-architect-a-<hash>",
-      "command": "pipeline-refactor-architect-a-<hash>",
-      "client": "claude",
-      "model": "claude-opus-5-5",
-      "reasoning": "xhigh",
-      "execution": "docker"
-    },
-    "architect_b": {
-      "profile": "pipeline-refactor-architect-b-<hash>",
-      "command": "pipeline-refactor-architect-b-<hash>",
-      "client": "codex",
-      "model": "gpt-6.1-sol",
-      "reasoning": "high",
-      "execution": "docker"
-    }
-  }
-}
+```yaml
+docker:
+  agents:
+    refactor-architect-a:
+      type: codex
+      model: gpt-6.1-sol
+      reasoning: high
 ```
 
-The example names are illustrative; the installer computes actual hashes.
-The flow's team profiles, stage commands, specialist names and binding file are
-generated in the same plan.
-Two roles may use the same model but remain separate agents. Provider/model
-availability is not inferred from configuration validity.
+A Claude recipe must include its complete `auth` block using `env:` references.
+To reuse another configured command, replace the package profile, keeping its
+instructions and setting `command` to that command. Options do not copy or
+mutate shared profiles. There is no automatic matching by profile title.
+Dev-pipeline includes complete options presets in its `examples/` directory.
 
-## Refactor's frozen review contract
+## Refactor approval identities
 
-The scope hook copies `bindings.json` together with the toolkit into the run.
-The coordinator reads these settings before dispatch. `architect_a` and
-`architect_b` independently write their reports; architect A merges and both
-review the complete result. Report and consensus schema version 2 uses these
-stable role IDs. Each report/approval records the requested model from the
-binding file. Names of providers are not reviewer IDs.
+Refactor derives `scope/toolkit/bindings.json` from the run's durable
+`operation_committed` records for its two declared team members. It records the
+resolved command, profile, task ID and an executor digest over the command and
+execution binding, including AFM's recipe identity. It does not reopen the
+options file, infer a model from its default or copy credentials. Missing durable
+team bindings stop scope setup; they never fall back to default models.
 
-The consensus gate checks both roles against the frozen bindings. Its packet
-hash includes the exact bindings bytes plus source, both reports, architecture
-and consensus. Changing either bindings or packet invalidates both approvals.
-The toolkit snapshot also hashes all runtime files, including the bindings.
+Findings schema 3 and approvals name the stable reviewer role and `executor`
+from those bindings. The consensus packet hash includes the exact binding bytes
+and all analysis artifacts. Changing a report, binding or plan invalidates both
+architect approvals. The bindings remain frozen on resume. These checks establish
+artifact and requested-executor consistency, not provider attestation; inspect
+AFM task/reply metadata when checking authorship. Saved tasks remain governed by
+AFM's `executor_changed` protection.
 
-These checks establish artifact consistency, not cryptographic execution
-identity. The coordinator must still match AFM participants and durable replies
-to the assigned profiles, record actual runtime metadata when available, and
-stop if it discovers a configuration mismatch. A requested model alias is not
-proof of the provider's underlying model version.
-
-Updating the installed package creates new profiles when settings change and
-preserves old ones. Existing run snapshots keep their original bindings. Manual
-edits to generated AFM profiles can still change dispatch: `verify` detects them,
-but direct AFM commands do not run the installer. Do not edit those profiles to
-reconfigure an existing run; prepare a new installation plan and new run instead.
-
-## Supported scope
-
-The first adapters support Claude/Codex Docker recipes and AFM reasoning levels.
-Refactor's coordinator inherits the project's default client; dev-pipeline has
-explicit stage coordinator roles. Arbitrary host commands,
-additional provider adapters, runtime rebinding and an independent reusable
-binding-file format are future extensions. The current project choices live in
-installer receipts, not in a hypothetical `pipelines/bindings.yaml`.
+The toolkit copy in scope is an artifact bundle with per-run bindings used by
+the review/export contract. AFM owns the source package snapshot; the toolkit
+copy does not fetch, select versions or install profiles. Dev-pipeline retains
+its per-run evidence/helper and planning receipts for the same reason.

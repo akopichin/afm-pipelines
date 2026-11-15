@@ -16,7 +16,7 @@
     "esbuild": "0.28.2",
     "yaml": "2.8.1"
   },
-  "version": "0.3.0",
+  "version": "2.0.0",
   "engines": {
     "node": ">=18"
   },
@@ -24,16 +24,14 @@
     "flow.yaml",
     "pipeline.yaml",
     "package.json",
-    "package-lock.json",
     "README.md",
     "LICENSE",
-    "config.example.yaml",
     "scripts",
     "ui",
     "contracts",
     "examples",
     "skills",
     "docs",
-    "bindings.json"
+    "agents.yaml"
   ]
 }
