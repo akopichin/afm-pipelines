@@ -1,0 +1,15 @@
+{
+  "name": "afm-pipeline-review",
+  "version": "2.0.1",
+  "private": true,
+  "afmRuntimeFiles": [
+    "pipeline.yaml",
+    "flow.yaml",
+    "agents.yaml",
+    "package.json",
+    "README.md",
+    "LICENSE",
+    "scripts",
+    "contracts"
+  ]
+}

@@ -1,0 +1,30 @@
+schema_version: 2
+name: review
+version: 2.0.1
+description: Five independent stage helpers review an agreed scope, followed by deduplication and a ranked report.
+entrypoint: flow.yaml
+agents: agents.yaml
+resources: [package.json, README.md, LICENSE, scripts, contracts]
+roles:
+  coordinator:
+    command: review-coordinator
+    profile: review-coordinator
+  correctness:
+    command: review-correctness
+    profile: review-correctness
+  security:
+    command: review-security
+    profile: review-security
+  reliability:
+    command: review-reliability
+    profile: review-reliability
+  performance:
+    command: review-performance
+    profile: review-performance
+  contracts:
+    command: review-contracts
+    profile: review-contracts
+requirements:
+  docker_auto_shim: true
+  collaboration: true
+  tools: [git, python3]

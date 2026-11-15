@@ -8,6 +8,7 @@ assembles recipes/profiles in memory without editing your configuration.
 | Package | Purpose |
 | --- | --- |
 | [dev-pipeline](pipelines/dev-pipeline/README.md) | Plan, implement, review, exercise, document and commit a project change. |
+| [review](pipelines/review/README.md) | Five independent review perspectives, deduplicated findings and a ranked report. |
 | [refactor](pipelines/refactor/README.md) | Two-architect analysis and a user-approved architecture workshop; does not implement changes. |
 
 ```sh
@@ -17,8 +18,9 @@ afm run --pipeline github.com/akopichin/afm-pipelines//pipelines/dev-pipeline@v2
 ```
 
 Omit `--pipeline-options` to use package defaults. Use the same command to resume.
-Choose a new worktree name for a new task. A tag or full commit makes the source
-reproducible. Local development works with `--pipeline ./pipelines/dev-pipeline`.
+Choose a new worktree name for a new development task. The review package uses
+the current checkout; omit `--worktree` when reviewing uncommitted changes.
+A tag or full commit makes the source reproducible. Local development works with `--pipeline ./pipelines/dev-pipeline`.
 
 Configure Docker, `docker.autoShim`, collaboration, browser access and provider
 authentication in AFM before running. Package requirements report missing setup;

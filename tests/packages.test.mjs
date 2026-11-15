@@ -17,7 +17,7 @@ function inspect(project,source,options) {
   assert.equal(result.status,0,result.error?.message||result.stderr||result.stdout);
   return JSON.parse(result.stdout);
 }
-for(const name of ['dev-pipeline','refactor']) {
+for(const name of ['dev-pipeline','refactor','review']) {
   test(`${name} v2 resolves complete roles and options without installation`,t=>{
     const project=temporary(t),source=path.join(root,'pipelines',name),manifest=read(path.join(source,'pipeline.yaml'));
     const config=read(path.join(source,'agents.yaml')),flow=read(path.join(source,'flow.yaml'));
@@ -31,7 +31,7 @@ for(const name of ['dev-pipeline','refactor']) {
       assert.equal(config.collaboration.profiles[role.profile].command,role.command);
       assert.equal(report.roles.find(r=>r.id===id).model,config.docker.agents[role.command].model);
     }
-    for(const member of flow.team)assert(config.collaboration.profiles[member.profile]);
+    for(const member of flow.team || [])assert(config.collaboration.profiles[member.profile]);
     const chosen=Object.values(manifest.roles)[0].command,options=path.join(project,'options.yaml');
     fs.writeFileSync(options,YAML.stringify({docker:{agents:{[chosen]:{type:'codex',model:'test-override-model',reasoning:'high'}}}}));
     const customized=inspect(project,source,options);

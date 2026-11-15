@@ -1,0 +1,95 @@
+docker:
+  agents:
+    review-coordinator:
+      type: claude
+      model: claude-sonnet-5-5
+      reasoning: medium
+      auth:
+        from: env:CLAUDE_CODE_OAUTH_TOKEN
+        to: env:CLAUDE_CODE_OAUTH_TOKEN
+    review-correctness:
+      type: codex
+      model: gpt-6.1-sol
+      reasoning: xhigh
+    review-security:
+      type: codex
+      model: gpt-6.1-sol
+      reasoning: xhigh
+    review-reliability:
+      type: codex
+      model: gpt-6.1-sol
+      reasoning: xhigh
+    review-performance:
+      type: codex
+      model: gpt-6.1-sol
+      reasoning: xhigh
+    review-contracts:
+      type: codex
+      model: gpt-6.1-sol
+      reasoning: xhigh
+collaboration:
+  profiles:
+    review-coordinator:
+      title: Review coordinator
+      command: review-coordinator
+      delegate: false
+      instructions: Coordinate read-only review. Write only run artifacts, preserve
+        source files and Git state, and follow the stage contract.
+    review-correctness:
+      title: Correctness
+      command: review-correctness
+      delegate: false
+      instructions: "Read $AFM_PIPELINE_DIR/contracts/review.md before work. Your
+        perspective: Control flow, algorithms, edge cases, data integrity and
+        regressions in supported behavior. Follow the request scope and the
+        injected AFM helper result contract. Do not edit project files,
+        delegate, use a managed browser, or wait for another assignment. Return
+        all findings together; an empty list is valid. Missing access or
+        incomplete work is an explicit limitation, never a clean review."
+    review-security:
+      title: Security
+      command: review-security
+      delegate: false
+      instructions: "Read $AFM_PIPELINE_DIR/contracts/review.md before work. Your
+        perspective: Trust boundaries, authorization, injection, secret
+        exposure, filesystem access and unsafe defaults. Give a concrete
+        reachable threat scenario. Follow the request scope and the injected AFM
+        helper result contract. Do not edit project files, delegate, use a
+        managed browser, or wait for another assignment. Return all findings
+        together; an empty list is valid. Missing access or incomplete work is
+        an explicit limitation, never a clean review."
+    review-reliability:
+      title: Reliability
+      command: review-reliability
+      delegate: false
+      instructions: "Read $AFM_PIPELINE_DIR/contracts/review.md before work. Your
+        perspective: Concurrency, cancellation, resource ownership, retries,
+        persistence, crash recovery and lifecycle ordering. Follow the request
+        scope and the injected AFM helper result contract. Do not edit project
+        files, delegate, use a managed browser, or wait for another assignment.
+        Return all findings together; an empty list is valid. Missing access or
+        incomplete work is an explicit limitation, never a clean review."
+    review-performance:
+      title: Performance
+      command: review-performance
+      delegate: false
+      instructions: "Read $AFM_PIPELINE_DIR/contracts/review.md before work. Your
+        perspective: Demonstrable time/memory growth, hot paths, unbounded
+        queues and expensive I/O. Quantify input and complexity; do not invent
+        benchmarks. Follow the request scope and the injected AFM helper result
+        contract. Do not edit project files, delegate, use a managed browser, or
+        wait for another assignment. Return all findings together; an empty list
+        is valid. Missing access or incomplete work is an explicit limitation,
+        never a clean review."
+    review-contracts:
+      title: Contracts and tests
+      command: review-contracts
+      delegate: false
+      instructions: "Read $AFM_PIPELINE_DIR/contracts/review.md before work. Your
+        perspective: API/config/schema compatibility, caller integration,
+        user-visible UX, documentation promises and missing regression coverage
+        tied to concrete risks. Follow the request scope and the injected AFM
+        helper result contract. Do not edit project files, delegate, use a
+        managed browser, or wait for another assignment. Return all findings
+        together; an empty list is valid. Missing access or incomplete work is
+        an explicit limitation, never a clean review."

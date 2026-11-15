@@ -1,0 +1,161 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/akopichin/afm/main/schema/flow.schema.json
+name: review
+description: "Agree on scope, collect five independent reviews, deliver a ranked report"
+worktrees: false
+collaboration:
+  mode: assistants
+prompt: |
+  Общайся с пользователем и пиши отчёты по-русски, если он не выбрал другой язык.
+  Review the USER'S PROJECT in the current checkout. This is a read-only review:
+  preserve source, dependencies, config, Git index and history. Write artifacts
+  only under the absolute AFM stage directories. No implementation or commits.
+  Read $AFM_PIPELINE_DIR/contracts/review.md. Browser access is disabled.
+  Resolve sibling stages from the parent of $AFM_STAGE_DIR; do not assume CWD is
+  the run directory. Follow the injected AFM stage completion protocol.
+  Do not silently replace missing assistants or dismiss their missing results.
+
+stages:
+  - id: scope
+    name: "Choose what to review"
+    command: review-coordinator
+    agents: [implementation]
+    interactive: true
+    browser: false
+    artifacts:
+      - {name: scope, path: ./scope.json}
+      - {name: brief, path: ./brief.md}
+      - {name: diff, path: ./changes.patch, inline: false}
+      - {name: files, path: ./files.json, inline: false}
+    prompt: |
+      Inspect repository status and project instructions without changing them.
+      Recover supplied context and prior answers. If not specified, ask through
+      the AFM stage dialog which scope to review: current branch versus master/main,
+      versus another named branch/ref, or uncommitted changes (staged, unstaged,
+      and non-ignored untracked files). Detect actual local branches; never assume
+      master exists, fetch a remote or change checkout. Ask for a missing ref.
+      Clarify the goal/exclusions only when material. In a non-Git directory ask
+      for explicit files/subdirectories and review those as a file set.
+      Use python3 "$AFM_PIPELINE_DIR/scripts/scope.py" --help, then capture once:
+        --root <absolute-project-root> --output "$AFM_STAGE_DIR"
+        --mode branch --base <confirmed-ref>
+      or --mode uncommitted; for a non-Git file set use --mode files --path <path>
+      (repeat --path as needed). Branch mode uses merge-base(base, HEAD)..HEAD and
+      requires a clean checkout so reviewers cannot confuse dirty files with HEAD.
+      If dirty, explain the choice and let the user select uncommitted review or
+      arrange their checkout themselves. Never stash or discard their work.
+      Save brief.md with confirmed scope, goal, constraints, exclusions and check
+      permissions. Explain an empty diff and ask for a corrected scope if needed.
+      Do not claim these artifacts are a complete snapshot of the source tree.
+
+  - id: review
+    name: "Five independent perspectives"
+    depends_on: [scope]
+    command: review-coordinator
+    agents: [auto]
+    browser: false
+    assistants:
+      - profile: review-correctness
+        title: "Correctness"
+        mode: advisory
+        trigger: on_message
+        instruction: >-
+          Read $AFM_PIPELINE_DIR/contracts/review.md and the sibling scope artifacts.
+          Review from this perspective: Control flow, algorithms, edge cases, data integrity and regressions in supported behavior.
+          Work only on the coordinator's request and return a full final result.
+      - profile: review-security
+        title: "Security"
+        mode: advisory
+        trigger: on_message
+        instruction: >-
+          Read $AFM_PIPELINE_DIR/contracts/review.md and the sibling scope artifacts.
+          Review from this perspective: Trust boundaries, authorization, injection, secret exposure, filesystem access and unsafe defaults. Give a concrete reachable threat scenario.
+          Work only on the coordinator's request and return a full final result.
+      - profile: review-reliability
+        title: "Reliability"
+        mode: advisory
+        trigger: on_message
+        instruction: >-
+          Read $AFM_PIPELINE_DIR/contracts/review.md and the sibling scope artifacts.
+          Review from this perspective: Concurrency, cancellation, resource ownership, retries, persistence, crash recovery and lifecycle ordering.
+          Work only on the coordinator's request and return a full final result.
+      - profile: review-performance
+        title: "Performance"
+        mode: advisory
+        trigger: on_message
+        instruction: >-
+          Read $AFM_PIPELINE_DIR/contracts/review.md and the sibling scope artifacts.
+          Review from this perspective: Demonstrable time/memory growth, hot paths, unbounded queues and expensive I/O. Quantify input and complexity; do not invent benchmarks.
+          Work only on the coordinator's request and return a full final result.
+      - profile: review-contracts
+        title: "Contracts and tests"
+        mode: advisory
+        trigger: on_message
+        instruction: >-
+          Read $AFM_PIPELINE_DIR/contracts/review.md and the sibling scope artifacts.
+          Review from this perspective: API/config/schema compatibility, caller integration, user-visible UX, documentation promises and missing regression coverage tied to concrete risks.
+          Work only on the coordinator's request and return a full final result.
+    artifacts:
+      - {name: findings, path: ./findings.md}
+      - {name: review-ledger, path: ./ledger.json, inline: false}
+      - {name: raw-results, path: ./results, inline: false}
+    prompt: |
+      Read scope/scope.json and brief.md and run scope.py check --scope <scope.json>.
+      Use afm agent list to identify the FIVE declared assistants by profile and
+      current stage. They are stage helpers, not team agents. Do not spawn extra
+      helpers or native subagents. If one is absent, record missing coverage.
+      Send one independent request to each with afm agent send --kind request,
+      naming the absolute scope/brief/diff/file-list paths, source root, perspective,
+      review contract and check budget (source inspection by default, no broad checks).
+      Persist a unique request-id before sending; save task/participant/message IDs
+      and receipts in ledger.json immediately. On resume reconcile saved IDs/results;
+      retry an uncertain send with the SAME request-id, do not issue duplicate work.
+      Dispatch all five before waiting. Use one reply_to_all batch on sent message IDs
+      with --deadline-seconds 1800. On yield END THE TURN; do not poll or repeat it.
+      Handle scoped callback questions with linked replies. On resume inspect every
+      wait outcome; ACKs and ready waits alone do not prove completed review.
+      Read each afm agent helper-result --task-id <id> --message-id <message_id>
+      using the actual message ID from the receipt (not the idempotency key). Save full JSON responses
+      as results/<perspective>.json. Only request.state=result supplies that request's
+      committed answer. Preserve failed/incomplete outcomes and limitations too.
+      Write findings.md with ALL raw findings grouped by perspective, provenance,
+      evidence and coverage. Do not deduplicate or rank away findings here.
+      Required coverage is all five even though mode is advisory: findings must not
+      become a repair gate. On timeout/failure preserve available results, explicitly
+      mark the review incomplete and resolve only your own outstanding requests/waits
+      through granted capabilities. Never claim missing work is a clean review or
+      bypass cancellation with operator APIs. If safe closure requires user action,
+      report task IDs and the blocker. Do not start replacement review rounds.
+      Run the scope check again and record any changed candidate as incomplete.
+
+  - id: report
+    name: "Deduplicate, prioritize and deliver"
+    depends_on: [review]
+    command: review-coordinator
+    agents: [auto]
+    browser: false
+    artifacts:
+      - {name: report, path: ./report.md}
+      - {name: dispositions, path: ./dispositions.json, inline: false}
+    prompt: |
+      Read scope/brief.md, scope.json, review/findings.md, ledger.json and every saved
+      raw result. Later stages consume those saved files, not another stage's helper API.
+      Run scope.py check --scope <scope/scope.json>; a mismatch means incomplete review
+      of a changed candidate. Do not silently recapture or claim the new tree was reviewed.
+      Independently verify each candidate finding against the agreed source and evidence.
+      Merge findings only when root cause, trigger and corrective action match. Similar
+      locations alone do not make duplicates. Preserve every source finding ID and lens.
+      Resolve severity disagreements using concrete impact and confidence, not votes.
+      Separate confirmed defects, existing defects, unconfirmed concerns and rejected
+      findings; record a reason for EVERY disposition in dispositions.json, including
+      merged source IDs. Do not silently discard a minority or security finding.
+      Sort confirmed findings by P0, P1, P2, P3, then impact/confidence. Assign stable
+      final IDs R-001 etc. Write report.md with: reviewed root/base/merge-base/HEAD/mode,
+      dirty/untracked scope and exclusions, a complete/incomplete coverage table for
+      five perspectives, concise conclusion, ranked findings with path:line references,
+      triggering scenario, impact, evidence and corrective direction, then existing
+      defects, unresolved concerns, limitations and a short recommended fix order.
+      Link raw results and dispositions with relative paths. Report zero confirmed
+      findings honestly; it is not proof of safety, especially with missing coverage.
+      Do not fix code or start another review. Deliver a concise user-facing summary
+      with severity counts, completeness, the top findings and the absolute clickable
+      report.md path. The report is a run artifact; never overwrite a project report.md.
