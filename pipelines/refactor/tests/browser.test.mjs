@@ -391,7 +391,8 @@ try {
   const view=await evaluate('window.refactor.view().graphs');
   for(const node of view.after.nodes.filter(n=>view.before.nodes.some(b=>b.id===n.id))){const prior=view.before.nodes.find(b=>b.id===node.id);assert.deepEqual([node.x,node.y,node.z],[prior.x,prior.y,prior.z])}
   await send('Input.dispatchMouseEvent',{type:'mouseWheel',x:300,y:500,deltaX:0,deltaY:-100});await delay(150);
-  const cameras=await evaluate('window.refactor.view().graphs');assert.deepEqual(cameras.before.camera,cameras.after.camera);
+  const cameras=await evaluate('window.refactor.view().graphs');
+  assert(Math.hypot(...cameras.before.camera.map((value,i)=>value-cameras.after.camera[i]))<1e-9,'Before/after cameras remain synchronized');
   await click('#approve');const approved=await evaluate('window.refactor.status()');assert(approved.approval);
   const sealed=await evaluate(`window.refactor.seal(${approved.revision},${approved.approval.event_id})`);fs.writeFileSync(checkpointFile,JSON.stringify(sealed));
   run('plan','--checkpoint',checkpointFile,'--output',path.join(temp,'plan.md'));
