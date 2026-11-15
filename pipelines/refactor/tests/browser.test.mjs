@@ -55,17 +55,6 @@ async function ready() {
   }
   throw new Error('Workbench did not become ready: ' + await evaluate('document.getElementById("message").textContent') + JSON.stringify(exceptions));
 }
-async function settledCamera() {
-  let previous, stable = 0;
-  for (let attempt = 0; attempt < 80; attempt++) {
-    const current = await evaluate('(()=>{const g=graphics.graphs.before,r=document.getElementById("before-webgl").getBoundingClientRect();return [...g.camera().position.toArray(),...g.camera().quaternion.toArray(),...g.controls().target.toArray(),g.camera().zoom,g.camera().aspect,r.x,r.y,r.width,r.height];})()');
-    stable = previous && current.every((value,i)=>Math.abs(value-previous[i])<1e-6) ? stable+1 : 0;
-    if (stable >= 3) return;
-    previous = current;
-    await delay(100);
-  }
-  throw new Error('Camera did not settle before navigation assertion');
-}
 async function renderedScene(key='before') {
   for(let i=0;i<80;i++) {
     const nodes=await evaluate(`window.refactor.view().graphs.${key}.nodes`);
@@ -128,9 +117,9 @@ async function navigationChecks(){
   })()`);
   assert(endpoints.length>0);assert(endpoints.every(e=>e.source&&e.target),'Every routed edge reaches its own component border: '+JSON.stringify(endpoints.filter(e=>!e.source||!e.target)));
   for(const [shortcut,layout] of [[5,'spatial'],[6,'hierarchy']]){
-    await key(shortcut);await settledCamera();assert.equal((await evaluate('window.refactor.view()')).layout,layout);
+    await key(shortcut);await delay(350);assert.equal((await evaluate('window.refactor.view()')).layout,layout);
     const pointer=await evaluate(`(()=>{const r=document.getElementById('before-webgl').getBoundingClientRect();const g=graphics.graphs.before,c=g.camera(),v=c.position.clone().set(.35,-.2,.5).unproject(c).sub(c.position).normalize(),normal=c.getWorldDirection(c.position.clone());window.zoomAnchor=c.position.clone().addScaledVector(v,g.controls().target.clone().sub(c.position).dot(normal)/v.dot(normal));return {x:r.x+r.width*.675,y:r.y+r.height*.6};})()`);
-    await send('Input.dispatchMouseEvent',{type:'mouseWheel',...pointer,deltaX:0,deltaY:-160});await settledCamera();
+    await send('Input.dispatchMouseEvent',{type:'mouseWheel',...pointer,deltaX:0,deltaY:-160});await delay(350);
     const projected=await evaluate('window.zoomAnchor.clone().project(graphics.graphs.before.camera()).toArray()');
     assert(Math.hypot(projected[0]-.35,projected[1]+.2)<.015,layout+' zoom stays under pointer: '+projected);
     const targetBefore=await evaluate('graphics.graphs.before.controls().target.toArray()');
@@ -212,13 +201,12 @@ try {
   const url = `http://127.0.0.1:${port}`;
   assert.equal((await fetch(url + '/architecture.json')).status, 404);
   assert.equal((await fetch(url, {method: 'POST', body: '{}'})).status, 404);
-  chrome = spawn(chromePath, [...(process.env.CHROME_NO_SANDBOX === '1' ? ['--no-sandbox'] : []), '--headless=new', '--no-first-run', '--no-default-browser-check',
+  chrome = spawn(chromePath, ['--headless=new', '--no-first-run', '--no-default-browser-check',
     '--remote-debugging-port=0', '--remote-debugging-address=127.0.0.1', '--user-data-dir=' + path.join(temp, 'chrome'), 'about:blank'],
-    {stdio: ['ignore', 'ignore', 'pipe']});
-  let chromeErrors = '';chrome.stderr.on('data', bytes => {chromeErrors = (chromeErrors + bytes).slice(-8000);});
+    {stdio: 'ignore'});
   const portFile = path.join(temp, 'chrome', 'DevToolsActivePort');
   for(let i=0;i<100&&!fs.existsSync(portFile);i++) await delay(100);
-  assert(fs.existsSync(portFile), 'Chrome did not expose its CDP port: ' + chromeErrors);
+  assert(fs.existsSync(portFile), 'Chrome did not expose its CDP port');
   const cdpPort = fs.readFileSync(portFile, 'utf8').split('\n')[0];
   const pages = await (await fetch(`http://127.0.0.1:${cdpPort}/json/list`)).json();
   socket = new WebSocket(pages.find(p => p.type === 'page').webSocketDebuggerUrl);
@@ -391,8 +379,7 @@ try {
   const view=await evaluate('window.refactor.view().graphs');
   for(const node of view.after.nodes.filter(n=>view.before.nodes.some(b=>b.id===n.id))){const prior=view.before.nodes.find(b=>b.id===node.id);assert.deepEqual([node.x,node.y,node.z],[prior.x,prior.y,prior.z])}
   await send('Input.dispatchMouseEvent',{type:'mouseWheel',x:300,y:500,deltaX:0,deltaY:-100});await delay(150);
-  const cameras=await evaluate('window.refactor.view().graphs');
-  assert(Math.hypot(...cameras.before.camera.map((value,i)=>value-cameras.after.camera[i]))<1e-9,'Before/after cameras remain synchronized');
+  const cameras=await evaluate('window.refactor.view().graphs');assert.deepEqual(cameras.before.camera,cameras.after.camera);
   await click('#approve');const approved=await evaluate('window.refactor.status()');assert(approved.approval);
   const sealed=await evaluate(`window.refactor.seal(${approved.revision},${approved.approval.event_id})`);fs.writeFileSync(checkpointFile,JSON.stringify(sealed));
   run('plan','--checkpoint',checkpointFile,'--output',path.join(temp,'plan.md'));
@@ -412,15 +399,11 @@ try {
 } finally {
   for(const job of pending.values()) clearTimeout(job.timer);
   socket?.close();
-  if (chrome && chrome.exitCode === null && chrome.signalCode === null) {
-    const exited = new Promise(resolve => chrome.once('exit', resolve));
+  if(chrome && chrome.exitCode === null && chrome.signalCode === null) {
     chrome.kill('SIGTERM');
-    await Promise.race([exited, delay(4000)]);
-    if (chrome.exitCode === null && chrome.signalCode === null) {
-      chrome.kill('SIGKILL');
-      await exited;
-    }
+    await Promise.race([new Promise(resolve => chrome.once('exit', resolve)), delay(4000)]);
+    if(chrome.exitCode === null && chrome.signalCode === null) {chrome.kill('SIGKILL'); await new Promise(resolve => chrome.once('exit', resolve));}
   }
   run('stop', '--session', temp);
-  fs.rmSync(temp, {recursive: true, force: true, maxRetries: 10, retryDelay: 100});
+  fs.rmSync(temp, {recursive: true, force: true});
 }
