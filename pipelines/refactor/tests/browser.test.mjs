@@ -55,6 +55,17 @@ async function ready() {
   }
   throw new Error('Workbench did not become ready: ' + await evaluate('document.getElementById("message").textContent') + JSON.stringify(exceptions));
 }
+async function settledCamera() {
+  let previous, stable = 0;
+  for (let attempt = 0; attempt < 80; attempt++) {
+    const current = await evaluate('(()=>{const g=graphics.graphs.before;return [...g.camera().position.toArray(),...g.controls().target.toArray(),g.camera().zoom];})()');
+    stable = previous && current.every((value,i)=>Math.abs(value-previous[i])<1e-6) ? stable+1 : 0;
+    if (stable >= 3) return;
+    previous = current;
+    await delay(100);
+  }
+  throw new Error('Camera did not settle before navigation assertion');
+}
 async function renderedScene(key='before') {
   for(let i=0;i<80;i++) {
     const nodes=await evaluate(`window.refactor.view().graphs.${key}.nodes`);
@@ -117,9 +128,9 @@ async function navigationChecks(){
   })()`);
   assert(endpoints.length>0);assert(endpoints.every(e=>e.source&&e.target),'Every routed edge reaches its own component border: '+JSON.stringify(endpoints.filter(e=>!e.source||!e.target)));
   for(const [shortcut,layout] of [[5,'spatial'],[6,'hierarchy']]){
-    await key(shortcut);await delay(350);assert.equal((await evaluate('window.refactor.view()')).layout,layout);
+    await key(shortcut);await settledCamera();assert.equal((await evaluate('window.refactor.view()')).layout,layout);
     const pointer=await evaluate(`(()=>{const r=document.getElementById('before-webgl').getBoundingClientRect();const g=graphics.graphs.before,c=g.camera(),v=c.position.clone().set(.35,-.2,.5).unproject(c).sub(c.position).normalize(),normal=c.getWorldDirection(c.position.clone());window.zoomAnchor=c.position.clone().addScaledVector(v,g.controls().target.clone().sub(c.position).dot(normal)/v.dot(normal));return {x:r.x+r.width*.675,y:r.y+r.height*.6};})()`);
-    await send('Input.dispatchMouseEvent',{type:'mouseWheel',...pointer,deltaX:0,deltaY:-160});await delay(350);
+    await send('Input.dispatchMouseEvent',{type:'mouseWheel',...pointer,deltaX:0,deltaY:-160});await settledCamera();
     const projected=await evaluate('window.zoomAnchor.clone().project(graphics.graphs.before.camera()).toArray()');
     assert(Math.hypot(projected[0]-.35,projected[1]+.2)<.015,layout+' zoom stays under pointer: '+projected);
     const targetBefore=await evaluate('graphics.graphs.before.controls().target.toArray()');
