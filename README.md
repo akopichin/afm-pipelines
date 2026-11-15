@@ -11,8 +11,8 @@ assembles recipes/profiles in memory without editing your configuration.
 | [refactor](pipelines/refactor/README.md) | Two-architect analysis and a user-approved architecture workshop; does not implement changes. |
 
 ```sh
-afm pipelines inspect github.com/akopichin/afm-pipelines//pipelines/dev-pipeline@v2.0.0
-afm run --pipeline github.com/akopichin/afm-pipelines//pipelines/dev-pipeline@v2.0.0 \
+afm pipelines inspect github.com/akopichin/afm-pipelines//pipelines/dev-pipeline@v2.0.1
+afm run --pipeline github.com/akopichin/afm-pipelines//pipelines/dev-pipeline@v2.0.1 \
   --worktree my-change --pipeline-options ./pipeline-options.yaml
 ```
 

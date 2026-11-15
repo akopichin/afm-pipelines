@@ -30,7 +30,7 @@ See [role settings](../../../docs/model-bindings.md).
 Enable the [managed browser](https://github.com/akopichin/afm/blob/main/docs/browser.md), then run:
 
 ```bash
-AFM_COLLABORATION=1 AFM_BROWSER=1 afm run --pipeline github.com/akopichin/afm-pipelines//pipelines/refactor@v2.0.0 --idle-timeout 24h
+AFM_COLLABORATION=1 AFM_BROWSER=1 afm run --pipeline github.com/akopichin/afm-pipelines//pipelines/refactor@v2.0.1 --idle-timeout 24h
 ```
 
 The scope hook freezes a per-run toolkit copy. It can find the toolkit in the
@@ -100,7 +100,7 @@ To use this new analysis workflow, start a fresh run, for example with a new
 worktree name, keeping the old artifacts intact:
 
 ```bash
-AFM_COLLABORATION=1 AFM_BROWSER=1 afm run --pipeline github.com/akopichin/afm-pipelines//pipelines/refactor@v2.0.0 \
+AFM_COLLABORATION=1 AFM_BROWSER=1 afm run --pipeline github.com/akopichin/afm-pipelines//pipelines/refactor@v2.0.1 \
   --worktree refactor-dual --port 3435 --idle-timeout 24h
 ```
 
@@ -344,7 +344,7 @@ Save the latest checkpoint and stop the running flow with Ctrl+C. Restart with t
 same flow and worktree name, **without** `--worktree-clear`:
 
 ```bash
-AFM_BROWSER=1 afm run --pipeline github.com/akopichin/afm-pipelines//pipelines/refactor@v2.0.0 --worktree refactor --port 3434 --idle-timeout 24h
+AFM_BROWSER=1 afm run --pipeline github.com/akopichin/afm-pipelines//pipelines/refactor@v2.0.1 --worktree refactor --port 3434 --idle-timeout 24h
 ```
 
 AFM resumes the latest unfinished run; completed scope and analyze stages are

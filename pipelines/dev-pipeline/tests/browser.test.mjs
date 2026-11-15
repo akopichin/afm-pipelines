@@ -34,7 +34,7 @@ async function evaluate(expression) {
   return result.result.value;
 }
 async function ready() {
-  for (let attempt = 0; attempt < 80; attempt++) {
+  for (let attempt = 0; attempt < 200; attempt++) {
     try { if (await evaluate('Boolean(window.devPlanning && !document.getElementById("page-error").textContent)')) return; } catch {}
     await delay(70);
   }
@@ -44,13 +44,14 @@ const click = selector => evaluate(`document.querySelector(${JSON.stringify(sele
 const input = text => evaluate(`(() => { const e=document.getElementById('comment-input'); e.value=${JSON.stringify(text)}; e.dispatchEvent(new Event('input',{bubbles:true})); })()`);
 
 try {
-  chrome = spawn(chromePath, ['--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check', `--remote-debugging-port=${port}`, `--user-data-dir=${path.join(temp, 'chrome')}`, 'about:blank'], {stdio: 'ignore'});
+  chrome = spawn(chromePath, [...(process.env.CHROME_NO_SANDBOX === '1' ? ['--no-sandbox'] : []), '--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check', `--remote-debugging-port=${port}`, `--user-data-dir=${path.join(temp, 'chrome')}`, 'about:blank'], {stdio: ['ignore', 'ignore', 'pipe']});
+  let chromeErrors = '';chrome.stderr.on('data', bytes => {chromeErrors = (chromeErrors + bytes).slice(-8000);});
   let targets;
-  for (let attempt = 0; attempt < 80; attempt++) {
+  for (let attempt = 0; attempt < 200; attempt++) {
     try { targets = await fetch(`http://127.0.0.1:${port}/json/list`).then(response => response.json()); if (targets.some(item => item.type === 'page')) break; } catch {}
     await delay(70);
   }
-  assert(targets?.some(item => item.type === 'page'), 'Chrome did not start');
+  assert(targets?.some(item => item.type === 'page'), 'Chrome did not start: ' + chromeErrors);
   socket = new WebSocket(targets.find(item => item.type === 'page').webSocketDebuggerUrl);
   await new Promise((resolve, reject) => { socket.addEventListener('open', resolve, {once: true}); socket.addEventListener('error', reject, {once: true}); });
   socket.addEventListener('message', event => {

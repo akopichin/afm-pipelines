@@ -4,8 +4,8 @@ Requires AFM 3.1.4+. The catalog v2 uses AFM manifest schema 2; v1 installer
 manifests cannot be loaded by `afm run --pipeline`.
 
 ```sh
-afm pipelines inspect github.com/akopichin/afm-pipelines//pipelines/refactor@v2.0.0
-afm run --pipeline github.com/akopichin/afm-pipelines//pipelines/refactor@v2.0.0 \
+afm pipelines inspect github.com/akopichin/afm-pipelines//pipelines/refactor@v2.0.1
+afm run --pipeline github.com/akopichin/afm-pipelines//pipelines/refactor@v2.0.1 \
   --worktree architecture --idle-timeout 24h
 ```
 

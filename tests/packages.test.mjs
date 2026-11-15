@@ -21,7 +21,7 @@ for(const name of ['dev-pipeline','refactor']) {
   test(`${name} v2 resolves complete roles and options without installation`,t=>{
     const project=temporary(t),source=path.join(root,'pipelines',name),manifest=read(path.join(source,'pipeline.yaml'));
     const config=read(path.join(source,'agents.yaml')),flow=read(path.join(source,'flow.yaml'));
-    assert.equal(manifest.schema_version,2);assert.equal(manifest.version,'2.0.0');
+    assert.equal(manifest.schema_version,2);assert.equal(manifest.version,'2.0.1');
     assert.deepEqual(Object.keys(config).sort(),['collaboration','docker']);
     for(const section of ['docker','collaboration']) assert.deepEqual(Object.keys(config[section]),[section==='docker'?'agents':'profiles']);
     const report=inspect(project,source);

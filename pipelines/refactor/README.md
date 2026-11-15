@@ -3,8 +3,8 @@
 Requires AFM 3.1.4+. This is a manifest-v2 package; no installation is needed.
 
 ```sh
-afm pipelines inspect github.com/akopichin/afm-pipelines//pipelines/refactor@v2.0.0
-afm run --pipeline github.com/akopichin/afm-pipelines//pipelines/refactor@v2.0.0 \
+afm pipelines inspect github.com/akopichin/afm-pipelines//pipelines/refactor@v2.0.1
+afm run --pipeline github.com/akopichin/afm-pipelines//pipelines/refactor@v2.0.1 \
   --worktree my-refactor --idle-timeout 24h
 ```
 

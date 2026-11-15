@@ -201,12 +201,13 @@ try {
   const url = `http://127.0.0.1:${port}`;
   assert.equal((await fetch(url + '/architecture.json')).status, 404);
   assert.equal((await fetch(url, {method: 'POST', body: '{}'})).status, 404);
-  chrome = spawn(chromePath, ['--headless=new', '--no-first-run', '--no-default-browser-check',
+  chrome = spawn(chromePath, [...(process.env.CHROME_NO_SANDBOX === '1' ? ['--no-sandbox'] : []), '--headless=new', '--no-first-run', '--no-default-browser-check',
     '--remote-debugging-port=0', '--remote-debugging-address=127.0.0.1', '--user-data-dir=' + path.join(temp, 'chrome'), 'about:blank'],
-    {stdio: 'ignore'});
+    {stdio: ['ignore', 'ignore', 'pipe']});
+  let chromeErrors = '';chrome.stderr.on('data', bytes => {chromeErrors = (chromeErrors + bytes).slice(-8000);});
   const portFile = path.join(temp, 'chrome', 'DevToolsActivePort');
   for(let i=0;i<100&&!fs.existsSync(portFile);i++) await delay(100);
-  assert(fs.existsSync(portFile), 'Chrome did not expose its CDP port');
+  assert(fs.existsSync(portFile), 'Chrome did not expose its CDP port: ' + chromeErrors);
   const cdpPort = fs.readFileSync(portFile, 'utf8').split('\n')[0];
   const pages = await (await fetch(`http://127.0.0.1:${cdpPort}/json/list`)).json();
   socket = new WebSocket(pages.find(p => p.type === 'page').webSocketDebuggerUrl);

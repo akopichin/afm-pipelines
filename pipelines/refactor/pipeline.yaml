@@ -1,6 +1,6 @@
 schema_version: 2
 name: refactor
-version: 2.0.0
+version: 2.0.1
 description: Two-architect analysis and an interactive, user-approved refactoring
   workshop.
 entrypoint: flow.yaml
