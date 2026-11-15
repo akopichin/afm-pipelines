@@ -58,7 +58,7 @@ async function ready() {
 async function settledCamera() {
   let previous, stable = 0;
   for (let attempt = 0; attempt < 80; attempt++) {
-    const current = await evaluate('(()=>{const g=graphics.graphs.before;return [...g.camera().position.toArray(),...g.controls().target.toArray(),g.camera().zoom];})()');
+    const current = await evaluate('(()=>{const g=graphics.graphs.before,r=document.getElementById("before-webgl").getBoundingClientRect();return [...g.camera().position.toArray(),...g.camera().quaternion.toArray(),...g.controls().target.toArray(),g.camera().zoom,g.camera().aspect,r.x,r.y,r.width,r.height];})()');
     stable = previous && current.every((value,i)=>Math.abs(value-previous[i])<1e-6) ? stable+1 : 0;
     if (stable >= 3) return;
     previous = current;
@@ -411,11 +411,15 @@ try {
 } finally {
   for(const job of pending.values()) clearTimeout(job.timer);
   socket?.close();
-  if(chrome && chrome.exitCode === null && chrome.signalCode === null) {
+  if (chrome && chrome.exitCode === null && chrome.signalCode === null) {
+    const exited = new Promise(resolve => chrome.once('exit', resolve));
     chrome.kill('SIGTERM');
-    await Promise.race([new Promise(resolve => chrome.once('exit', resolve)), delay(4000)]);
-    if(chrome.exitCode === null && chrome.signalCode === null) {chrome.kill('SIGKILL'); await new Promise(resolve => chrome.once('exit', resolve));}
+    await Promise.race([exited, delay(4000)]);
+    if (chrome.exitCode === null && chrome.signalCode === null) {
+      chrome.kill('SIGKILL');
+      await exited;
+    }
   }
   run('stop', '--session', temp);
-  fs.rmSync(temp, {recursive: true, force: true});
+  fs.rmSync(temp, {recursive: true, force: true, maxRetries: 10, retryDelay: 100});
 }

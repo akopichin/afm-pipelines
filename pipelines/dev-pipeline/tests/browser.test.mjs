@@ -119,10 +119,14 @@ try {
 } finally {
   socket?.close();
   for (const entry of pending.values()) { clearTimeout(entry.timer); entry.reject(new Error('Browser test closed')); }
-  if (chrome && chrome.exitCode === null) {
+  if (chrome && chrome.exitCode === null && chrome.signalCode === null) {
+    const exited = new Promise(resolve => chrome.once('exit', resolve));
     chrome.kill('SIGTERM');
-    await Promise.race([new Promise(resolve => chrome.once('exit', resolve)), delay(3000)]);
-    if (chrome.exitCode === null) chrome.kill('SIGKILL');
+    await Promise.race([exited, delay(4000)]);
+    if (chrome.exitCode === null && chrome.signalCode === null) {
+      chrome.kill('SIGKILL');
+      await exited;
+    }
   }
-  fs.rmSync(temp, {recursive: true, force: true});
+  fs.rmSync(temp, {recursive: true, force: true, maxRetries: 10, retryDelay: 100});
 }
