@@ -23,38 +23,72 @@ Python 3.9+ and Node 18+ are runtime requirements. Use the YAML presets in
 `examples/` to customize full recipes. Existing source, approval and evidence
 gates remain mandatory.
 
-## Specification workflow
+## Pipeline at a glance
 
-- **Plan or groom** the task as usual. The refinement skill clarifies expected
-  behavior and asks only material questions the repository cannot answer. The
-  plan stage derives a behavioral delta and presents it in the same approval.
-- **Implement and review** using the approved tasks, delta and scenario IDs.
-  A short project-specific preflight runs before product cross-review. Full tests
-  run at the existing gates.
-- **Live acceptance** records observations against approved criteria, which link
-  back to their delta scenarios.
-- **Docs, commit and optional merge** apply and archive the accepted delta.
-  Commit includes the canonical specs and archive. Merge checks the result
-  again against independently edited requirements on the current local base.
+The diagram shows the default agent assignments.
+
+```text
+bootstrap                    Script
+  |  Freezes the package tools for this run.
+  v
+plan                         ОпуПлан (Opus)
+  |  Refines the task -> written plan or visual grooming on request -> delta.md.
+  |  Generates C4 Before/After diagrams for the affected architecture.
+  |  Shows the plan, C4 and delta in one approval dialog.
+  |  May spawn Архопус (architecture) or ВасЮкс (UX) when needed.
+  |  Солянка (Sol) independently verifies the approved plan.
+  v
+implement                    ЛинусКор (Sonnet)
+  |  Assigns work to ЛинусБи and/or ЛинусФи (Sonnet).
+  |  Preflight -> section reviewers where risk warrants -> final Sol verify.
+  |  Preflight failures in the code go back to the writer before review.
+  v
+live-run                     ЛинусКор (Sonnet)
+  |  Runs the product and records evidence for the approved scenario IDs.
+  |  Failure -> writer repair -> independent review -> rerun affected scenarios.
+  |  Солянка checks the acceptance evidence.
+  v
+docs                         Соня (Sonnet)
+  |  Applies the accepted delta to specs/ and archives it with the results.
+  |  Солянка checks the updated specs and documentation.
+  v
+commit                       ЛинусКор (Sonnet)
+  |  Runs final checks and commits the code, specs and archive.
+  v
+merge                        ЛинусКор (Sonnet)
+     Checks for conflicting spec changes on the current base.
+     Merges locally after user approval.
+```
+
+Planning can record a reason to skip C4 when a diagram adds no value. The
+writers and escalation agents are standing roles. Consultations and section
+reviews are temporary helpers.
+
+```text
+Escalation in implement or live-run
+
+Two rejected candidate rounds or two failed repairs for one task
+  |
+  v
+Астра (GPT-6 Astra) diagnoses -> Опусарх (Opus) repairs
+  |
+  +-- First rejection after escalation -> user decides whether to try again
+  |
+  +-- Second rejection after escalation -> Фабула (Fable 5.1) verifies
+      the diagnosis -> one bounded repair if warranted -> fresh review
+      and acceptance
+```
+
+The [handoff protocol](skills/afm-dev-coordinator/references/diagnosis.md)
+defines escalation evidence, ownership and retry limits.
+
+## Specification workflow
 
 Existing behavior belongs under `specs/<domain>/spec.md` in the target
 repository. Commit a baseline for affected existing requirements before running
 a modifying or removing change. New behavior can seed a domain with ADDED.
 Behavior-preserving work includes a short reason in the plan. See
 [the delta contract](skills/delta-spec-contract/SKILL.md).
-
-Repeated failures escalate to Астра for diagnosis, then Опусарх implements the
-accepted design. Фабула (Claude Fable 5.1, `medium`) stays idle on the first
-escalation and its first rejected candidate. Activate it only after at least TWO
-distinct post-escalation candidate rounds for the same logical task require
-corrections. It independently verifies Astra's diagnosis, repeated findings and
-corrective design. Only then may the coordinator give it one bounded residual
-repair with understood causes, exclusive file/test ownership and fresh independent
-acceptance. The first rescue rejection requires a user decision before another
-bounded attempt; further failure or material redesign also requires a decision.
-Counters survive stage changes and resumes. The
-[handoff protocol](skills/afm-dev-coordinator/references/diagnosis.md) defines the
-evidence and ownership rules. Existing runs retain their frozen snapshots.
 
 Coordinators check delegated work every five minutes of waiting, even when an
 assignment has a one-hour budget. Wait windows are capped at 300 seconds while
