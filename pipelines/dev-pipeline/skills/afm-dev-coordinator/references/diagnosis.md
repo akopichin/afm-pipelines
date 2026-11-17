@@ -132,6 +132,9 @@ Routine escalation within the approved scope needs no additional user approval.
 
 Authentication errors, missing commands and unreachable participants call for an
 infrastructure response. Record the actual error and inspect roster/capabilities.
+Follow [five-minute health checks](health.md): long diagnosis/implementation
+budgets use wait windows of at most 300 seconds, and confirmed terminal failures
+trigger recovery before the full task deadline. Silence alone is not proof of death.
 Select a reachable replacement with the needed access and independence only after
 reconciling pending work and confirming the prior writer stopped. Do not keep
 sending to a failed participant or replace required independent review with

@@ -53,8 +53,13 @@ prompt: |
     review. Two rejections trigger the mandatory diagnosis -> reserve-writer route.
     Count candidate rounds, not reviewers/findings; new finding IDs do not reset
     the logical task/invariant. Preserve history across stages, verify and live runs.
-  - Finite mesh wait deadlines, normally 1800 seconds. Two failed repairs also
-    trigger the same route. One bounded rescue includes independent acceptance;
+  - Delegated work uses wait windows of at most 300 seconds, even for hour-long
+    assignments. Keep the absolute task deadline separate. On each wake inspect
+    wait outcomes, roster, helper results and recent granted logs/activity; use
+    the coordinator's health protocol to recover confirmed dead agents before
+    their task deadline, after proving prior writers/commands stopped. Silence
+    alone is not a hang. Window expiry does not cancel work or reset its budget.
+  - Two failed repairs also trigger the mandatory diagnosis/reserve-writer route. One bounded rescue includes independent acceptance;
     activate Fabula only after at least TWO distinct candidate rounds are rejected
     AFTER escalation for the same logical task. Count batches, not findings or
     reviewers. A first rescue rejection needs a user decision for another bounded
@@ -450,6 +455,10 @@ stages:
       Keep the plan as a file reference. Publish task
       ownership/progress on the Board; save IDs, acceptance, completed-command evidence
       and applied brief revisions in team-progress.json before review dispatch.
+      For every outstanding writer/helper use wait windows <= 300 seconds under
+      the coordinator's health protocol. Check progress and failures on every wake;
+      preserve each task's absolute deadline and safely replace confirmed dead
+      agents before it expires. Do not stack a long wait beside these windows.
 
       If check groups declare prepare commands, run helper prepare --group implement
       --stage implement before freezing the review candidate; inspect generated edits.
@@ -613,7 +622,11 @@ stages:
          writer is unavailable, follow the coordinator skill's replacement protocol and
          report a real availability blocker only when no suitable owner exists.
          Stop owned fixtures before writers change their inputs. Grant disjoint
-         scopes for concurrent work and wait once for the batch, yielding normally.
+         scopes for concurrent work and wait in batch windows <= 300 seconds,
+         yielding normally. Between windows inspect roster, helper results and
+         recent granted logs/activity; recover confirmed dead agents safely before
+         their task deadlines under the coordinator's health protocol. Preserve
+         absolute task budgets; silence alone does not prove a hang.
       3. Inspect each writer's actual changes, file ownership, regression test
          evidence and focused checks. Reconcile actual completed commands and
          applied brief revisions before assigning review checks. Freeze the review

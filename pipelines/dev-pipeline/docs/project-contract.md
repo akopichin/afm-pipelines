@@ -75,6 +75,16 @@ edits: require fresh independent review, checks and affected live acceptance.
 Unclear causes, material redesign or failure of this last repair require a user
 decision. See the coordinator's [diagnosis protocol](../skills/afm-dev-coordinator/references/diagnosis.md).
 
+Delegated work keeps its absolute `task_deadline` separate from AFM wait windows,
+which are at most 300 seconds (`min(300, remaining task budget)`, never zero).
+The task ledger saves assignee/request IDs, last health-check time and observed
+status/activity, evidence, and replacement attempts. Every window checks roster,
+committed helper results and recent granted logs/activity. Confirmed terminal
+failure triggers safe recovery before the task deadline; window expiry and
+infrastructure failure do not count as product rejection rounds. Record stopped
+prior writers/commands, exclusive ownership and superseding request IDs before
+handoff. See [health checks](../skills/afm-dev-coordinator/references/health.md).
+
 - `environment_id` identifies the actual toolchain/dependency environment. A
   receipt may be reused only after confirming the environment is unchanged.
 - Top-level `input_paths` includes relevant ignored inputs; all tracked and

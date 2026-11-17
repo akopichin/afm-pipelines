@@ -12,7 +12,10 @@ and never edits files while a writer owns them. Use AFM communication, not nativ
 Agent/Task/fork subagents, nested orchestration or parent-run mutation APIs.
 
 Read [temporary helpers](references/helpers.md) before spawning a helper and when
-reconciling helpers before completion. Read [diagnosis and handoff](references/diagnosis.md)
+reconciling helpers before completion. Read [five-minute health checks](references/health.md)
+before waiting for delegated work; check progress every 300 seconds of waiting
+and recover confirmed failed agents before their task deadlines.
+Read [diagnosis and handoff](references/diagnosis.md)
 before assigning the reserve writer, when a defect repeats or an owner/tool becomes
 unavailable. After two rejected candidate rounds for one logical work item, route
 diagnosis to the standing rescue-architect and implementation to the reserve,
@@ -61,17 +64,22 @@ before assigning reviewer experiments, using the flow's evidence policy.
 
 ## Wait and accept
 
-Send independent work before registering one batch wait for the round:
+Send independent work before registering one batch wait window for the round.
+Follow the health reference: retain the absolute task budget separately and cap
+each wait window at `min(300, remaining task budget)` seconds:
 
 ```sh
-afm agent wait --condition reply_to_all --message-ids <canonical-ids> --deadline-seconds <finite-budget>
+afm agent wait --condition reply_to_all --message-ids <unanswered-canonical-ids> --deadline-seconds <1-to-300> --note "Health check: inspect outstanding agents, results and recent activity before the next wait."
 ```
 
 Respect the tool's batch size limit (up to 16 IDs). Inspect existing waits before
 registering and recover their IDs. On `yield`, save
 the batch and END THE TURN without a completion marker. A callback question may
 wake you before the original batch resolves: answer its own message ID, then
-reconcile the original wait. Do not restart it or assume the callback completed it.
+reconcile the original pending window. Do not stack another window or assume the
+callback completed it. Once a window expires, inspect agents/results/recent logs
+and register a new bounded window only for requests still unanswered. Window
+expiry does not cancel healthy work or consume the task's repair budget.
 For recovery use `inbox --all --cursor <saved-seq> --limit 50`, page until caught up,
 and advance the cursor only after saving dispositions. Do not poll in shell loops.
 
@@ -80,6 +88,8 @@ the deliverable: acknowledgement or partial status is not acceptance. Request th
 missing final deliverable through one linked follow-up, not a replay of the task
 or another wait on an already-satisfied request. A timeout does not release file
 ownership; confirm the writer and its modifying commands stopped before handoff.
+Handle confirmed terminal CLI/connection failures immediately under the health
+reference's replacement protocol, without waiting for the original task deadline.
 
 Inspect actual changes, ownership and required evidence before accepting work.
 The writer's edits are already in the shared tree: never reapply its diff. Missing

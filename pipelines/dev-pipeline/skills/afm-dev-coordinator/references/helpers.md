@@ -26,7 +26,12 @@ and retry the SAME operation ID within that attempt. A new attempt after Revise
 must not reuse an invalidated helper. Respect configured quotas/depth/task limits;
 a denial is not permission to create a run agent, broaden access or skip review.
 
-Batch independent helpers before one bounded reply_to_all wait. After resolution,
+Batch independent helpers before one reply_to_all wait window of at most 300
+seconds; follow [health checks](health.md) between windows even for long review
+budgets. An expired window does not cancel the helper or consume its review budget.
+Inspect each helper's status and recent granted logs/activity every window; recover
+confirmed terminal failures without waiting for the full assignment deadline.
+After resolution,
 read `afm agent helper-result --task-id <task_id>` for every current-stage helper.
 The inbox reply is only a summary: inspect committed status, verdict, findings and
 limitations. A ready wait or reply alone does not prove completed analysis. Save

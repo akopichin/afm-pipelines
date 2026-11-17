@@ -3,8 +3,8 @@
 Requires AFM 3.1.4+. This is a manifest-v2 package; no installation is needed.
 
 ```sh
-afm pipelines inspect github.com/akopichin/afm-pipelines//pipelines/dev-pipeline@v2.0.2
-afm run --pipeline github.com/akopichin/afm-pipelines//pipelines/dev-pipeline@v2.0.2 \
+afm pipelines inspect github.com/akopichin/afm-pipelines//pipelines/dev-pipeline@v2.0.3
+afm run --pipeline github.com/akopichin/afm-pipelines//pipelines/dev-pipeline@v2.0.3 \
   --worktree my-dev-pipeline --idle-timeout 24h
 ```
 
@@ -35,3 +35,11 @@ bounded attempt; further failure or material redesign also requires a decision.
 Counters survive stage changes and resumes. The
 [handoff protocol](skills/afm-dev-coordinator/references/diagnosis.md) defines the
 evidence and ownership rules. Existing runs retain their frozen snapshots.
+
+Coordinators check delegated work every five minutes of waiting, even when an
+assignment has a one-hour budget. Wait windows are capped at 300 seconds while
+the absolute task deadline stays separate. Each wake checks status, results and
+recent granted logs/activity. Confirmed failed agents can be replaced before the
+task deadline, after proving the previous writer and its modifying commands have
+stopped. Silence alone does not establish a hang; missing stop/replacement access
+is reported immediately. See [health checks](skills/afm-dev-coordinator/references/health.md).

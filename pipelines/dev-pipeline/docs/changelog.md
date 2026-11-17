@@ -2,6 +2,10 @@
 
 ### Improvement:
 
+- Check delegated agents every five minutes using bounded wait windows separate
+  from assignment deadlines. Inspect status/results and recent activity, recover
+  confirmed terminal failures before the full deadline, and preserve safe writer
+  ownership, partial work and repair counters during replacement.
 - Add Фабула (Claude Fable 5.1, medium) to independently verify Astra's findings
   and corrective design only after two rejected post-escalation candidate rounds
   for the same task. Keep it idle on first escalation and the first rescue rejection.

@@ -84,6 +84,31 @@ test('dev escalation binds Fabula separately and bounds its change from verifier
     assert.match(stage.prompt,/fabula/);
   }
 });
+test('dev coordinator snapshots contain bounded health waits and safe early replacement rules',t=>{
+  const source=path.join(root,'pipelines/dev-pipeline');
+  const flow=read(path.join(source,'flow.yaml'));
+  const report=inspect(temporary(t),source);
+  const relative='skills/afm-dev-coordinator/references/health.md';
+  const health=fs.readFileSync(path.join(report.snapshot.dir,relative),'utf8');
+  const coordinator=fs.readFileSync(path.join(source,'skills/afm-dev-coordinator/SKILL.md'),'utf8');
+  assert.match(coordinator,/references\/health\.md/);
+  assert.match(coordinator,/--deadline-seconds <1-to-300>/);
+  assert(!coordinator.includes('--deadline-seconds <finite-budget>'));
+  assert.match(flow.prompt,/wait windows of at most 300 seconds/);
+  assert.match(flow.prompt,/absolute task deadline separate/);
+  for(const id of ['implement','live-run']) {
+    assert.match(flow.stages.find(s=>s.id===id).prompt,/windows <= 300 seconds/);
+  }
+  assert.match(health,/min\(300, remaining task budget\)/);
+  assert.match(health,/never register a zero-second wait/);
+  assert.match(health,/After a window expires,[\s\S]*?one NEW window for still-unanswered requests/);
+  assert.match(health,/do not resend or restart the healthy work/);
+  assert.match(health,/Window expiry is a health checkpoint, not a task timeout/);
+  assert.match(health,/five minutes of silence alone does not prove a hang/);
+  assert.match(health,/Confirm the old writer AND its modifying\s+commands have stopped/);
+  assert.match(health,/One automatic replacement per logical assignment/);
+  assert.match(health,/Infrastructure failures are not product rejection rounds/);
+});
 test('dev bootstrap runs in a linked worktree with only AFM_PIPELINE_DIR',t=>{
   const project=temporary(t),run=path.join(project,'.afm/runs/test'),stage=path.join(run,'bootstrap');
   const git=(...args)=>execFileSync('git',['-C',project,...args],{encoding:'utf8'}).trim();
