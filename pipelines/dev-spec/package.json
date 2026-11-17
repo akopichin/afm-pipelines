@@ -1,0 +1,21 @@
+{
+  "name": "afm-pipeline-dev-spec",
+  "private": true,
+  "version": "2.1.0",
+  "scripts": {
+    "test": "node --test tests/planning.test.mjs tests/c4.test.mjs",
+    "test:browser": "node tests/browser.test.mjs"
+  },
+  "afmRuntimeFiles": [
+    "flow.yaml",
+    "pipeline.yaml",
+    "package.json",
+    "README.md",
+    "LICENSE",
+    "scripts",
+    "planning",
+    "skills",
+    "docs",
+    "agents.yaml"
+  ]
+}

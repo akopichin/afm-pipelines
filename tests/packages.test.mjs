@@ -17,7 +17,7 @@ function inspect(project,source,options) {
   assert.equal(result.status,0,result.error?.message||result.stderr||result.stdout);
   return JSON.parse(result.stdout);
 }
-for(const name of ['dev-pipeline','refactor','review']) {
+for(const name of ['dev-pipeline','dev-spec','refactor','review']) {
   test(`${name} v2 resolves complete roles and options without installation`,t=>{
     const project=temporary(t),source=path.join(root,'pipelines',name),manifest=read(path.join(source,'pipeline.yaml'));
     const config=read(path.join(source,'agents.yaml')),flow=read(path.join(source,'flow.yaml'));
@@ -109,14 +109,17 @@ test('dev coordinator snapshots contain bounded health waits and safe early repl
   assert.match(health,/One automatic replacement per logical assignment/);
   assert.match(health,/Infrastructure failures are not product rejection rounds/);
 });
-test('dev bootstrap runs in a linked worktree with only AFM_PIPELINE_DIR',t=>{
-  const project=temporary(t),run=path.join(project,'.afm/runs/test'),stage=path.join(run,'bootstrap');
-  const git=(...args)=>execFileSync('git',['-C',project,...args],{encoding:'utf8'}).trim();
-  git('init','-q');fs.writeFileSync(path.join(project,'README.md'),'Fixture');git('add','.');git('-c','user.name=Test','-c','user.email=test@example.invalid','-c','commit.gpgsign=false','commit','-qm','Fixture');
-  const worktree=path.join(project,'linked worktree');git('worktree','add','-qb','fixture',worktree);fs.mkdirSync(stage,{recursive:true});
-  const source=path.join(root,'pipelines/dev-pipeline'),flow=read(path.join(source,'flow.yaml'));
-  const result=spawnSync('sh',['-c',flow.stages[0].script],{cwd:worktree,env:{...process.env,AFM_PIPELINE_DIR:source,AFM_STAGE_DIR:stage},encoding:'utf8',timeout:30000});
-  assert.equal(result.status,0,result.error?.message||result.stderr||result.stdout);
-  for(const file of ['helper.py','flow.yaml','metadata.json','project-contract.md','planning/workbench.mjs'])assert(fs.existsSync(path.join(stage,file)),file);
-  assert(!fs.existsSync(path.join(project,'pipelines')));
-});
+for (const name of ['dev-pipeline', 'dev-spec']) {
+  test(`${name} bootstrap runs in a linked worktree with only AFM_PIPELINE_DIR`,t=>{
+    const project=temporary(t),run=path.join(project,'.afm/runs/test'),stage=path.join(run,'bootstrap');
+    const git=(...args)=>execFileSync('git',['-C',project,...args],{encoding:'utf8'}).trim();
+    git('init','-q');fs.writeFileSync(path.join(project,'README.md'),'Fixture');git('add','.');git('-c','user.name=Test','-c','user.email=test@example.invalid','-c','commit.gpgsign=false','commit','-qm','Fixture');
+    const worktree=path.join(project,'linked worktree');git('worktree','add','-qb','fixture',worktree);fs.mkdirSync(stage,{recursive:true});
+    const source=path.join(root,'pipelines',name),flow=read(path.join(source,'flow.yaml'));
+    const result=spawnSync('sh',['-c',flow.stages[0].script],{cwd:worktree,env:{...process.env,AFM_PIPELINE_DIR:source,AFM_STAGE_DIR:stage},encoding:'utf8',timeout:30000});
+    assert.equal(result.status,0,result.error?.message||result.stderr||result.stdout);
+    for(const file of ['helper.py','flow.yaml','metadata.json','project-contract.md','planning/workbench.mjs'])assert(fs.existsSync(path.join(stage,file)),file);
+    if (name === 'dev-spec') assert(fs.existsSync(path.join(stage,'spec_contract.py')));
+    assert(!fs.existsSync(path.join(project,'pipelines')));
+  });
+}

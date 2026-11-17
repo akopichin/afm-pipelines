@@ -1,0 +1,57 @@
+schema_version: 2
+name: dev-spec
+version: 2.1.0
+description: Project-aware development with approved spec deltas, independent review,
+  live acceptance, spec synchronization and optional merge.
+entrypoint: flow.yaml
+agents: agents.yaml
+resources:
+- package.json
+- README.md
+- LICENSE
+- scripts
+- skills
+- docs
+- planning
+roles:
+  writer_backend:
+    command: dev-spec-default-writer-backend
+    profile: dev-spec-default-writer-backend
+  writer_frontend:
+    command: dev-spec-default-writer-frontend
+    profile: dev-spec-default-writer-frontend
+  writer_opus:
+    command: dev-spec-default-writer-opus
+    profile: dev-spec-default-writer-opus
+  escalation_architect:
+    command: dev-spec-escalation-architect
+    profile: dev-spec-escalation-architect
+  escalation_verifier:
+    command: dev-spec-escalation-verifier
+    profile: dev-spec-escalation-verifier
+  coordinator_plan:
+    command: dev-spec-default-coordinator-plan
+    profile: dev-spec-default-coordinator-plan
+  coordinator_work:
+    command: dev-spec-default-coordinator-work
+    profile: dev-spec-default-coordinator-work
+  coordinator_docs:
+    command: dev-spec-default-coordinator-docs
+    profile: dev-spec-default-coordinator-docs
+  verifier:
+    command: dev-spec-default-verifier
+    profile: dev-spec-default-verifier
+  architect:
+    command: dev-spec-architect
+    profile: dev-spec-architect
+  ux:
+    command: dev-spec-ux
+    profile: dev-spec-ux
+requirements:
+  docker_auto_shim: true
+  collaboration: true
+  browser: true
+  tools:
+  - git
+  - node
+  - python3

@@ -1,0 +1,37 @@
+docker:
+  agents:
+    dev-spec-default-writer-backend:
+      type: claude
+      model: claude-sonnet-5-5
+      reasoning: medium
+      auth:
+        from: env:CLAUDE_CODE_OAUTH_TOKEN
+        to: env:CLAUDE_CODE_OAUTH_TOKEN
+    dev-spec-default-writer-frontend:
+      type: claude
+      model: claude-sonnet-5-5
+      reasoning: medium
+      auth:
+        from: env:CLAUDE_CODE_OAUTH_TOKEN
+        to: env:CLAUDE_CODE_OAUTH_TOKEN
+    dev-spec-default-writer-opus:
+      type: claude
+      model: claude-sonnet-5-5
+      reasoning: xhigh
+      auth:
+        from: env:CLAUDE_CODE_OAUTH_TOKEN
+        to: env:CLAUDE_CODE_OAUTH_TOKEN
+    dev-spec-default-coordinator-work:
+      type: claude
+      model: claude-sonnet-5-5
+      reasoning: medium
+      auth:
+        from: env:CLAUDE_CODE_OAUTH_TOKEN
+        to: env:CLAUDE_CODE_OAUTH_TOKEN
+    dev-spec-default-coordinator-docs:
+      type: claude
+      model: claude-sonnet-5-5
+      reasoning: medium
+      auth:
+        from: env:CLAUDE_CODE_OAUTH_TOKEN
+        to: env:CLAUDE_CODE_OAUTH_TOKEN

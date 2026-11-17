@@ -1,0 +1,938 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/akopichin/afm/main/schema/flow.schema.json
+# Run with AFM 3.1.4+: afm run --pipeline <package-source>.
+# Python 3, Node.js 18+ and the named commands/profiles are required.
+# The helper's --help and source describe the project contract and helper commands.
+name: dev-spec
+description: "Project-aware planning with spec deltas, independent review, live acceptance and local merge"
+worktrees: true
+skills_dir: ./skills
+
+# Read existing lessons without paying for reflection/finalization on every task.
+memory:
+  path: .memory
+  mode: r
+  memory_use: true
+
+prompt: |
+  Общайся с пользователем, показывай планы, вопросы и отчёты по-русски.
+  This flow develops the USER'S PROJECT. Discover its tools and conventions from
+  applicable AGENTS.md, contribution docs and actual code. Follow its requirements
+  for tests, documentation and commit language; keep changes within the approved task.
+
+  Artifacts belong under the absolute $AFM_STAGE_DIR, not in product source files.
+  The approved plan and project contract are sibling plan/dev-plan.md and
+  plan/project.json. The approved behavioral delta, when present, is plan/delta.md.
+  Read these artifacts by path. Only Docs applies the delta to project specs.
+  The frozen per-run helper is:
+    python3 "$(git rev-parse --git-path dev-spec/helper.py)" --help
+  Use it for declared checks, receipts, identity, live-gate and optional app
+  supervision. Keep coordination IDs/brief revisions/check evidence and repair
+  counts in team-progress.json; later stages read saved reports and evidence.
+
+  Route acceptance by project.json acceptance.interfaces and acceptance.ui.mode.
+  Only participants assigned UI work read
+  $AFM_PIPELINE_DIR/skills/afm-ui-acceptance/SKILL.md.
+  Backend-only tasks use their API/CLI/library acceptance criteria. The visual
+  planning workshop is available only on explicit user request; do not offer it.
+  It is independent of product UI acceptance.
+
+  The assigned skills own check discipline, mesh coordination, writer delivery,
+  read-only review and user-facing reporting. This flow owns ordering, role/profile
+  selection, artifact contracts, approvals and gates. Its execution defaults are:
+  - Initial implementation and first repairs go to backend/frontend writers.
+    After two rejected candidate rounds for one logical work item, the standing
+    diagnosis agent (team ID rescue-architect) must diagnose it, then the reserve
+    writer (team ID opus) implements the accepted design. Фабула (team ID fabula)
+    stays idle on this first escalation and its first rejected rescue candidate. Escalate BEFORE a third
+    correction/review round; do not send another fix to the original writer.
+    Use the coordinator's diagnosis/handoff protocol. Task complexity or
+    subsystem boundaries alone do not justify assigning work to the reserve.
+  - One owner per check; broad checks belong to declared gates, not every agent.
+  - One focused run; repeats above five require a named hypothesis and budget.
+  - Mutation testing only for an explicit risk, with one owner and bounded mutants.
+  - One initial review and one focused correction review; normally 15 minutes per
+    review. Two rejections trigger the mandatory diagnosis -> reserve-writer route.
+    Count candidate rounds, not reviewers/findings; new finding IDs do not reset
+    the logical task/invariant. Preserve history across stages, verify and live runs.
+  - Delegated work uses wait windows of at most 300 seconds, even for hour-long
+    assignments. Keep the absolute task deadline separate. On each wake inspect
+    wait outcomes, roster, helper results and recent granted logs/activity; use
+    the coordinator's health protocol to recover confirmed dead agents before
+    their task deadline, after proving prior writers/commands stopped. Silence
+    alone is not a hang. Window expiry does not cancel work or reset its budget.
+  - Two failed repairs also trigger the mandatory diagnosis/reserve-writer route. One bounded rescue includes independent acceptance;
+    activate Fabula only after at least TWO distinct candidate rounds are rejected
+    AFTER escalation for the same logical task. Count batches, not findings or
+    reviewers. A first rescue rejection needs a user decision for another bounded
+    Astra/Opus attempt; it does not activate Fabula. Once the repeat threshold is
+    reached, Fabula verifies the findings/design and may receive ONE exceptional
+    bounded residual repair under the diagnosis/handoff protocol.
+  Pass the applicable defaults, brief revision and evidence with every assignment;
+  helpers do not inherit this prompt. Required project checks remain mandatory.
+
+  Temporary helpers and AI verify agents do NOT inherit stage/team skills. Every
+  spawn instruction must explicitly require reading these exact files before work:
+    $AFM_PIPELINE_DIR/skills/afm-review-work/SKILL.md
+    $AFM_PIPELINE_DIR/skills/afm-check-evidence/SKILL.md
+    $AFM_PIPELINE_DIR/skills/delta-spec-contract/SKILL.md
+  Include the bounded question, scope, criteria, prior findings and check budget.
+  For UI review/consultation include the exact afm-ui-acceptance skill path too;
+  backend-only helpers do not load that skill.
+  A replacement writer also needs the exact afm-dev-writer and afm-check-evidence
+  paths plus delta-spec-contract from this library in its assignment; it does not inherit the team's skills.
+  Missing skills/capabilities must be reported; no silent substitute or gate
+  waiver. Reconcile own pending waits/helpers before completion using the coordinator
+  skill when collaboration was used. Routine in-scope work needs no new approval;
+  ask only for missing requirements, material scope changes or a concrete blocker.
+  Own only started processes. Exercise orchestrator products only in an isolated
+  fixture with its own data/port, never by mutating the parent run.
+
+hooks:
+  - id: dev-planning-preview-cleanup
+    events: [flow_finished, flow_failed, flow_interrupted]
+    command: 'if [ -f "$AFM_RUN_DIR/bootstrap/planning/workbench.mjs" ]; then node "$AFM_RUN_DIR/bootstrap/planning/workbench.mjs" stop --session "$AFM_RUN_DIR/plan"; fi'
+
+team:
+  - id: dev-backend
+    profile: dev-spec-default-writer-backend
+    title: ЛинусБи
+    skills: &writer_skills [afm-check-evidence, afm-dev-writer, delta-spec-contract]
+    instruction: &writer_instruction |
+      Implement your assigned bounded task under the writer and check-evidence
+      skills. Use the task's canonical request ID, file grant and current brief.
+      If assigned UI behavior/appearance work, also read
+      $AFM_PIPELINE_DIR/skills/afm-ui-acceptance/SKILL.md; otherwise skip it.
+      Follow the coordinator's explicit check/review budgets. Do not commit or push;
+      return the linked deliverable and evidence for independent acceptance.
+  - id: dev-frontend
+    profile: dev-spec-default-writer-frontend
+    title: ЛинусФи
+    skills: *writer_skills
+    instruction: *writer_instruction
+  - id: opus
+    profile: dev-spec-default-writer-opus
+    title: Опусарх
+    skills: *writer_skills
+    instruction: |
+      You are the escalation-only reserve writer. Do not take initial implementation
+      or first repairs. Before editing, read the recorded escalation: logical task,
+      failed repair/review evidence and counters or the explicit user handoff,
+      accepted diagnosis from the standing rescue-architect after two rejected
+      candidate rounds or failed repairs, previous owner's release of files and
+      modifying commands, bounded file/test grant and acceptance/check budget.
+      The user may explicitly change this route; preserve their original instruction.
+      If this evidence is missing, ask the coordinator and do not edit.
+      Follow the afm-dev-writer and afm-check-evidence skills and project rules.
+      For UI work also read
+      $AFM_PIPELINE_DIR/skills/afm-ui-acceptance/SKILL.md.
+      Do not commit or push; return the linked deliverable and evidence for
+      independent acceptance. Only repeated post-escalation rejection may activate the
+      Fabula verification/repair defined in the coordinator protocol; do not restart
+      your own loop.
+  - id: rescue-architect
+    profile: dev-spec-escalation-architect
+    title: Астра
+    skills: [afm-check-evidence, afm-dev-diagnosis]
+    instruction: |
+      You are the standing escalation diagnostician. Stay idle until the coordinator
+      sends a bounded repeated-failure diagnosis or explicit user-directed request.
+      Follow afm-dev-diagnosis and afm-check-evidence. Inspect the full logical task's
+      repair/review history; reproduce the cause and validate the smallest corrective
+      design in granted scratch. Product files are read-only; no managed browser or
+      delegation. Return a full linked diagnosis for the separate reserve writer,
+      not an ACK or an implementation. If assigned UI work, read
+      $AFM_PIPELINE_DIR/skills/afm-ui-acceptance/SKILL.md too.
+
+  - id: fabula
+    profile: dev-spec-escalation-verifier
+    title: Фабула
+    skills: [afm-check-evidence, delta-spec-contract]
+    instruction: |
+      Stay idle during ordinary work, the first escalation and the first rejected
+      post-escalation candidate. Activate only when the same logical task has at
+      least TWO rejected post-escalation candidate rounds, recorded as
+      escalation.post_escalation_rejected_rounds >= 2. Then independently verify
+      the full linked Astra diagnosis, repeated findings and corrective design
+      against the frozen candidate and prior repair/review history. Read
+      $AFM_PIPELINE_DIR/skills/afm-review-work/SKILL.md for this read-only assignment. Reproduce findings, challenge the corrective design
+      across adjacent producers/states, distinguish product and test-harness bugs,
+      and return one linked pass/needs_changes/inconclusive result with evidence.
+      Do not edit product files during verification or replace Astra's diagnosis.
+      After this repeat threshold and your verification, if concrete remaining
+      in-scope bugs have understood causes, the coordinator may assign you ONE
+      bounded repair after recording the previous owner's release, exclusive
+      file/test grant and check/acceptance budget. For that separate writer request
+      read $AFM_PIPELINE_DIR/skills/afm-dev-writer/SKILL.md instead of the read-only
+      review skill. Do not redesign the approved scope or restart the rescue loop.
+      Your edits require fresh independent reviewers who did not author them;
+      your earlier diagnosis verification is not acceptance of your own patch.
+      No delegation, managed browser, commits or pushes. Return full canonical
+      linked replies and preserve the logical task's counters and evidence.
+
+stages:
+  - id: bootstrap
+    name: "Bind pipeline tools to this run"
+    script: |
+      set -eu
+      package="${AFM_PIPELINE_DIR:?Run this package with afm run --pipeline}"
+      cp "$package/docs/project-contract.md" "$AFM_STAGE_DIR/project-contract.md"
+      python3 "$package/scripts/helper.py" init --run-dir "$(dirname "$AFM_STAGE_DIR")" --flow "$package/flow.yaml"
+      if [ -f "$AFM_STAGE_DIR/planning/workbench.mjs" ]; then
+        node "$AFM_STAGE_DIR/planning/workbench.mjs" freeze --bootstrap "$AFM_STAGE_DIR"
+      else
+        node "$package/planning/workbench.mjs" freeze --bootstrap "$AFM_STAGE_DIR"
+      fi
+
+  - id: plan
+    name: "Confirm task and project contract"
+    depends_on: [bootstrap]
+    command: dev-spec-default-coordinator-plan
+    agents: [auto]
+    interactive: true
+    script_before: |
+      set -eu
+      python3 "$(git rev-parse --git-path dev-spec/helper.py)" init --run-dir "$(dirname "$AFM_STAGE_DIR")"
+    skills: [afm-dev-planning, afm-check-evidence, afm-dev-coordinator, afm-dev-refinement, delta-spec-contract]
+    artifacts:
+      - {name: plan, path: ./dev-plan.md, inline: false}
+      - {name: project, path: ./project.json, inline: false}
+      - {name: delta, path: ./delta.md, inline: false}
+      - {name: architecture, path: ./c4.json, inline: false}
+      - {name: architecture-evidence, path: ./c4-manifest.json, inline: false}
+      - {name: architecture-presentation, path: ./c4-approval.md, inline: false}
+      - {name: grooming-choice, path: ./grooming-choice.json, inline: false}
+      - {name: grooming, path: ./grooming.json, inline: false}
+      - {name: grooming-report, path: ./report.html, inline: false}
+    prompt: |
+      Recover prior answers before asking anything. If the task is unknown, ask
+      what to build via the dialog; otherwise use the supplied task. Ask only
+      unresolved questions that materially affect scope or acceptance, bundling
+      related points. The planning skill supplies discovery/decomposition techniques;
+      use afm-dev-refinement to clarify the requested outcome and consult grounded
+      evidence before asking material questions. This flow owns approval, review,
+      delegation and commits. Leave product code and canonical specs alone in Plan.
+
+      Use ordinary written planning by default. Do not offer visual grooming or
+      ask a planning-mode question. Write dev-plan.md/project.json, discuss them
+      through the AFM dialog, obtain the existing ONE plan approval and record its
+      paths in approval.md. No grooming choice receipt, workshop, browser feedback,
+      readiness or visual approval seal is required for ordinary planning.
+
+      Visual grooming remains available only when the user explicitly requests
+      it or when resuming an existing visual session. Recover any saved
+      grooming-choice.json and workshop artifacts first; retain their evidence
+      and approval checks. Without a saved choice or workshop artifacts,
+      verify-plan accepts ordinary planning without a mode question.
+
+      For an explicitly requested or resumed workshop, read the frozen
+      bootstrap/planning/README.md and use workbench.mjs and example.json.
+      Start the page early and show its URL to the user;
+      update it during discussion, not only at the end.
+      Show a source-grounded baseline and incremental Before/After steps. EVERY
+      step and technical entry must explain both WHAT changes and WHY; keep the
+      step's two explanations visible regardless of the open details tab.
+      Include real changed functions/signatures, contracts, source references,
+      preserved invariants and planned checks. Explain empty detail categories.
+      Match the current AFM Graphite/Goga skin and dark/light mode. This workshop
+      also applies to backend/docs tasks; it does not select product UI acceptance.
+      Use managed-browser CDP for real step/element/global comments and replies,
+      durable checkpoints and revision publication. Poll while awaiting feedback;
+      silence is not completion. Never simulate user comments or readiness clicks.
+      Before locking the final workshop revision, derive delta.md and update
+      project.json using delta-spec-contract, then publish that revision. Keep
+      dev-plan.md, project.json and grooming.json consistent. The human's
+      page readiness is not approval: lock that exact revision and use the ONE
+      existing AFM plan approval dialog, with the toolkit's exact approval label.
+      Seal grooming-approval.json, export report.html and run verify-plan after
+      the human selection. On resume recover browser/checkpoint state first and
+      reuse matching approval; never restart a completed workshop ceremonially.
+
+      Discover the actual project and inspect relevant instructions/build scripts.
+      Read the sibling bootstrap/project-contract.md for the project.json
+      contract. Assign all initial implementation sections to backend/frontend
+      writers. Keep rescue-architect, fabula and the reserve writer (team ID opus)
+      unassigned until a recorded escalation; complexity or subsystem boundaries
+      alone are not escalation.
+      Write under $AFM_STAGE_DIR:
+      - dev-plan.md: confirmed Task and Non-goals; requirements table mapping each
+        confirmed requirement/prototype behavior to a test or live step; grounded
+        implementation Sections with task IDs, files, one writer owner, criteria,
+        and explicit What/Why explanations for EVERY section and task;
+        Docs notes; an executable Live run scenario with expected results/cleanup.
+      - project.json: schema_version 2, base_branch, environment_id, input_paths,
+        checks groups implement/docs/final (each commands [{argv, cwd, timeout, input_paths?}]
+        or commands [] plus skip_reason), live {required, reason}, and review
+        {risk, profiles, escalation_profiles, consultants,
+        sections: [{id, reviewers, reason}]}.
+        profiles maps selected consultation/review roles to actual configured
+        profile IDs; escalation_profiles maps relevant architect roles to their
+        profiles even when no initial consultation is needed. Include
+        escalation_profiles.repeated_failure = dev-spec-escalation-architect
+        for the standing rescue-architect, distinct from ordinary consultants, and
+        escalation_profiles.findings_verifier = dev-spec-escalation-verifier
+        for fabula (Фабула, Fable medium), activated only after two rejected
+        post-escalation candidate rounds for the same logical task.
+        Record a projected
+        helper count plus a correction/escalation reserve against configured limits;
+        completed helpers still count toward any whole-run max_tasks limit.
+        Add checks.preflight for project-supported quick read-only compile/type and
+        changed-line lint checks. Use explicit short timeouts and the pinned task
+        baseline for diff lint. Explain a skip when the project has no quick tool.
+        Keep full suites in their existing gates.
+        Commands use argv arrays. For shell syntax use bash -o pipefail -c explicitly.
+        Discover required checks from this project's rules; never assume a stack
+        or omit its required checks. Include build/schema/docs checks when required.
+        input_paths lists relevant ignored inputs needed for evidence reuse; all
+        tracked and nonignored untracked source is fingerprinted automatically.
+        environment_id identifies the actual toolchain/dependency setup; update it
+        when that setup changes. Final checks cover the entire delivered change.
+        In dev-plan.md assign each required command/check family to one execution
+        gate and owner, with selectors, repeat/time budget and evidence to reuse.
+        Keep implement checks to necessary integration coverage; reserve repository-
+        wide suites for final unless an earlier full gate is concretely required.
+        Do not duplicate broad commands across groups by habit: receipts are reusable
+        only for the same group, inputs, contract and confirmed environment. Record
+        why any required overlap cannot wait. Docs checks belong to docs verify;
+        authors need only focused previews while editing. Plan review rounds and
+        their time budgets along with helper counts; revise them when scope changes.
+
+      Add acceptance {interfaces, reason, ui, criteria} using the bootstrap contract.
+      Choose interfaces from changed observable behavior, not file suffixes. Set
+      ui.mode none for backend-only work; behavior for interaction fixes, visual for
+      appearance changes, prototype for reference parity. If UI is affected read
+      $AFM_PIPELINE_DIR/skills/afm-ui-acceptance/SKILL.md now.
+      Bound ui.surfaces to affected states; do not prescribe all themes/widths for
+      every UI task. Write atomic criteria with stable IDs, requirement, interface,
+      action, expected observation and evidence_kind. Separately required actions
+      need separate IDs. Non-executable changes have no live criteria.
+      Declare rewriting generators/builds as check-group prepare commands so they
+      finish before candidate freeze and broad checks. Declare reviewed input_paths
+      per implement/docs command and criterion for independently affected surfaces;
+      include shared code, configuration, dependencies and build inputs. A stale group
+      receipt may still contain reusable successful commands. Group/live scopes remain
+      available; explain each scope and any whole-tree fallback for review. Default to all inputs if uncertain; final
+      checks always cover the whole tree. Reference shared protocols, do not copy
+      them into the plan. Recover incoming task additions before asking approval.
+
+      Initial architecture and domain consultations use dev-spec-architect;
+      mandatory repeated-failure diagnosis uses the standing rescue-architect
+      bound to dev-spec-escalation-architect, followed by implementation by opus.
+      Fabula remains idle until at least two distinct post-escalation candidate
+      rounds are rejected for the same task. Only then obtain its independent
+      findings/design verification and consider the protocol's one exceptional
+      residual repair, followed by fresh independent acceptance.
+      UX consultation uses dev-spec-ux. Package defaults are independent recipes;
+      --pipeline-options can replace their recipes or profiles for this run.
+      Keep consultants independent from the implementation writer and inspect
+      their actual command recipes when recording the review contract.
+      For correctness, design, tests and security reviews, use the configured
+      collaboration profile whose command matches this run's AI verify command
+      in bootstrap/flow.yaml. It shares the verifier's model and reasoning;
+      the package default is GPT-6.1 Sol with xhigh. Do not silently substitute
+      the global codex command, which may have different settings.
+      Match the selected perspective to the bounded instruction and check executor
+      availability. No separate design/tests/security reviewer profiles are needed.
+      A profile may cover several perspectives through separate bounded tasks.
+      Save selected mappings in review.profiles and the relevant architect mappings
+      in review.escalation_profiles, recording why each profile fits. Never invent
+      profile IDs. If a required perspective or escalation has no suitable profile,
+      resolve the missing configuration with the user before approving the plan.
+
+      Review budget follows risk, with a reason per selected/skipped perspective:
+      - small: one coherent change without risky boundaries; no mandatory consultants
+        or section reviews, final independent implement gate covers all perspectives;
+      - normal: consult a relevant specialist only for an unresolved design question;
+        one correctness section review, adding design/tests only for a concrete risk;
+      - high: concurrency, persistence, broad refactors or trust boundaries require
+        independent architecture consultation and correctness/tests section reviews;
+        add security for changed trust boundaries, design for structural risk.
+      UX consultation is useful for new/ambiguous interactions or prototypes, not
+      obligatory for every task. Keep sections coherent; no microscopic sections
+      created just to trigger more review. Spawn the selected consultants using
+      review.profiles and the shared helper protocol; no consultations means no
+      consultant spawns. Wait once for their message IDs, read each helper-result,
+      integrate findings and record task/request/result IDs in consultations.md.
+
+      The live scenario launches the real product from current source using this
+      project's commands. UI checks use the managed browser when available; CLI/API
+      changes use their real interfaces and captured exit codes. Test fixtures have
+      their own data/port and remain visible to the app being tested. A docs-only
+      or non-executable change can justify live.required false. A missing browser
+      for a required UI scenario is a blocker, not grounds to disable that scenario.
+
+      Once the written plan or requested grooming settles the behavior, follow
+      delta-spec-contract to derive delta.md and set project.json spec. Map
+      scenarios to plan tasks and live criteria or justified non_live checks.
+      Run the frozen helper spec-plan before rendering C4 or sealing the workshop.
+      The generated c4-approval.md includes the full delta or skip reason.
+      Before approval, read bootstrap/planning/C4.md. Describe the affected
+      architecture in c4.json using real source references and task IDs from the
+      finished plan. Use focused C3 component views, C2 for container/system
+      boundaries, and C4 code views only when they clarify the changed component.
+      Produce separate Before/After images with shared positions. Explain an
+      inapplicable requested level in the plan; non-architectural changes may use
+      an explicit skip_reason instead of inventing a diagram.
+      Run the frozen c4.mjs render with --session "$AFM_STAGE_DIR" and --root set
+      to the effective project's Git root. Use the default compact presentation:
+      one primary After image inline, plus Before/After links for the other levels.
+      Do not emit HTML details blocks; AFM currently escapes them. Include the
+      exact c4-approval.md contents in the existing plan approval question. Keep
+      generated image links out of dev-plan.md to avoid a circular plan hash.
+      Once AFM creates the actual question file, run c4.mjs bind-question with
+      --session and --question before waiting for the human. Never fabricate the
+      question file. A changed plan/model requires new images and a new bound
+      question; preserve the old image artifacts. No extra approval is introduced.
+
+      Validate the contract with the helper before approval. Present the full plan,
+      commands, review budget and material tradeoffs in ONE plan approval dialog.
+      Record its question/answer paths in approval.md. Material changes after
+      approval need renewed approval; routine review corrections within scope do not.
+      Summary: confirmed task, absolute artifact paths, approval and consultation
+      evidence. Keep it short. No project-root planning junk.
+    verify:
+      steps:
+        - run: |
+            set -eu
+            python3 "$(git rev-parse --git-path dev-spec/helper.py)" identity
+            python3 "$(git rev-parse --git-path dev-spec/helper.py)" spec-plan
+            node "$(dirname "$AFM_STAGE_DIR")/bootstrap/planning/workbench.mjs" verify-plan --session "$AFM_STAGE_DIR"
+            node "$(dirname "$AFM_STAGE_DIR")/bootstrap/planning/c4.mjs" verify --session "$AFM_STAGE_DIR"
+          timeout: 2m
+        - command: dev-spec-default-verifier
+          timeout: 15m
+          prompt: |
+            Before reviewing, read these assigned skills (verify does not inherit them):
+            $AFM_PIPELINE_DIR/skills/afm-review-work/SKILL.md
+            $AFM_PIPELINE_DIR/skills/afm-check-evidence/SKILL.md
+            $AFM_PIPELINE_DIR/skills/delta-spec-contract/SKILL.md
+            Use the injected verify result contract; the review below defines its scope.
+            If this contract selects UI acceptance, also read
+            $AFM_PIPELINE_DIR/skills/afm-ui-acceptance/SKILL.md; otherwise skip it.
+            Independently inspect this run's plan/dev-plan.md, project.json,
+            approval.md and any consultation evidence via the paths in the summary.
+            Check the approved delta against source behavior, material task decisions
+            and scenario/check mappings, or verify the reason for no delta.
+            Check task fit and requirement/prototype coverage, real integration
+            points, repo-required commands, justified review budget and executable
+            live acceptance. Check interface selection, atomic criteria and justified
+            UI mode/surfaces: no visual protocol for backend-only work, no blanket
+            palette sweep for a local interaction fix. Check scoped input dependency
+            coverage, including build/configuration inputs; uncertain scopes must use
+            the whole tree. Selected consultations must have committed helper
+            results with task/request IDs and dispositions; check profile mappings,
+            escalation coverage, helper/check budgets and one owner per broad check.
+            Initial implementation must belong to backend/frontend writers;
+            reject initial task ownership assigned to opus, rescue-architect or fabula.
+            Check that the repeated-failure escalation maps to the standing diagnosis
+            role and separate reserve implementation owner with actual bindings. Check
+            that fabula activates only after TWO rejected post-escalation candidate
+            rounds for the same task, never on first escalation or its first rejection;
+            its residual repair is limited to one bounded pass.
+            Required checks must stay covered; flag unjustified duplicate full suites
+            or blanket stress/mutation passes. A summary reply alone is not a result;
+            unselected roles need no ceremonial requests. Approval must cover the
+            task and material design; report missing evidence truthfully.
+            Inspect c4.json, c4-manifest.json and the actual bound approval
+            question/answer. Check that the C4 views describe the real affected
+            scope at the named abstraction level, reference actual source and
+            implementation task IDs, and include the exact generated presentation
+            in the question approved by the human. Before/After must reflect the
+            plan, not a synthetic example. A skip_reason is valid only when no
+            architecture view would help explain the change. Question binding is
+            evidence of presentation, not human approval by itself.
+            Ordinary planning is the default: inspect the written plan and
+            approval.md without requiring a grooming choice, workshop artifacts,
+            browser feedback or readiness. If grooming-choice.json exists,
+            validate its actual AFM question/answer evidence and respect the choice.
+            For a requested/resumed workshop or existing visual artifacts, inspect
+            grooming.json, grooming-checkpoint.json and grooming-approval.json.
+            Every plan section/task must explain WHAT and WHY in either mode.
+            Visual steps and technical details need the same explanations, with
+            real symbols/contracts and honest planned checks. Compare visual task
+            IDs, source evidence and explanations with dev-plan.md. Check that
+            original comments have answers in their own threads and that the exact
+            displayed revision/plan/project bytes have explicit human AFM approval.
+      max_failures: 2
+      review_patience: 0
+
+  - id: implement
+    name: "Implement and review according to risk"
+    depends_on: [plan]
+    inputs: [plan.plan, plan.project, {ref: plan.grooming, optional: true}, {ref: plan.delta, optional: true}]
+    command: dev-spec-default-coordinator-work
+    agents: [auto]
+    interactive: true
+    script_before: &bind_approved_run |
+      set -eu
+      helper="$(git rev-parse --git-path dev-spec/helper.py)"
+      python3 "$helper" init --run-dir "$(dirname "$AFM_STAGE_DIR")"
+      python3 "$helper" spec-approved
+    skills: [afm-check-evidence, afm-dev-coordinator, delta-spec-contract]
+    prompt: |
+      Include the approved delta path and scenario IDs in writer and reviewer
+      briefs. Check that the implementation covers the mapped scenarios and that
+      each changed file is grounded in an approved task.
+      Implement the approved sections with the declared backend/frontend writers
+      under the coordinator and check-evidence skills. Resolve their current
+      participant IDs from the roster. Keep the reserve writer (team ID opus) idle
+      until the diagnosis/handoff protocol records a justified escalation and
+      releases the previous owner's files and modifying commands. Initial work,
+      first repairs, complexity and subsystem boundaries do not qualify.
+      Keep the plan as a file reference. Publish task
+      ownership/progress on the Board; save IDs, acceptance, completed-command evidence
+      and applied brief revisions in team-progress.json before review dispatch.
+      For every outstanding writer/helper use wait windows <= 300 seconds under
+      the coordinator's health protocol. Check progress and failures on every wake;
+      preserve each task's absolute deadline and safely replace confirmed dead
+      agents before it expires. Do not stack a long wait beside these windows.
+
+      If check groups declare prepare commands, run helper prepare --group implement
+      --stage implement before freezing the review candidate; inspect generated edits.
+      If UI is affected, the coordinator uses the UI skill for an early representative
+      preview before repeating the design across sections. Keep early preview coverage
+      representative; do not repeat the full live matrix at every review. Capture all selected
+      surfaces/states in ui-preview.json on the accepted candidate before completion.
+      Backend-only work needs no UI preview or design helper. Read-only reviewers
+      receive actual captures/measurements; do not grant them the managed browser.
+
+      Before dispatching any product cross-review, run or reuse the frozen helper
+      receipt --group preflight --stage implement, falling back to checks --group
+      preflight --stage implement. Hand a passing receipt to each selected reviewer.
+      Return product failures to the writer before calling Sol. Diagnose missing
+      tooling or timeout separately. Repeat for each materially changed candidate.
+      Reviews follow project.json's selected perspectives per section. Spawn a fresh
+      helper per selected section/perspective/round using review.profiles and the exact
+      review/check skill paths above. Keep the candidate stable until the batch ends.
+      Save committed result IDs/findings/dispositions in team-review.md, updating rather
+      than repeatedly appending the same finding. Deduplicate corrections per writer;
+      round two reviews only perspectives affected by blockers, with prior evidence.
+      Unselected reviewers are not missing work. Defer optional refinements once.
+
+      Apply the coordinator skill's mandatory diagnosis/handoff protocol, including
+      verify corrections. After two rejected candidate rounds for one logical task
+      or two failed repairs, send the full history to standing rescue-architect,
+      then transfer the accepted corrective design to opus. Keep fabula idle until
+      escalation.post_escalation_rejected_rounds >= 2 for the same logical task. Do not dispatch a third
+      ordinary-writer correction. Use review.escalation_profiles.repeated_failure
+      and the roster to verify the binding; domain consultations do not substitute
+      for this route. Read the full linked diagnosis and preserve prior counters.
+      Record diagnosis IDs, dispositions, owner and evidence in the same task's ledger
+      and team-review.md. Only after at least TWO distinct rejected post-escalation
+      candidate rounds obtain Fabula's independent findings/design verification
+      and consider its one exceptional bounded residual repair;
+      unresolved failures, unclear causes or material scope changes go to the dialog;
+      a new helper never resets the repair count.
+
+      Before finishing, every task and selected review must have accepted evidence.
+      Use the coordinator's wait/helper cleanup protocol. Put last required broad
+      checks in project.json; implement verify runs or reuses them immediately. On
+      verify correction, address only the reported defects and reopen specialist review
+      only for new material risk, recording its reason. Summary: task coverage, changed
+      scope, review/cleanup outcomes and evidence paths. Docs and commit are later.
+    verify:
+      steps:
+        - run: |
+            set -e
+            python3 "$(git rev-parse --git-path dev-spec/helper.py)" receipt --group preflight --stage implement ||
+            python3 "$(git rev-parse --git-path dev-spec/helper.py)" checks --group preflight --stage implement
+            python3 "$(git rev-parse --git-path dev-spec/helper.py)" receipt --group implement --stage implement ||
+            python3 "$(git rev-parse --git-path dev-spec/helper.py)" checks --group implement --stage implement
+            python3 "$(git rev-parse --git-path dev-spec/helper.py)" ui-gate
+          timeout: 30m
+        - command: dev-spec-default-verifier
+          timeout: 20m
+          prompt: |
+            Before reviewing, read these assigned skills (verify does not inherit them):
+            $AFM_PIPELINE_DIR/skills/afm-review-work/SKILL.md
+            $AFM_PIPELINE_DIR/skills/afm-check-evidence/SKILL.md
+            $AFM_PIPELINE_DIR/skills/delta-spec-contract/SKILL.md
+            Use the injected verify result contract; the review below defines its scope.
+            If this contract selects UI acceptance, also read
+            $AFM_PIPELINE_DIR/skills/afm-ui-acceptance/SKILL.md; otherwise skip it.
+            Independently inspect the actual change against the approved plan and
+            project contract. Read the linked team-review/check evidence. Verify
+            required task coverage and the selected risk-based review policy;
+            when UI is selected inspect ui-preview.json and actual observations,
+            including prototype/reference pairs where selected. A baseline defect
+            violating an approved criterion remains blocking. Backend-only work
+            does not require previews or visual reviews;
+            temporary reviews/diagnoses need committed helper results and IDs,
+            standing rescue-architect diagnoses need full canonical linked replies,
+            accepted evidence and candidate identity, not helper-result IDs;
+            reconcile the logical task's complete candidate-round history across
+            stages/verify/live and count each rejected batch once. After two rejected
+            rounds or failed repairs, require rescue-architect diagnosis and a separate
+            opus implementation before another correction/review round; require
+            fabula findings/design verification ONLY after at least TWO rejected
+            post-escalation candidate rounds for that task. Allow only the protocol's
+            single exceptional Fabula repair after that threshold, with exclusive
+            ownership and fresh independent acceptance;
+            reject continued original-writer fixes or a restarted rescue loop unless
+            the original user instruction explicitly authorized that exception;
+            reserve-writer edits require a recorded escalation and ownership handoff,
+            including failed repair/review evidence or an explicit user handoff,
+            independent diagnosis when required and a bounded file/test grant;
+            check canonical request IDs and linked replies; Board completion is
+            not proof that a reply_to wait was answered. Recorded cancellations
+            need accepted evidence and must not hide outstanding review work;
+            unselected reviewers are not missing work. Apply the assigned review
+            and evidence skills; correctness defects remain blocking even if
+            dismissed as out of scope.
+      max_failures: 3
+      review_patience: 0
+
+  - id: live-run
+    name: "Exercise the project's real acceptance scenario"
+    depends_on: [plan, implement]
+    inputs: [plan.plan, plan.project, {ref: plan.delta, optional: true}]
+    command: dev-spec-default-coordinator-work
+    agents: [auto]
+    interactive: true
+    script_before: *bind_approved_run
+    skills: [afm-check-evidence, afm-dev-coordinator, afm-delivery-report, delta-spec-contract]
+    prompt: |
+      Follow the approved delta scenario mapping in project.json. Record and
+      report scenario coverage using the existing criterion evidence. Preserve
+      this mapping in repair briefs and independent review. Before dispatching a
+      repair candidate to cross-review, run or reuse the frozen helper checks for
+      --group preflight --stage live-run and pass the current successful receipt.
+      Execute the plan's Live run scenario on the real product built from this
+      tree. Follow this project's launch/fixture commands; the product can be a
+      website, CLI, library, service or something else. Record observed outcomes,
+      stdout/stderr/exit codes, and screenshots/console/network evidence for UI.
+      Use managed browser APP_URL/APP_PORT and bind instructions when supplied;
+      a non-UI scenario does not require a browser. Never test the parent run.
+
+      Use helper serve/stop as needed for a foreground HTTP app: it captures the
+      process log, readiness and final exit code, and stops only its owned child.
+      It requires a fresh state directory under $AFM_STAGE_DIR, a readiness URL
+      and the project's argv. Run it as a background tool job while using the
+      browser, then request stop and await its result. Use the project's native
+      lifecycle for multi-process stacks; do not daemonize a child under serve.
+      Pass --unset-env NAME only for identified inherited parent transport variables
+      when necessary, preserving required browser/auth transport. Never guess or
+      rewrite auth/UID/HOME. For CLI checks capture the real exit status directly.
+
+      Write result.json under $AFM_STAGE_DIR using helper identity's current tree
+      and contract_sha256: {verdict, decision, reason, evidence: [file paths],
+      tree, contract_sha256}. PASS uses decision continue. NOT_APPLICABLE is allowed
+      only when the reviewed contract says live.required false, with its reason.
+
+      Use schema 2 structured results from bootstrap/project-contract.md. Record
+      one result row per approved criterion with observed behavior, evidence_kind,
+      evidence files and identities from one helper identity --criteria batch on a
+      frozen candidate (--criterion ID for a single row). Use identity --live for
+      result.json's product identity. Record repairs with invariant and accepted
+      independent-review/regression evidence; pending_work must be empty to finish.
+      Missing, NOT_RUN or failed required criteria cannot be PASS. A known baseline
+      defect violating an explicit criterion remains in scope. Scoped user changes
+      need their original authorization evidence and affected criterion IDs; record
+      WAIVED rows and ACCEPTED_WITH_EXCEPTIONS, never disguise them as passed steps.
+      Read the UI skill only for selected UI criteria; API/CLI/library acceptance
+      needs no screenshot, prototype or theme matrix. Preserve each attempt.
+
+      YOU own the complete acceptance/repair cycle in this stage. An in-scope
+      failure automatically means diagnose -> delegate repair -> independent
+      review -> rebuild -> repeat failed and affected live criteria. Do not ask whether to fix,
+      whether to rerun, whether the repaired tree is ready, or ask the user to
+      Revise/Pause the completed implement stage. Keep live-run open and coordinate
+      its repair through AFM; never call parent-run mutation APIs. The coordinator
+      does not patch product code. Routine repairs and required review/reruns are
+      already authorized by the approved task.
+
+      On each failure:
+      1. Persist FAIL with decision retry and the tested identity before dispatch.
+         Preserve each attempt's result and evidence under a distinct round path
+         in $AFM_STAGE_DIR; do not overwrite the only failing repro. Keep ownership,
+         request/helper IDs, phase, findings, hypotheses, repair counts and accepted
+         evidence in team-progress.json; recover it before any resumed dispatch.
+         Import relevant prior repairs from sibling implement/team-progress.json
+         and implement/team-review.md so stage changes do not reset the budget.
+      2. Turn concrete failures into bounded work items with repro steps, expected
+         versus actual behavior, tested tree/contract, evidence paths, prior
+         hypotheses, explicit owned files/tests and acceptance criteria. Resolve
+         the declared backend/frontend writers from the roster and send each
+         initial repair to the appropriate standing writer. Use the reserve writer
+         (team ID opus) after mandatory rescue-architect diagnosis at the repeat
+         threshold and recorded ownership release; difficult or cross-boundary work alone
+         does not qualify. Preserve earlier repair counts when checking eligibility.
+         Reuse reachable writers; temporary helpers
+         are for read-only diagnosis/review, not product implementation. If a
+         writer is unavailable, follow the coordinator skill's replacement protocol and
+         report a real availability blocker only when no suitable owner exists.
+         Stop owned fixtures before writers change their inputs. Grant disjoint
+         scopes for concurrent work and wait in batch windows <= 300 seconds,
+         yielding normally. Between windows inspect roster, helper results and
+         recent granted logs/activity; recover confirmed dead agents safely before
+         their task deadlines under the coordinator's health protocol. Preserve
+         absolute task budgets; silence alone does not prove a hang.
+      3. Inspect each writer's actual changes, file ownership, regression test
+         evidence and focused checks. Reconcile actual completed commands and
+         applied brief revisions before assigning review checks. Freeze the review
+         candidate; leave the broad integration gate to the accepted candidate in
+         step 6 instead of repeating it before every correction review.
+      4. Spawn fresh independent review helpers in THIS stage using review.profiles
+         and the shared helper protocol. Always cover repair correctness and the
+         regression test; add design/security perspectives when the changed
+         boundary warrants them. Include the original failure, current diff,
+         relevant approved requirements, repair history and exact candidate tree.
+         Freeze the tree for the whole review batch. Read every committed
+         helper-result and record IDs/findings/dispositions in live-repair-review.md.
+         Count the whole rejected candidate batch once. Before every correction
+         apply step 5's mandatory escalation checkpoint; do not reset it for new
+         finding IDs in the same logical task/invariant. Route concrete blockers
+         to the eligible owner, then repeat affected checks and
+         independent review. A writer reply or green tests alone is not review
+         acceptance; implement-stage reviews do not cover later repairs.
+      5. Before a third correction/review round for one logical task, or after two
+         failed repairs, stop ordinary-writer fixes and send the full history to
+         the standing rescue-architect. Verify its configured binding against
+         review.escalation_profiles.repeated_failure. Accept the full linked
+         diagnosis, then transfer implementation to opus with exclusive file/test
+         ownership. Import earlier stage/verify/live counters. Require independent
+         review and live acceptance of this bounded rescue. The first rejected
+         post-escalation candidate needs a user decision for another bounded attempt.
+         Only after at least TWO rejected post-escalation candidate rounds for the
+         same task obtain fabula's independent findings/design verification, then
+         consider ONE exceptional bounded residual repair with ownership handoff
+         and fresh independent review. Never restart the rescue route automatically.
+      6. Once repairs and reviews are accepted, check the implement receipt with
+         helper receipt --group implement --stage implement. Reuse it only after
+         confirming the environment; if missing/stale/failed, archive the previous
+         receipt/logs and run helper checks --group implement --stage implement
+         ONCE for this candidate.
+         The helper reuses unchanged successful command inputs and original logs;
+         a frontend-only repair should not invalidate independently scoped backend tests.
+         Inspect check-generated changes; a changed tree
+         needs affected review again and a valid receipt before proceeding.
+         Rebuild the product from current source and start a fresh owned fixture.
+         Repeat the original failing steps
+         AND the affected approved criteria. Reuse other recorded criterion results
+         only when identity --criterion ID still matches their inputs, contract and
+         environment; unknown dependencies require the full approved scenario.
+         A targeted unit test is insufficient for a required live criterion. Record the new tested identity and observed evidence.
+         Another in-scope failure returns to step 1 with the same defect counters.
+         Do not rerun an unchanged failing tree just to wait for an external fix;
+         a fixture-only correction or disproved diagnosis needs recorded evidence
+         and independent acceptance before retrying unchanged product source.
+
+      Keep the user informed of findings, delegated fixes and review/rerun results
+      without routine approval questions. Ask only for missing requirements,
+      material scope expansion, unavailable required access/tools or a concrete
+      blocker after bounded diagnosis/rescue. Record unrelated findings separately;
+      do not silently broaden the approved task to fix them.
+
+      If an unresolved failure requires the user's decision, use a dialog with:
+        Retry after a fix
+        Override: continue with this recorded failure
+        Abort
+      Include the current tree and contract_sha256 literally in the question,
+      along with the concrete failure, attempted fixes/reviews, remaining blocker
+      and consequences. Explain what new input is needed for Retry; an unchanged
+      blocker is not permission to restart the exhausted repair loop.
+      Retry/Abort NEVER release this stage. Do not write execution_summary.md while
+      any repair, review or rerun is pending. Override records verdict FAIL,
+      decision override and answer_file pointing to the actual dialog .answer.json
+      in this stage; the helper verifies the exact selected option against its
+      question. Custom text
+      is not an implicit override. Missing evidence cannot be overridden.
+
+      Clean up owned fixtures/processes. Finish only after helper live-gate passes.
+      Use afm-delivery-report's live acceptance format for execution_summary.md and
+      present the same report directly in your final reply in Russian. Its evidence
+      comes from this stage's result.json, the approved live scenario and the actual
+      attempt logs/screenshots. Include repairs, unexecuted coverage and cleanup;
+      reporting itself must not start new tests or helpers.
+    verify:
+      steps:
+        - run: python3 "$(git rev-parse --git-path dev-spec/helper.py)" live-gate
+          timeout: 10m
+        - command: dev-spec-default-verifier
+          timeout: 15m
+          prompt: |
+            Before reviewing, read these assigned skills (verify does not inherit them):
+            $AFM_PIPELINE_DIR/skills/afm-review-work/SKILL.md
+            $AFM_PIPELINE_DIR/skills/afm-check-evidence/SKILL.md
+            $AFM_PIPELINE_DIR/skills/delta-spec-contract/SKILL.md
+            Use the injected verify result contract; the review below defines its scope.
+            If this contract selects UI acceptance, also read
+            $AFM_PIPELINE_DIR/skills/afm-ui-acceptance/SKILL.md; otherwise skip it.
+            Read-only: inspect live-run/result.json, live-run/execution_summary.md,
+            the approved live scenario,
+            actual observations and any team-progress.json/live-repair-review.md
+            through this run's stage paths. Confirm the result describes the
+            current inputs and contract. Inspect every structured criterion row,
+            evidence and input scope; unchanged criterion identities may reuse actual
+            prior observations, not unexecuted steps. Inspect original scoped user
+            authorizations for WAIVED rows; ACCEPTED_WITH_EXCEPTIONS is not PASS.
+            PASS needs all required criteria;
+            NOT_APPLICABLE needs the reviewed live.required false justification.
+            The user-facing report must cover each planned scenario with observed
+            outcomes and evidence, disclose test doubles and unexecuted coverage,
+            and distinguish live-run fixes from earlier implementation. Reject
+            unsupported pass counts or claims; do not demand wording polish.
+            For an explicit FAIL override inspect the recorded failed/blocked
+            steps and actual evidence without demanding a successful scenario.
+            If no remediation occurred, do not demand repair artifacts or helpers.
+            If product repairs occurred, inspect their actual diff and confirm
+            regression evidence, current declared checks and independent committed
+            review results for the repaired candidate. An implement-stage approval
+            predating those repairs is insufficient. Check that repeated-defect
+            candidate-round history and repair counters survive stage/verify/live
+            transitions. Two rejected rounds or failed repairs require a full linked
+            standing rescue-architect diagnosis and separate opus implementation; require
+            fabula findings/design verification only after TWO rejected post-escalation
+            candidate rounds for the same task. Only then allow the protocol's single
+            exceptional Fabula residual repair with fresh independent acceptance;
+            reject original-writer continuation or a repeated rescue loop without
+            an explicit recorded user exception. Verify actual role bindings, with no
+            reserve-writer edits before a recorded escalation and ownership handoff,
+            pending writer/reviewer work or unaddressed acceptance defects hidden
+            behind a summary. A FAIL may pass only with the exact explicit override
+            already validated by live-gate; a verified override accepts its recorded
+            failure, not missing or fabricated evidence. Apply the assigned
+            read-only review and evidence skills.
+      max_failures: 3
+      review_patience: 0
+
+  - id: docs
+    name: "Update required documentation"
+    depends_on: [plan, live-run]
+    inputs: [plan.plan, plan.project, {ref: plan.delta, optional: true}]
+    command: dev-spec-default-coordinator-docs
+    agents: [auto]
+    interactive: true
+    script_before: *bind_approved_run
+    skills: [afm-check-evidence, delta-spec-contract]
+    prompt: |
+      Run the frozen helper spec-sync to apply and archive the approved delta.
+      When a failed or waived live criterion affects the delta, resolve the
+      missing acceptance under the existing dialog before publishing a spec.
+      Include the updated requirements and archive in the Docs deliverables.
+      Cover the plan's Docs notes using this project's documentation locations,
+      language, changelog format and required build/link checks. If docs declares
+      prepare commands, run helper prepare --group docs --stage docs and inspect
+      generated edits before freezing the candidate for verify. Inspect the code
+      and actual UI/CLI labels. Update only necessary documentation; a justified
+      no-op is valid for an internal change. Do not edit product code. Use focused
+      previews while editing; leave the declared docs checks to verify. If a full
+      docs check is needed earlier to diagnose a failure, run it with the helper
+      once and provide its receipt so verify can reuse valid evidence. Confirm the
+      environment and pass a compact summary plus paths.
+      Run newly discovered required documentation checks and report their
+      evidence. Preserve the approved project contract.
+    verify:
+      steps:
+        - run: |
+            set -e
+            python3 "$(git rev-parse --git-path dev-spec/helper.py)" spec-verify
+            python3 "$(git rev-parse --git-path dev-spec/helper.py)" receipt --group docs --stage docs ||
+            python3 "$(git rev-parse --git-path dev-spec/helper.py)" checks --group docs --stage docs
+          timeout: 15m
+        - command: dev-spec-default-verifier
+          timeout: 10m
+          prompt: |
+            Before reviewing, read these assigned skills (verify does not inherit them):
+            $AFM_PIPELINE_DIR/skills/afm-review-work/SKILL.md
+            $AFM_PIPELINE_DIR/skills/afm-check-evidence/SKILL.md
+            $AFM_PIPELINE_DIR/skills/delta-spec-contract/SKILL.md
+            Use the injected verify result contract; the review below defines its scope.
+            Read-only: check the documentation diff against the actual implemented
+            behavior and project's requirements. Confirm required Docs notes are
+            covered and no product code was changed in this stage. Report factual
+            mismatches/missing required docs; wording taste is non-blocking. Reuse
+            the recorded docs build evidence for unchanged inputs.
+      max_failures: 2
+      review_patience: 0
+
+  - id: commit
+    name: "Validate and commit the delivered change"
+    depends_on: [docs]
+    command: dev-spec-default-coordinator-work
+    agents: [auto]
+    interactive: true
+    script_before: *bind_approved_run
+    skills: [afm-check-evidence, delta-spec-contract]
+    prompt: |
+      Run spec-verify and include the explicit changed canonical spec and archive
+      paths in the delivery commit.
+      Inspect staged/unstaged/new files and the plan's intended deliverables.
+      Pipeline artifacts live in the run directory; never delete source/tests/docs
+      as cleanup. Remove only your identified scratch files. Stage explicit paths,
+      excluding secrets/local config/unrelated edits. Review the staged diff.
+      If final declares prepare commands, run helper prepare --group final --stage
+      commit, inspect generated edits and repeat affected review/acceptance as needed
+      before freezing the candidate for checks.
+      Execute helper checks --group final --stage commit before committing, using
+      --reuse <receipt> only if its declared environment truly is unchanged. The
+      helper rejects a mismatched tree/contract. Checks that edit files must be
+      inspected and rerun until stable, then restage intended changes.
+      Commit under this project's message rules, with no unsolicited attribution
+      trailers or push. Confirm a clean tree and report commit ID/check receipt.
+      An already clean tree needs no empty commit. Unexpected product-code changes
+      after implementation require the affected review/acceptance again.
+    verify:
+      steps:
+        - run: |
+            set -e
+            python3 "$(git rev-parse --git-path dev-spec/helper.py)" spec-verify
+            python3 "$(git rev-parse --git-path dev-spec/helper.py)" receipt --group final --stage commit
+          timeout: 2m
+      max_failures: 1
+      review_patience: 0
+
+  - id: merge
+    name: "Optionally integrate into the project's base branch"
+    depends_on: [commit]
+    command: dev-spec-default-coordinator-work
+    agents: [auto]
+    interactive: true
+    script_before: *bind_approved_run
+    skills: [afm-check-evidence, afm-dev-coordinator, afm-delivery-report, delta-spec-contract]
+    prompt: |
+      Read base_branch from the project contract, current branch and git worktree
+      list. A non-linked checkout or current==base needs no merge. Otherwise
+      prepare integration in THIS feature worktree: merge the current local base,
+      understand both sides of conflicts, preserve both changes and commit any
+      resolution under project rules. Never leave the base checkout conflicted.
+      For material resolutions obtain a focused independent review of that scope;
+      repeat affected acceptance when behavior changed. Never classify a failed
+      test as environmental just because an isolated rerun is green.
+
+      If final declares prepare commands, run helper prepare --group final --stage
+      merge, inspect generated edits and repeat affected review/acceptance as needed.
+      Run helper checks --group final --stage merge on the exact candidate tree.
+      Reuse the commit receipt only for the same source inputs/contract and verified
+      unchanged environment, regardless of Git's "Already up to date" wording.
+      Build, UI, schema and docs checks are whatever THIS project requires.
+      Confirm clean source/base worktrees and identify the base HEAD. If the base
+      advanced during preparation, integrate and validate again before proceeding.
+
+      Run spec-verify --against-base on the integration candidate before offering merge approval.
+      Report any spec collision and reconcile it under the existing approval
+      protocol. Repeat the check after re-preparing for a newer base.
+      Now present the concrete candidate commit, base branch/HEAD, conflict outcome
+      and check evidence in one merge approval dialog. A user who declines keeps
+      the branch. After approval, recheck base HEAD and cleanliness; if the base
+      changed, re-prepare the candidate before seeking approval of material changes.
+      Fast-forward only from the base checkout; a race/refusal is a blocker, never
+      a reason to force/reset. Do not push. Report candidate/base IDs and the
+      validation receipt. Leave this active worktree intact; provide its cleanup
+      command for after the enclosing run exits, using branch -d.
+
+      On EVERY completion path (merged, declined or not needed), use the final
+      delivery format from afm-delivery-report in your final Russian reply and
+      execution_summary.md. Read the approved plan, sibling implement/live-run/docs/
+      commit summaries, live-run/result.json and applicable receipts. Include the
+      scenario/result table, limitations, actual commit/merge outcome and helper
+      cleanup. Distinguish the source exercised live from later merge validation.
+    verify:
+      steps:
+        - run: |
+            set -e
+            python3 "$(git rev-parse --git-path dev-spec/helper.py)" spec-verify
+            python3 "$(git rev-parse --git-path dev-spec/helper.py)" receipt --group final --stage merge ||
+            python3 "$(git rev-parse --git-path dev-spec/helper.py)" receipt --group final --stage commit
+          timeout: 2m
+      max_failures: 1
+      review_patience: 0

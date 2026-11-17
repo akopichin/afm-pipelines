@@ -1,0 +1,1042 @@
+{
+  "schema_version": 1,
+  "session_id": "cancel-example",
+  "revision": 1,
+  "title": "Отмена запуска без потери состояния",
+  "goal": "Синтетический пример груминга. Для реальной задачи агент строит карту по коду вашего проекта.",
+  "source": {
+    "root": "/example/project",
+    "revision": "example",
+    "fingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
+    "exclusions": []
+  },
+  "baseline": {
+    "id": "baseline",
+    "title": "Исходная схема",
+    "what": "Пользователь отправляет отмену через API. Оркестратор запускает агента с контекстом HTTP-запроса; намерение отмены остаётся в памяти.",
+    "why": "Здесь можно поправить понимание агента до обсуждения решения. Это иллюстративный исходный пример, а не описание текущего кода AFM.",
+    "graph": {
+      "nodes": [
+        {
+          "id": "ui",
+          "title": "Dashboard",
+          "note": "Действие пользователя",
+          "kind": "UI",
+          "x": 48,
+          "y": 38,
+          "description": "Пользователь запрашивает отмену. Интерфейс показывает состояние запуска.",
+          "evidence": [
+            "Synthetic example: example/ui.go"
+          ]
+        },
+        {
+          "id": "http",
+          "title": "HTTP handler",
+          "note": "Принимает отмену",
+          "kind": "API",
+          "x": 48,
+          "y": 204,
+          "description": "Принимает запрос и передаёт его оркестратору. Время HTTP-запроса ограничено временем ответа.",
+          "evidence": [
+            "Synthetic example: example/api.go"
+          ]
+        },
+        {
+          "id": "runner",
+          "title": "Оркестратор",
+          "note": "Запускает агента",
+          "kind": "RUNTIME",
+          "x": 278,
+          "y": 204,
+          "description": "Координирует выполнение и управляет ресурсами запуска.",
+          "evidence": [
+            "Synthetic example: example/runtime.go"
+          ]
+        },
+        {
+          "id": "agent",
+          "title": "Агент",
+          "note": "Выполняет работу",
+          "kind": "PROCESS",
+          "x": 278,
+          "y": 370,
+          "description": "Рабочий процесс, которому нужно корректно доставить отмену и дождаться его выхода.",
+          "evidence": [
+            "Synthetic example: example/process.go"
+          ]
+        },
+        {
+          "id": "request",
+          "title": "Request context",
+          "note": "Живёт до HTTP-ответа",
+          "kind": "LIFETIME",
+          "x": 48,
+          "y": 370,
+          "description": "Контекст HTTP-запроса. Использование его для длительной работы связывает жизнь агента с ответом сервера.",
+          "evidence": [
+            "Synthetic example: example/lifetime.go"
+          ]
+        },
+        {
+          "id": "cache",
+          "title": "Память процесса",
+          "note": "Намерение только в RAM",
+          "kind": "STATE",
+          "x": 508,
+          "y": 370,
+          "description": "Условное исходное хранение: намерение отменить запуск существует только в памяти процесса.",
+          "evidence": [
+            "Synthetic example: example/state.go"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "id": "ui-http",
+          "from": "ui",
+          "to": "http",
+          "label": "отмена",
+          "description": "Команда пользователя приходит через HTTP.",
+          "evidence": [
+            "Synthetic relation for this example"
+          ]
+        },
+        {
+          "id": "http-runner",
+          "from": "http",
+          "to": "runner",
+          "label": "запрос",
+          "description": "Обработчик передаёт команду оркестратору.",
+          "evidence": [
+            "Synthetic relation for this example"
+          ]
+        },
+        {
+          "id": "runner-agent",
+          "from": "runner",
+          "to": "agent",
+          "label": "запускает",
+          "description": "Оркестратор запускает рабочий процесс.",
+          "evidence": [
+            "Synthetic relation for this example"
+          ]
+        },
+        {
+          "id": "lifetime-agent",
+          "from": "request",
+          "to": "agent",
+          "label": "контекст",
+          "description": "В исходном примере время работы агента зависит от контекста запроса.",
+          "evidence": [
+            "Synthetic relation for this example"
+          ]
+        },
+        {
+          "id": "runner-cache",
+          "from": "runner",
+          "to": "cache",
+          "label": "статус",
+          "description": "Намерение отмены пока хранится только в памяти.",
+          "evidence": [
+            "Synthetic relation for this example"
+          ]
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "id": "change-1",
+      "title": "Владелец контекста",
+      "what": "Убираем зависимость агента от Request context. Добавляем Run context, которым владеет оркестратор. HTTP handler только передаёт команду.",
+      "why": "HTTP-ответ больше не обрывает длительную работу. Взамен у запуска появляется явная обязанность отменить контекст и освободить ресурсы.",
+      "task_ids": [
+        "T1"
+      ],
+      "graph": {
+        "nodes": [
+          {
+            "id": "ui",
+            "title": "Dashboard",
+            "note": "Действие пользователя",
+            "kind": "UI",
+            "x": 48,
+            "y": 38,
+            "description": "Пользователь запрашивает отмену. Интерфейс показывает состояние запуска.",
+            "evidence": [
+              "Synthetic example: example/ui.go"
+            ]
+          },
+          {
+            "id": "http",
+            "title": "HTTP handler",
+            "note": "Передаёт команду",
+            "kind": "API",
+            "x": 48,
+            "y": 204,
+            "description": "Принимает запрос и передаёт его оркестратору. Время HTTP-запроса ограничено временем ответа.",
+            "evidence": [
+              "Synthetic example: example/api.go"
+            ]
+          },
+          {
+            "id": "runner",
+            "title": "Оркестратор",
+            "note": "Владеет run context",
+            "kind": "RUNTIME",
+            "x": 278,
+            "y": 204,
+            "description": "Координирует выполнение и управляет ресурсами запуска.",
+            "evidence": [
+              "Synthetic example: example/runtime.go"
+            ]
+          },
+          {
+            "id": "agent",
+            "title": "Агент",
+            "note": "Выполняет работу",
+            "kind": "PROCESS",
+            "x": 278,
+            "y": 370,
+            "description": "Рабочий процесс, которому нужно корректно доставить отмену и дождаться его выхода.",
+            "evidence": [
+              "Synthetic example: example/process.go"
+            ]
+          },
+          {
+            "id": "cache",
+            "title": "Память процесса",
+            "note": "Намерение только в RAM",
+            "kind": "STATE",
+            "x": 508,
+            "y": 370,
+            "description": "Условное исходное хранение: намерение отменить запуск существует только в памяти процесса.",
+            "evidence": [
+              "Synthetic example: example/state.go"
+            ]
+          },
+          {
+            "id": "run",
+            "title": "Run context",
+            "note": "Живёт до конца запуска",
+            "kind": "LIFETIME",
+            "x": 48,
+            "y": 370,
+            "description": "Контекст принадлежит запуску. Возврат HTTP-ответа не завершает агента; отменой управляет оркестратор.",
+            "evidence": [
+              "Synthetic example: example/lifetime.go"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "ui-http",
+            "from": "ui",
+            "to": "http",
+            "label": "отмена",
+            "description": "Команда пользователя приходит через HTTP.",
+            "evidence": [
+              "Synthetic relation for this example"
+            ]
+          },
+          {
+            "id": "http-runner",
+            "from": "http",
+            "to": "runner",
+            "label": "запрос",
+            "description": "Обработчик передаёт команду оркестратору.",
+            "evidence": [
+              "Synthetic relation for this example"
+            ]
+          },
+          {
+            "id": "runner-agent",
+            "from": "runner",
+            "to": "agent",
+            "label": "запускает",
+            "description": "Оркестратор запускает рабочий процесс.",
+            "evidence": [
+              "Synthetic relation for this example"
+            ]
+          },
+          {
+            "id": "run-agent",
+            "from": "run",
+            "to": "agent",
+            "label": "контекст",
+            "description": "Контекст запуска определяет время жизни агента независимо от HTTP-запроса.",
+            "evidence": [
+              "Synthetic relation for this example"
+            ]
+          },
+          {
+            "id": "runner-cache",
+            "from": "runner",
+            "to": "cache",
+            "label": "статус",
+            "description": "Намерение отмены пока хранится только в памяти.",
+            "evidence": [
+              "Synthetic relation for this example"
+            ]
+          }
+        ]
+      },
+      "functions": [
+        {
+          "id": "start-stage",
+          "title": "(*Orchestrator).StartStage",
+          "file": "orchestrator/stages.go",
+          "what": "Убираем transport context из запуска фоновой работы. Контекст берётся у владельца запуска, поэтому возврат HTTP-ответа больше не завершает агента.",
+          "why": "Существующие проверки Pause, зависимостей и lease командного семафора остаются в общем пути запуска.",
+          "refs": [
+            "Synthetic example: orchestrator/stages.go"
+          ],
+          "node_ids": [
+            "runner"
+          ],
+          "before": "func (o *Orchestrator) StartStage(\n  ctx context.Context, id string,\n) error {\n  return o.launch(ctx, id)\n}",
+          "after": "func (o *Orchestrator) StartStage(\n  id string,\n) error {\n  return o.launch(o.runCtx, id)\n}",
+          "invariants": [
+            "Существующие проверки Pause, зависимостей и lease командного семафора остаются в общем пути запуска."
+          ]
+        },
+        {
+          "id": "new-orchestrator",
+          "title": "NewOrchestrator",
+          "file": "orchestrator/orchestrator.go",
+          "what": "Создаём один отменяемый контекст на запуск. Оркестратор хранит context и cancel, а вызывающий код отвечает за завершение владельца.",
+          "why": "Родитель — context запуска, переданный из точки сборки. context.Background() не заменяет жизненный цикл владельца.",
+          "refs": [
+            "Synthetic example: orchestrator/orchestrator.go"
+          ],
+          "node_ids": [
+            "run"
+          ],
+          "before": "func NewOrchestrator(store Store)\n  *Orchestrator",
+          "after": "func NewOrchestrator(\n  parent context.Context, store Store,\n) *Orchestrator\n\nrunCtx, cancel := context.WithCancel(parent)",
+          "invariants": [
+            "Родитель — context запуска, переданный из точки сборки. context.Background() не заменяет жизненный цикл владельца."
+          ]
+        },
+        {
+          "id": "handler-start",
+          "title": "(*Handler).HandleStart",
+          "file": "server/stages.go",
+          "what": "Обработчик сохраняет request context для своей короткой работы и передаёт команду. Он больше не задаёт время жизни агента.",
+          "why": "Путь, тело и успешный ответ HTTP API сохраняются. Меняется внутренняя передача context.",
+          "refs": [
+            "Synthetic example: server/stages.go"
+          ],
+          "node_ids": [
+            "http"
+          ],
+          "before": "err := o.StartStage(r.Context(), stageID)",
+          "after": "err := o.StartStage(stageID)",
+          "invariants": [
+            "Путь, тело и успешный ответ HTTP API сохраняются. Меняется внутренняя передача context."
+          ]
+        }
+      ],
+      "contracts": [
+        {
+          "id": "lifetime-contract",
+          "title": "Владение context",
+          "file": "Внутренний контракт · HTTP → runtime",
+          "what": "Меняем контракт Владение context.",
+          "why": "Закрытие браузера или окончание запроса не считаются командой отменить запуск.",
+          "refs": [
+            "Synthetic example: Внутренний контракт · HTTP → runtime"
+          ],
+          "node_ids": [
+            "run"
+          ],
+          "before": "Возврат HTTP handler может отменить рабочий процесс.",
+          "after": "HTTP context ограничивает обработку запроса. Run context ограничивает жизнь агентов.",
+          "invariants": [
+            "Закрытие браузера или окончание запроса не считаются командой отменить запуск."
+          ]
+        },
+        {
+          "id": "start-contract",
+          "title": "StartStage(id) error",
+          "file": "Изменение внутреннего Go API",
+          "what": "Меняем контракт StartStage(id) error.",
+          "why": "Все места вызова обновляются вместе. Внешний HTTP-контракт не меняется.",
+          "refs": [
+            "Synthetic example: Изменение внутреннего Go API"
+          ],
+          "node_ids": [
+            "runner"
+          ],
+          "before": "Каждый вызывающий код выбирает context для агента.",
+          "after": "Владелец запуска выбирает context; все вызовы используют общий путь StartStage.",
+          "invariants": [
+            "Все места вызова обновляются вместе. Внешний HTTP-контракт не меняется."
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "id": "survives-http",
+          "title": "TestStageSurvivesHTTPReturn",
+          "file": "server/stages_test.go",
+          "what": "Отправить команду запуска, дождаться HTTP-ответа и проверить работу агента через канал синхронизации.",
+          "why": "HTTP-ответ больше не обрывает длительную работу. Взамен у запуска появляется явная обязанность отменить контекст и освободить ресурсы.",
+          "refs": [
+            "Synthetic example: server/stages_test.go"
+          ],
+          "node_ids": [
+            "agent"
+          ],
+          "expected": "Агент продолжает работу после завершения запроса. Проверка не зависит от случайного sleep.",
+          "invariants": []
+        },
+        {
+          "id": "run-cancel",
+          "title": "TestRunCancelStopsAgent",
+          "file": "orchestrator/lifecycle_test.go",
+          "what": "Отменить context запуска и дождаться завершения агента.",
+          "why": "HTTP-ответ больше не обрывает длительную работу. Взамен у запуска появляется явная обязанность отменить контекст и освободить ресурсы.",
+          "refs": [
+            "Synthetic example: orchestrator/lifecycle_test.go"
+          ],
+          "node_ids": [
+            "run"
+          ],
+          "expected": "Отмена доходит до агента; тест дожидается выхода Run перед закрытием Store.",
+          "invariants": []
+        },
+        {
+          "id": "launch-invariants",
+          "title": "Pause / зависимости / semaphore lease",
+          "file": "Регрессия общего пути запуска",
+          "what": "Проверить, что смена context не создаёт альтернативный путь запуска мимо действующих ограничений.",
+          "why": "HTTP-ответ больше не обрывает длительную работу. Взамен у запуска появляется явная обязанность отменить контекст и освободить ресурсы.",
+          "refs": [
+            "Synthetic example: Регрессия общего пути запуска"
+          ],
+          "node_ids": [
+            "runner"
+          ],
+          "expected": "На Pause новая работа не начинается; lease освобождается ровно один раз.",
+          "invariants": []
+        }
+      ]
+    },
+    {
+      "id": "change-2",
+      "title": "Сохранение намерения",
+      "what": "Добавляем журнал событий. Оркестратор сначала сохраняет намерение отмены, а состояние в памяти становится восстанавливаемой проекцией.",
+      "why": "После рестарта команда пользователя не потеряется. Цена — запись на диск перед подтверждением и обработка ошибок сохранения.",
+      "task_ids": [
+        "T2"
+      ],
+      "graph": {
+        "nodes": [
+          {
+            "id": "ui",
+            "title": "Dashboard",
+            "note": "Действие пользователя",
+            "kind": "UI",
+            "x": 48,
+            "y": 38,
+            "description": "Пользователь запрашивает отмену. Интерфейс показывает состояние запуска.",
+            "evidence": [
+              "Synthetic example: example/ui.go"
+            ]
+          },
+          {
+            "id": "http",
+            "title": "HTTP handler",
+            "note": "Передаёт команду",
+            "kind": "API",
+            "x": 48,
+            "y": 204,
+            "description": "Принимает запрос и передаёт его оркестратору. Время HTTP-запроса ограничено временем ответа.",
+            "evidence": [
+              "Synthetic example: example/api.go"
+            ]
+          },
+          {
+            "id": "runner",
+            "title": "Оркестратор",
+            "note": "Сначала пишет намерение",
+            "kind": "RUNTIME",
+            "x": 278,
+            "y": 204,
+            "description": "Координирует выполнение и управляет ресурсами запуска.",
+            "evidence": [
+              "Synthetic example: example/runtime.go"
+            ]
+          },
+          {
+            "id": "agent",
+            "title": "Агент",
+            "note": "Выполняет работу",
+            "kind": "PROCESS",
+            "x": 278,
+            "y": 370,
+            "description": "Рабочий процесс, которому нужно корректно доставить отмену и дождаться его выхода.",
+            "evidence": [
+              "Synthetic example: example/process.go"
+            ]
+          },
+          {
+            "id": "cache",
+            "title": "Кэш состояния",
+            "note": "Проекция из журнала",
+            "kind": "STATE",
+            "x": 508,
+            "y": 370,
+            "description": "Производное представление состояния. Может быть восстановлено из журнала событий.",
+            "evidence": [
+              "Synthetic example: example/state.go"
+            ]
+          },
+          {
+            "id": "run",
+            "title": "Run context",
+            "note": "Живёт до конца запуска",
+            "kind": "LIFETIME",
+            "x": 48,
+            "y": 370,
+            "description": "Контекст принадлежит запуску. Возврат HTTP-ответа не завершает агента; отменой управляет оркестратор.",
+            "evidence": [
+              "Synthetic example: example/lifetime.go"
+            ]
+          },
+          {
+            "id": "journal",
+            "title": "Журнал событий",
+            "note": "Сначала durable-запись",
+            "kind": "PERSISTENCE",
+            "x": 508,
+            "y": 204,
+            "description": "Намерение отмены сохраняется до успешного ответа API. После рестарта оно восстанавливается из журнала.",
+            "evidence": [
+              "Synthetic example: example/persistence.go"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "ui-http",
+            "from": "ui",
+            "to": "http",
+            "label": "отмена",
+            "description": "Команда пользователя приходит через HTTP.",
+            "evidence": [
+              "Synthetic relation for this example"
+            ]
+          },
+          {
+            "id": "http-runner",
+            "from": "http",
+            "to": "runner",
+            "label": "запрос",
+            "description": "Обработчик передаёт команду оркестратору.",
+            "evidence": [
+              "Synthetic relation for this example"
+            ]
+          },
+          {
+            "id": "runner-agent",
+            "from": "runner",
+            "to": "agent",
+            "label": "запускает",
+            "description": "Оркестратор запускает рабочий процесс.",
+            "evidence": [
+              "Synthetic relation for this example"
+            ]
+          },
+          {
+            "id": "run-agent",
+            "from": "run",
+            "to": "agent",
+            "label": "контекст",
+            "description": "Контекст запуска определяет время жизни агента независимо от HTTP-запроса.",
+            "evidence": [
+              "Synthetic relation for this example"
+            ]
+          },
+          {
+            "id": "runner-journal",
+            "from": "runner",
+            "to": "journal",
+            "label": "сохраняет",
+            "description": "Оркестратор подтверждает команду только после сохранения намерения.",
+            "evidence": [
+              "Synthetic relation for this example"
+            ]
+          },
+          {
+            "id": "journal-cache",
+            "from": "journal",
+            "to": "cache",
+            "label": "проекция",
+            "description": "Кэш строится из записанных событий и не заменяет журнал.",
+            "evidence": [
+              "Synthetic relation for this example"
+            ]
+          }
+        ]
+      },
+      "functions": [
+        {
+          "id": "request-cancel",
+          "title": "(*Orchestrator).RequestCancel",
+          "file": "orchestrator/cancel.go",
+          "what": "Сначала сохраняем намерение через durable CAS. Только выигравший CAS инициирует работу; повторная команда становится обычным no-op.",
+          "why": "Ошибка хранилища не маскируется под успешное принятие команды. Сама работа живёт под run context.",
+          "refs": [
+            "Synthetic example: orchestrator/cancel.go"
+          ],
+          "node_ids": [
+            "runner"
+          ],
+          "before": "state.CancelRequested = true\nreturn nil",
+          "after": "won, err := store.AppendCAS(\n  runID, CancelRequested{},\n)\nif err != nil || !won { return err }\nreturn o.scheduleCancel(runID)",
+          "invariants": [
+            "Ошибка хранилища не маскируется под успешное принятие команды. Сама работа живёт под run context."
+          ]
+        },
+        {
+          "id": "load-state",
+          "title": "LoadRunState",
+          "file": "state/replay.go",
+          "what": "При восстановлении читаем журнал событий. Кэш состояния ускоряет чтение, но не заменяет durable-источник.",
+          "why": "Read-only восстановление не требует writer-lock. Старая история событий продолжает читаться.",
+          "refs": [
+            "Synthetic example: state/replay.go"
+          ],
+          "node_ids": [
+            "journal"
+          ],
+          "before": "return ReadSnapshot(\"state.json\")",
+          "after": "events := ReadEvents(\"events.jsonl\")\nreturn Replay(events)",
+          "invariants": [
+            "Read-only восстановление не требует writer-lock. Старая история событий продолжает читаться."
+          ]
+        },
+        {
+          "id": "http-cancel",
+          "title": "(*Handler).HandleCancel",
+          "file": "server/cancel.go",
+          "what": "Успешный ответ означает сохранённое намерение. Клиент получает ошибку, если его команду не удалось записать.",
+          "why": "503 здесь — иллюстрация API-дизайна. Точный код и формат ошибки нужно согласовать с API проекта.",
+          "refs": [
+            "Synthetic example: server/cancel.go"
+          ],
+          "node_ids": [
+            "http"
+          ],
+          "before": "o.RequestCancel(runID)\nw.WriteHeader(202)",
+          "after": "if err := o.RequestCancel(runID); err != nil {\n  http.Error(w, \"cancel unavailable\", 503)\n  return\n}\nw.WriteHeader(202)",
+          "invariants": [
+            "503 здесь — иллюстрация API-дизайна. Точный код и формат ошибки нужно согласовать с API проекта."
+          ]
+        }
+      ],
+      "contracts": [
+        {
+          "id": "cancel-api",
+          "title": "POST /runs/{id}/cancel",
+          "file": "Внешний HTTP-контракт",
+          "what": "Меняем контракт POST /runs/{id}/cancel.",
+          "why": "Повторный запрос не запускает повторную работу. Формат ошибок должен совпадать у сервера и клиента.",
+          "refs": [
+            "Synthetic example: Внешний HTTP-контракт"
+          ],
+          "node_ids": [
+            "http"
+          ],
+          "before": "Успешный ответ подтверждает изменение в памяти.",
+          "after": "202 подтверждает durable-запись. Ошибка сохранения возвращает явный ошибочный ответ.",
+          "invariants": [
+            "Повторный запрос не запускает повторную работу. Формат ошибок должен совпадать у сервера и клиента."
+          ]
+        },
+        {
+          "id": "cancel-event",
+          "title": "CancelRequested",
+          "file": "Контракт журнала событий",
+          "what": "Меняем контракт CancelRequested.",
+          "why": "Парсер, валидация и replay обновляются согласованно. Здесь показана идея события, не реальная схема AFM.",
+          "refs": [
+            "Synthetic example: Контракт журнала событий"
+          ],
+          "node_ids": [
+            "journal"
+          ],
+          "before": "Намерение существует только в памяти процесса.",
+          "after": "Событие содержит идентичность запуска и данные для восстановления намерения.",
+          "invariants": [
+            "Парсер, валидация и replay обновляются согласованно. Здесь показана идея события, не реальная схема AFM."
+          ]
+        },
+        {
+          "id": "cache-contract",
+          "title": "state.json — производный кэш",
+          "file": "Контракт чтения состояния",
+          "what": "Меняем контракт state.json — производный кэш.",
+          "why": "Отсутствующий или устаревший кэш не должен терять команду пользователя.",
+          "refs": [
+            "Synthetic example: Контракт чтения состояния"
+          ],
+          "node_ids": [
+            "cache"
+          ],
+          "before": "Снимок используется как единственный источник состояния.",
+          "after": "Кэш можно пересобрать из events.jsonl, включая намерение отмены.",
+          "invariants": [
+            "Отсутствующий или устаревший кэш не должен терять команду пользователя."
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "id": "write-error",
+          "title": "Ошибка записи → нет успешного ответа",
+          "file": "server/cancel_test.go",
+          "what": "Подставить Store, возвращающий ошибку записи, затем отправить отмену через HTTP.",
+          "why": "После рестарта команда пользователя не потеряется. Цена — запись на диск перед подтверждением и обработка ошибок сохранения.",
+          "refs": [
+            "Synthetic example: server/cancel_test.go"
+          ],
+          "node_ids": [
+            "http"
+          ],
+          "expected": "Нет ответа 202; работа не запущена. Storage-fatal проходит через общий путь завершения запуска.",
+          "invariants": []
+        },
+        {
+          "id": "replay-intent",
+          "title": "Replay восстанавливает намерение",
+          "file": "state/replay_test.go",
+          "what": "Сохранить событие отмены, сбросить кэш и загрузить состояние заново.",
+          "why": "После рестарта команда пользователя не потеряется. Цена — запись на диск перед подтверждением и обработка ошибок сохранения.",
+          "refs": [
+            "Synthetic example: state/replay_test.go"
+          ],
+          "node_ids": [
+            "journal"
+          ],
+          "expected": "Намерение восстановлено из журнала; кэш не нужен для корректности.",
+          "invariants": []
+        },
+        {
+          "id": "cas-winner",
+          "title": "Две команды → один CAS-победитель",
+          "file": "orchestrator/cancel_test.go",
+          "what": "Одновременно отправить две одинаковые команды и дождаться обоих результатов.",
+          "why": "После рестарта команда пользователя не потеряется. Цена — запись на диск перед подтверждением и обработка ошибок сохранения.",
+          "refs": [
+            "Synthetic example: orchestrator/cancel_test.go"
+          ],
+          "node_ids": [
+            "runner"
+          ],
+          "expected": "Работу начинает один победитель. CAS-мисс не считается storage-fatal.",
+          "invariants": []
+        }
+      ]
+    },
+    {
+      "id": "change-3",
+      "title": "Порядок завершения",
+      "what": "Фиксируем порядок: отменить run context → дождаться агентов → закрыть хранилище. На схеме отмечены изменённая связь и последующее закрытие.",
+      "why": "Агенты успевают записать последние события. Ожидание завершения требует ограниченного таймаута и явного поведения для зависших процессов.",
+      "task_ids": [
+        "T3"
+      ],
+      "graph": {
+        "nodes": [
+          {
+            "id": "ui",
+            "title": "Dashboard",
+            "note": "Действие пользователя",
+            "kind": "UI",
+            "x": 48,
+            "y": 38,
+            "description": "Пользователь запрашивает отмену. Интерфейс показывает состояние запуска.",
+            "evidence": [
+              "Synthetic example: example/ui.go"
+            ]
+          },
+          {
+            "id": "http",
+            "title": "HTTP handler",
+            "note": "Передаёт команду",
+            "kind": "API",
+            "x": 48,
+            "y": 204,
+            "description": "Принимает запрос и передаёт его оркестратору. Время HTTP-запроса ограничено временем ответа.",
+            "evidence": [
+              "Synthetic example: example/api.go"
+            ]
+          },
+          {
+            "id": "runner",
+            "title": "Оркестратор",
+            "note": "Ждёт, затем закрывает",
+            "kind": "RUNTIME",
+            "x": 278,
+            "y": 204,
+            "description": "Координирует выполнение и управляет ресурсами запуска.",
+            "evidence": [
+              "Synthetic example: example/runtime.go"
+            ]
+          },
+          {
+            "id": "agent",
+            "title": "Агент",
+            "note": "Подтверждает завершение",
+            "kind": "PROCESS",
+            "x": 278,
+            "y": 370,
+            "description": "Рабочий процесс, которому нужно корректно доставить отмену и дождаться его выхода.",
+            "evidence": [
+              "Synthetic example: example/process.go"
+            ]
+          },
+          {
+            "id": "cache",
+            "title": "Кэш состояния",
+            "note": "Проекция из журнала",
+            "kind": "STATE",
+            "x": 508,
+            "y": 370,
+            "description": "Производное представление состояния. Может быть восстановлено из журнала событий.",
+            "evidence": [
+              "Synthetic example: example/state.go"
+            ]
+          },
+          {
+            "id": "run",
+            "title": "Run context",
+            "note": "Живёт до конца запуска",
+            "kind": "LIFETIME",
+            "x": 48,
+            "y": 370,
+            "description": "Контекст принадлежит запуску. Возврат HTTP-ответа не завершает агента; отменой управляет оркестратор.",
+            "evidence": [
+              "Synthetic example: example/lifetime.go"
+            ]
+          },
+          {
+            "id": "journal",
+            "title": "Журнал событий",
+            "note": "Сначала durable-запись",
+            "kind": "PERSISTENCE",
+            "x": 508,
+            "y": 204,
+            "description": "Намерение отмены сохраняется до успешного ответа API. После рестарта оно восстанавливается из журнала.",
+            "evidence": [
+              "Synthetic example: example/persistence.go"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "id": "ui-http",
+            "from": "ui",
+            "to": "http",
+            "label": "отмена",
+            "description": "Команда пользователя приходит через HTTP.",
+            "evidence": [
+              "Synthetic relation for this example"
+            ]
+          },
+          {
+            "id": "http-runner",
+            "from": "http",
+            "to": "runner",
+            "label": "запрос",
+            "description": "Обработчик передаёт команду оркестратору.",
+            "evidence": [
+              "Synthetic relation for this example"
+            ]
+          },
+          {
+            "id": "runner-agent",
+            "from": "runner",
+            "to": "agent",
+            "label": "1 · отменяет и ждёт",
+            "description": "Оркестратор отменяет run context и дожидается завершения рабочих процессов.",
+            "evidence": [
+              "Synthetic relation for this example"
+            ]
+          },
+          {
+            "id": "run-agent",
+            "from": "run",
+            "to": "agent",
+            "label": "контекст",
+            "description": "Контекст запуска определяет время жизни агента независимо от HTTP-запроса.",
+            "evidence": [
+              "Synthetic relation for this example"
+            ]
+          },
+          {
+            "id": "runner-journal",
+            "from": "runner",
+            "to": "journal",
+            "label": "сохраняет",
+            "description": "Оркестратор подтверждает команду только после сохранения намерения.",
+            "evidence": [
+              "Synthetic relation for this example"
+            ]
+          },
+          {
+            "id": "journal-cache",
+            "from": "journal",
+            "to": "cache",
+            "label": "проекция",
+            "description": "Кэш строится из записанных событий и не заменяет журнал.",
+            "evidence": [
+              "Synthetic relation for this example"
+            ]
+          },
+          {
+            "id": "runner-close",
+            "from": "runner",
+            "to": "cache",
+            "label": "2 · закрывает",
+            "description": "После завершения агентов оркестратор закрывает хранилище. Последние события успевают сохраниться.",
+            "evidence": [
+              "Synthetic relation for this example"
+            ]
+          }
+        ]
+      },
+      "functions": [
+        {
+          "id": "shutdown",
+          "title": "(*Orchestrator).Shutdown",
+          "file": "orchestrator/shutdown.go",
+          "what": "Меняем порядок освобождения ресурсов. У агентов остаётся открытое хранилище, пока они записывают последние события.",
+          "why": "При таймауте нельзя закрывать Store под ещё пишущими агентами и выдавать это за clean shutdown.",
+          "refs": [
+            "Synthetic example: orchestrator/shutdown.go"
+          ],
+          "node_ids": [
+            "runner"
+          ],
+          "before": "store.Close()\ncancelRun()\nreturn nil",
+          "after": "cancelRun()\nif err := waitAgents(ctx); err != nil {\n  return err\n}\nreturn store.Close()",
+          "invariants": [
+            "При таймауте нельзя закрывать Store под ещё пишущими агентами и выдавать это за clean shutdown."
+          ]
+        },
+        {
+          "id": "agent-run",
+          "title": "(*Agent).Run",
+          "file": "executor/agent.go",
+          "what": "Выход рабочего процесса становится наблюдаемым для владельца. Финальное событие и cleanup завершаются до сигнала «агент остановлен».",
+          "why": "Сигнал завершения отправляется после cleanup и последней записи. Тесты тоже ждут завершения Run.",
+          "refs": [
+            "Synthetic example: executor/agent.go"
+          ],
+          "node_ids": [
+            "agent"
+          ],
+          "before": "go agent.Run(ctx)\n// завершение не ожидается",
+          "after": "workers.Add(1)\ngo func() {\n  defer workers.Done()\n  agent.Run(runCtx)\n}()",
+          "invariants": [
+            "Сигнал завершения отправляется после cleanup и последней записи. Тесты тоже ждут завершения Run."
+          ]
+        }
+      ],
+      "contracts": [
+        {
+          "id": "shutdown-order",
+          "title": "cancel → wait → close",
+          "file": "Lifecycle-контракт владельца",
+          "what": "Меняем контракт cancel → wait → close.",
+          "why": "Владение ресурсами и cleanup остаются у вызывающего кода.",
+          "refs": [
+            "Synthetic example: Lifecycle-контракт владельца"
+          ],
+          "node_ids": [
+            "runner"
+          ],
+          "before": "Закрытие Store и выход агентов могут пересечься.",
+          "after": "Store закрывается после завершения всех агентов, которые могут в него писать.",
+          "invariants": [
+            "Владение ресурсами и cleanup остаются у вызывающего кода."
+          ]
+        },
+        {
+          "id": "shutdown-timeout",
+          "title": "Таймаут завершения",
+          "file": "Открытый вопрос для груминга",
+          "what": "Меняем контракт Таймаут завершения.",
+          "why": "Открытый вопрос нельзя превращать в молча принятое решение. Нужен явный выбор поведения при таймауте.",
+          "refs": [
+            "Synthetic example: Открытый вопрос для груминга"
+          ],
+          "node_ids": [
+            "agent"
+          ],
+          "before": "Поведение зависшего агента не определено.",
+          "after": "Предлагается ограниченное ожидание; срок и стратегия принудительной остановки обсуждаются.",
+          "invariants": [
+            "Открытый вопрос нельзя превращать в молча принятое решение. Нужен явный выбор поведения при таймауте."
+          ]
+        }
+      ],
+      "checks": [
+        {
+          "id": "last-write",
+          "title": "Последняя запись до закрытия Store",
+          "file": "orchestrator/shutdown_test.go",
+          "what": "Остановить агента, который при отмене пишет завершающее событие.",
+          "why": "Агенты успевают записать последние события. Ожидание завершения требует ограниченного таймаута и явного поведения для зависших процессов.",
+          "refs": [
+            "Synthetic example: orchestrator/shutdown_test.go"
+          ],
+          "node_ids": [
+            "cache"
+          ],
+          "expected": "Событие записано до Store.Close; нет write events.jsonl: invalid argument.",
+          "invariants": []
+        },
+        {
+          "id": "hanging-agent",
+          "title": "Агент не выходит за отведённое время",
+          "file": "executor/shutdown_test.go",
+          "what": "Смоделировать процесс, который игнорирует отмену, и исчерпать бюджет ожидания.",
+          "why": "Агенты успевают записать последние события. Ожидание завершения требует ограниченного таймаута и явного поведения для зависших процессов.",
+          "refs": [
+            "Synthetic example: executor/shutdown_test.go"
+          ],
+          "node_ids": [
+            "agent"
+          ],
+          "expected": "Применяется согласованная политика таймаута. Без такой политики вопрос остаётся открытым.",
+          "invariants": []
+        },
+        {
+          "id": "shutdown-replay",
+          "title": "После остановки состояние восстанавливается",
+          "file": "state/replay_test.go",
+          "what": "Выполнить clean shutdown и восстановить состояние из журнала без кэша.",
+          "why": "Агенты успевают записать последние события. Ожидание завершения требует ограниченного таймаута и явного поведения для зависших процессов.",
+          "refs": [
+            "Synthetic example: state/replay_test.go"
+          ],
+          "node_ids": [
+            "journal"
+          ],
+          "expected": "Все финальные события читаются; статусы и намерения восстанавливаются последовательно.",
+          "invariants": []
+        }
+      ]
+    }
+  ],
+  "replies": [],
+  "theme": {
+    "skin": "graphite",
+    "mode": "dark"
+  }
+}

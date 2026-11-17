@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="ru" data-skin="graphite" data-theme="dark">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark light"><title>Планирование · AFM</title><style>/*__STYLES__*/</style></head>
+<body>
+  <div class="shell"><p id="page-error" class="page-error" role="alert" hidden></p>
+    <header class="topbar">
+      <div class="brand">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m4 18 8-13 8 13M7.5 12.5h9M12 5v14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="wordmark">afm</span>
+        <div class="breadcrumb">dev pipeline<span>/</span><span class="breadcrumb-end">планирование</span></div>
+      </div>
+      <div class="preferences">
+        <span id="document-revision" class="prototype-label"></span>
+        <label class="sr-only" for="skin">Цветовая схема</label>
+        <select id="skin" class="theme-select"><option value="graphite">Graphite</option><option value="goga">Goga</option></select>
+        <button id="theme-toggle" class="icon-btn" aria-label="Включить светлую тему" title="Светлая / тёмная тема"></button>
+      </div>
+    </header>
+
+    <main>
+      <div class="hero">
+        <div class="eyebrow">Обсуждаем решение</div>
+        <h1 id="plan-title">План изменения</h1>
+        <p id="plan-goal"></p>
+      </div>
+
+      <nav class="steps" aria-label="Шаги архитектурного изменения"></nav>
+
+      <div class="grooming-layout">
+      <div class="design-column">
+      <section class="workspace" aria-label="Сравнение архитектуры">
+        <div class="workspace-toolbar">
+          <div class="workspace-title"><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2" y="2" width="6" height="5" rx="1"/><rect x="12" y="12" width="6" height="5" rx="1"/><path d="M5 7v7h7M8 4.5h7V12"/></svg>Компоненты и ответственность</div>
+          <div class="compare"><span>Сравнить с</span><div class="segmented" role="group" aria-label="База сравнения"><button id="compare-previous" aria-pressed="true">Предыдущим шагом</button><button id="compare-baseline" aria-pressed="false">Началом</button></div></div>
+        </div>
+
+        <div class="panes">
+          <div class="pane">
+            <div class="pane-header"><span class="pane-title" id="before-title">До<span class="pane-caption">исходная архитектура</span></span><span class="pane-version" id="before-version">ШАГ 00</span></div>
+            <svg class="diagram" id="before-diagram" viewBox="0 0 740 495" role="group" aria-label="Архитектура до выбранного изменения"></svg>
+          </div>
+          <div class="pane">
+            <div class="pane-header"><span class="pane-title" id="after-title">После<span class="pane-caption">предлагаемое решение</span></span><span class="pane-version" id="after-version">ШАГ 01</span></div>
+            <svg class="diagram" id="after-diagram" viewBox="0 0 740 495" role="group" aria-label="Предлагаемая архитектура после выбранного изменения"></svg>
+          </div>
+        </div>
+
+        <div class="workspace-footer">
+          <div class="legend" aria-label="Обозначения изменений">
+            <span class="legend-item added"><span class="legend-sample">+</span>Добавлено</span>
+            <span class="legend-item changed"><span class="legend-sample">~</span>Изменено</span>
+            <span class="legend-item removed"><span class="legend-sample">−</span>Убрано</span>
+          </div>
+          <div class="zoom" role="group" aria-label="Масштаб обеих схем">
+            <button id="zoom-out" aria-label="Уменьшить масштаб">−</button>
+            <button id="zoom-reset" class="zoom-reset" title="Вернуть масштаб и положение схем">100%</button>
+            <button id="zoom-in" aria-label="Увеличить масштаб">+</button>
+          </div>
+        </div>
+
+        <aside id="inspector" class="inspector" aria-label="Детали выбранного элемента" hidden>
+          <div class="inspector-top"><span id="inspector-kicker" class="inspector-kicker"></span><button id="inspector-close" class="icon-btn" aria-label="Закрыть детали"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8"/></svg></button></div>
+          <h3 id="inspector-title"></h3>
+          <p id="inspector-description"></p>
+          <div class="inspector-label">До</div><div id="inspector-before" class="inspector-value"></div>
+          <div class="inspector-label">После</div><div id="inspector-after" class="inspector-value"></div>
+          <div class="inspector-discuss"><button id="inspector-discuss" class="text-button">Обсудить с агентом →</button></div>
+          <div id="inspector-refs" class="inspector-example inspector-refs"></div>
+        </aside>
+      </section>
+
+      <section class="change-summary" aria-labelledby="summary-title">
+        <div class="summary-header">
+          <div class="summary-heading"><span class="summary-index" id="summary-index"></span><h2 id="summary-title"></h2></div>
+          <div class="navigation"><button id="previous" class="nav-button"><span aria-hidden="true">←</span> Назад</button><button id="next" class="nav-button next">Следующий шаг <span aria-hidden="true">→</span></button></div>
+        </div>
+        <div class="summary-body">
+          <p><strong id="summary-what-label">Что меняется</strong><span id="summary-what"></span></p>
+          <p><strong id="summary-why-label">Зачем / компромисс</strong><span id="summary-why"></span></p>
+        </div>
+        <div class="summary-footer"><span id="comparison-note"></span><span class="keys"><kbd>←</kbd><kbd>→</kbd> шаги · клик по блоку или связи — детали</span></div>
+      </section>
+      <section class="technical-details" aria-labelledby="details-title">
+        <div class="details-header"><h2 id="details-title">Что меняется в коде</h2><span id="details-note" class="demo-note"></span></div>
+        <div class="detail-tabs" role="tablist" aria-label="Технические детали шага">
+          <button id="tab-functions" class="detail-tab" role="tab" aria-selected="true" aria-controls="panel-functions" tabindex="0">Функции<span class="detail-count" id="count-functions"></span></button>
+          <button id="tab-contracts" class="detail-tab" role="tab" aria-selected="false" aria-controls="panel-contracts" tabindex="-1">Контракты<span class="detail-count" id="count-contracts"></span></button>
+          <button id="tab-checks" class="detail-tab" role="tab" aria-selected="false" aria-controls="panel-checks" tabindex="-1">Проверки<span class="detail-count" id="count-checks"></span></button>
+        </div>
+        <div id="panel-functions" role="tabpanel" aria-labelledby="tab-functions" tabindex="0"></div>
+        <div id="panel-contracts" role="tabpanel" aria-labelledby="tab-contracts" tabindex="0" hidden></div>
+        <div id="panel-checks" role="tabpanel" aria-labelledby="tab-checks" tabindex="0" hidden></div>
+      </section>
+      </div>
+
+      <aside class="conversation-panel" aria-labelledby="conversation-title">
+        <div class="conversation-header">
+          <div class="conversation-header-row"><h2 id="conversation-title">Обсуждение с агентом</h2><span id="agent-status" class="local-badge"></span></div>
+          <div class="conversation-scope-row"><label for="discussion-scope" class="sr-only">Область обсуждения</label><select id="discussion-scope"><option value="step">Этот шаг</option><option value="plan">Весь план</option></select><span id="conversation-step" class="conversation-step"></span></div>
+        </div>
+        <div id="conversation-thread" class="conversation-thread" role="log" aria-label="Переписка по выбранному шагу" aria-live="polite" aria-relevant="additions"></div>
+        <form id="comment-form" class="composer">
+          <div class="compose-context"><span id="compose-context-label" class="compose-context-label"></span><button id="context-clear" class="context-clear" type="button" aria-label="Убрать привязку к элементу" hidden>×</button></div>
+          <label for="comment-input" class="sr-only">Комментарий агенту</label>
+          <textarea id="comment-input" rows="3" maxlength="12000" placeholder="Задайте вопрос или предложите изменение…"></textarea>
+          <div class="composer-bottom"><span class="composer-hint">⌘ / Ctrl + Enter</span><button id="send-comment" type="submit" class="send-button" disabled>Отправить <span aria-hidden="true">↑</span></button></div>
+          <p id="storage-note" class="demo-disclosure">Агент читает комментарии и отвечает здесь, обновляя предложение.</p>
+        </form>
+        <div class="approval-transition"><button id="ready-for-approval" class="send-button">Перейти к утверждению →</button><p id="ready-note">Окончательное утверждение — в диалоге AFM.</p></div>
+      </aside>
+      </div>
+      <div id="announcement" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+    </main>
+    <noscript><p>Для обсуждения плана включите JavaScript.</p></noscript>
+  </div>
+
+<script id="planning-bootstrap" type="application/json">__PLANNING_DATA__</script>
+<script>/*__MODEL__*/</script>
+<script>/*__VIEW__*/</script>
+</body></html>
