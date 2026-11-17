@@ -25,6 +25,13 @@ docker:
       type: codex
       model: gpt-6-astra
       reasoning: xhigh
+    dev-pipeline-escalation-verifier:
+      type: claude
+      model: claude-fable-5-1
+      reasoning: medium
+      auth:
+        from: env:CLAUDE_CODE_OAUTH_TOKEN
+        to: env:CLAUDE_CODE_OAUTH_TOKEN
     dev-pipeline-default-coordinator-plan:
       type: claude
       model: claude-opus-5-5
@@ -97,6 +104,20 @@ collaboration:
         smallest corrective design in scratch. Do not edit product files, delegate
         or use the managed browser. Return the diagnosis and evidence with a linked
         reply to the canonical request for the Opus writer.
+    dev-pipeline-escalation-verifier:
+      title: Фабула
+      command: dev-pipeline-escalation-verifier
+      delegate: false
+      instructions: Stay idle until at least TWO post-escalation candidate rounds for
+        the same logical task are rejected; the first escalation and its first
+        rejection do not activate you. Then independently verify Astra's findings and corrective
+        design against the frozen candidate, reproductions and adjacent paths.
+        Default to read-only work; return a full linked verdict with evidence.
+        Only after this repeat threshold and accepted verification may the coordinator
+        grant one exceptional bounded repair of concrete remaining in-scope bugs,
+        with the prior writer stopped and exclusive file/test ownership recorded.
+        Follow the coordinator's diagnosis/handoff protocol and assigned review or
+        writer skill. Never approve code you edited, delegate or use managed browser.
     dev-pipeline-default-coordinator-plan:
       title: ОпуПлан
       command: dev-pipeline-default-coordinator-plan

@@ -41,7 +41,8 @@ prompt: |
   - Initial implementation and first repairs go to backend/frontend writers.
     After two rejected candidate rounds for one logical work item, the standing
     diagnosis agent (team ID rescue-architect) must diagnose it, then the reserve
-    writer (team ID opus) implements the accepted design. Escalate BEFORE a third
+    writer (team ID opus) implements the accepted design. Фабула (team ID fabula)
+    stays idle on this first escalation and its first rejected rescue candidate. Escalate BEFORE a third
     correction/review round; do not send another fix to the original writer.
     Use the coordinator's diagnosis/handoff protocol. Task complexity or
     subsystem boundaries alone do not justify assigning work to the reserve.
@@ -54,7 +55,12 @@ prompt: |
     the logical task/invariant. Preserve history across stages, verify and live runs.
   - Finite mesh wait deadlines, normally 1800 seconds. Two failed repairs also
     trigger the same route. One bounded rescue includes independent acceptance;
-    unresolved rescue failures need a user decision, not another automatic loop.
+    activate Fabula only after at least TWO distinct candidate rounds are rejected
+    AFTER escalation for the same logical task. Count batches, not findings or
+    reviewers. A first rescue rejection needs a user decision for another bounded
+    Astra/Opus attempt; it does not activate Fabula. Once the repeat threshold is
+    reached, Fabula verifies the findings/design and may receive ONE exceptional
+    bounded residual repair under the diagnosis/handoff protocol.
   Pass the applicable defaults, brief revision and evidence with every assignment;
   helpers do not inherit this prompt. Required project checks remain mandatory.
 
@@ -113,7 +119,9 @@ team:
       For UI work also read
       $AFM_PIPELINE_DIR/skills/afm-ui-acceptance/SKILL.md.
       Do not commit or push; return the linked deliverable and evidence for
-      independent acceptance. A failed bounded rescue needs a user decision.
+      independent acceptance. Only repeated post-escalation rejection may activate the
+      Fabula verification/repair defined in the coordinator protocol; do not restart
+      your own loop.
   - id: rescue-architect
     profile: dev-pipeline-escalation-architect
     title: Астра
@@ -127,6 +135,32 @@ team:
       delegation. Return a full linked diagnosis for the separate reserve writer,
       not an ACK or an implementation. If assigned UI work, read
       $AFM_PIPELINE_DIR/skills/afm-ui-acceptance/SKILL.md too.
+
+  - id: fabula
+    profile: dev-pipeline-escalation-verifier
+    title: Фабула
+    skills: [afm-check-evidence]
+    instruction: |
+      Stay idle during ordinary work, the first escalation and the first rejected
+      post-escalation candidate. Activate only when the same logical task has at
+      least TWO rejected post-escalation candidate rounds, recorded as
+      escalation.post_escalation_rejected_rounds >= 2. Then independently verify
+      the full linked Astra diagnosis, repeated findings and corrective design
+      against the frozen candidate and prior repair/review history. Read
+      $AFM_PIPELINE_DIR/skills/afm-review-work/SKILL.md for this read-only assignment. Reproduce findings, challenge the corrective design
+      across adjacent producers/states, distinguish product and test-harness bugs,
+      and return one linked pass/needs_changes/inconclusive result with evidence.
+      Do not edit product files during verification or replace Astra's diagnosis.
+      After this repeat threshold and your verification, if concrete remaining
+      in-scope bugs have understood causes, the coordinator may assign you ONE
+      bounded repair after recording the previous owner's release, exclusive
+      file/test grant and check/acceptance budget. For that separate writer request
+      read $AFM_PIPELINE_DIR/skills/afm-dev-writer/SKILL.md instead of the read-only
+      review skill. Do not redesign the approved scope or restart the rescue loop.
+      Your edits require fresh independent reviewers who did not author them;
+      your earlier diagnosis verification is not acceptance of your own patch.
+      No delegation, managed browser, commits or pushes. Return full canonical
+      linked replies and preserve the logical task's counters and evidence.
 
 stages:
   - id: bootstrap
@@ -205,7 +239,7 @@ stages:
       Discover the actual project and inspect relevant instructions/build scripts.
       Read the sibling bootstrap/project-contract.md for the project.json
       contract. Assign all initial implementation sections to backend/frontend
-      writers. Keep rescue-architect and the reserve writer (team ID opus)
+      writers. Keep rescue-architect, fabula and the reserve writer (team ID opus)
       unassigned until a recorded escalation; complexity or subsystem boundaries
       alone are not escalation.
       Write under $AFM_STAGE_DIR:
@@ -223,7 +257,10 @@ stages:
         profile IDs; escalation_profiles maps relevant architect roles to their
         profiles even when no initial consultation is needed. Include
         escalation_profiles.repeated_failure = dev-pipeline-escalation-architect
-        for the standing rescue-architect, distinct from ordinary consultants.
+        for the standing rescue-architect, distinct from ordinary consultants, and
+        escalation_profiles.findings_verifier = dev-pipeline-escalation-verifier
+        for fabula (Фабула, Fable medium), activated only after two rejected
+        post-escalation candidate rounds for the same logical task.
         Record a projected
         helper count plus a correction/escalation reserve against configured limits;
         completed helpers still count toward any whole-run max_tasks limit.
@@ -265,6 +302,10 @@ stages:
       Initial architecture and domain consultations use dev-pipeline-architect;
       mandatory repeated-failure diagnosis uses the standing rescue-architect
       bound to dev-pipeline-escalation-architect, followed by implementation by opus.
+      Fabula remains idle until at least two distinct post-escalation candidate
+      rounds are rejected for the same task. Only then obtain its independent
+      findings/design verification and consider the protocol's one exceptional
+      residual repair, followed by fresh independent acceptance.
       UX consultation uses dev-pipeline-ux. Package defaults are independent recipes;
       --pipeline-options can replace their recipes or profiles for this run.
       Keep consultants independent from the implementation writer and inspect
@@ -357,9 +398,12 @@ stages:
             results with task/request IDs and dispositions; check profile mappings,
             escalation coverage, helper/check budgets and one owner per broad check.
             Initial implementation must belong to backend/frontend writers;
-            reject initial task ownership assigned to opus or rescue-architect.
+            reject initial task ownership assigned to opus, rescue-architect or fabula.
             Check that the repeated-failure escalation maps to the standing diagnosis
-            role and a separate reserve implementation owner with actual bindings.
+            role and separate reserve implementation owner with actual bindings. Check
+            that fabula activates only after TWO rejected post-escalation candidate
+            rounds for the same task, never on first escalation or its first rejection;
+            its residual repair is limited to one bounded pass.
             Required checks must stay covered; flag unjustified duplicate full suites
             or blanket stress/mutation passes. A summary reply alone is not a result;
             unselected roles need no ceremonial requests. Approval must cover the
@@ -427,13 +471,17 @@ stages:
       Apply the coordinator skill's mandatory diagnosis/handoff protocol, including
       verify corrections. After two rejected candidate rounds for one logical task
       or two failed repairs, send the full history to standing rescue-architect,
-      then transfer the accepted corrective design to opus. Do not dispatch a third
+      then transfer the accepted corrective design to opus. Keep fabula idle until
+      escalation.post_escalation_rejected_rounds >= 2 for the same logical task. Do not dispatch a third
       ordinary-writer correction. Use review.escalation_profiles.repeated_failure
       and the roster to verify the binding; domain consultations do not substitute
       for this route. Read the full linked diagnosis and preserve prior counters.
       Record diagnosis IDs, dispositions, owner and evidence in the same task's ledger
-      and team-review.md. Unresolved bounded rescue or material scope changes go to the
-      dialog; a new helper never resets the repair count.
+      and team-review.md. Only after at least TWO distinct rejected post-escalation
+      candidate rounds obtain Fabula's independent findings/design verification
+      and consider its one exceptional bounded residual repair;
+      unresolved failures, unclear causes or material scope changes go to the dialog;
+      a new helper never resets the repair count.
 
       Before finishing, every task and selected review must have accepted evidence.
       Use the coordinator's wait/helper cleanup protocol. Put last required broad
@@ -470,8 +518,12 @@ stages:
             accepted evidence and candidate identity, not helper-result IDs;
             reconcile the logical task's complete candidate-round history across
             stages/verify/live and count each rejected batch once. After two rejected
-            rounds or failed repairs, require rescue-architect diagnosis followed by
-            a separate opus implementation before another correction/review round;
+            rounds or failed repairs, require rescue-architect diagnosis and a separate
+            opus implementation before another correction/review round; require
+            fabula findings/design verification ONLY after at least TWO rejected
+            post-escalation candidate rounds for that task. Allow only the protocol's
+            single exceptional Fabula repair after that threshold, with exclusive
+            ownership and fresh independent acceptance;
             reject continued original-writer fixes or a restarted rescue loop unless
             the original user instruction explicitly authorized that exception;
             reserve-writer edits require a recorded escalation and ownership handoff,
@@ -586,8 +638,12 @@ stages:
          review.escalation_profiles.repeated_failure. Accept the full linked
          diagnosis, then transfer implementation to opus with exclusive file/test
          ownership. Import earlier stage/verify/live counters. Require independent
-         review and live acceptance of this bounded rescue. If it fails, report the
-         concrete blocker for a user decision; never restart the route automatically.
+         review and live acceptance of this bounded rescue. The first rejected
+         post-escalation candidate needs a user decision for another bounded attempt.
+         Only after at least TWO rejected post-escalation candidate rounds for the
+         same task obtain fabula's independent findings/design verification, then
+         consider ONE exceptional bounded residual repair with ownership handoff
+         and fresh independent review. Never restart the rescue route automatically.
       6. Once repairs and reviews are accepted, check the implement receipt with
          helper receipt --group implement --stage implement. Reuse it only after
          confirming the environment; if missing/stale/failed, archive the previous
@@ -671,7 +727,10 @@ stages:
             predating those repairs is insufficient. Check that repeated-defect
             candidate-round history and repair counters survive stage/verify/live
             transitions. Two rejected rounds or failed repairs require a full linked
-            standing rescue-architect diagnosis and separate opus implementation;
+            standing rescue-architect diagnosis and separate opus implementation; require
+            fabula findings/design verification only after TWO rejected post-escalation
+            candidate rounds for the same task. Only then allow the protocol's single
+            exceptional Fabula residual repair with fresh independent acceptance;
             reject original-writer continuation or a repeated rescue loop without
             an explicit recorded user exception. Verify actual role bindings, with no
             reserve-writer edits before a recorded escalation and ownership handoff,

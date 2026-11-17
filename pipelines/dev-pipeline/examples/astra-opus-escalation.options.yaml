@@ -1,5 +1,12 @@
 docker:
   agents:
+    dev-pipeline-escalation-verifier:
+      type: claude
+      model: claude-fable-5-1
+      reasoning: medium
+      auth:
+        from: env:CLAUDE_CODE_OAUTH_TOKEN
+        to: env:CLAUDE_CODE_OAUTH_TOKEN
     dev-pipeline-escalation-architect:
       type: codex
       model: gpt-6-astra

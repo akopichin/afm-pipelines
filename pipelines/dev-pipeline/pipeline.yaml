@@ -1,6 +1,6 @@
 schema_version: 2
 name: dev-pipeline
-version: 2.0.1
+version: 2.0.2
 description: Project-aware development with planning, standing writers, independent
   review, live acceptance, documentation, commit and optional merge.
 entrypoint: flow.yaml
@@ -26,6 +26,9 @@ roles:
   escalation_architect:
     command: dev-pipeline-escalation-architect
     profile: dev-pipeline-escalation-architect
+  escalation_verifier:
+    command: dev-pipeline-escalation-verifier
+    profile: dev-pipeline-escalation-verifier
   coordinator_plan:
     command: dev-pipeline-default-coordinator-plan
     profile: dev-pipeline-default-coordinator-plan

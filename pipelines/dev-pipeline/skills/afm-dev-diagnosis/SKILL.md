@@ -38,8 +38,10 @@ Return one complete diagnosis with:
 - Smallest corrective design, affected files/interfaces and regression scenarios.
 - Remaining risks and the real acceptance steps required after implementation.
 
-The coordinator accepts this evidence and hands implementation to the separate
-reserve writer. If the cause cannot be distinguished within the budget, report
+The coordinator hands implementation to the separate reserve writer. Only after
+at least two post-escalation candidate rounds for the same task are rejected does
+it obtain Fabula's independent verification of the findings and corrective design.
+If the cause cannot be distinguished within the budget, report
 an inconclusive diagnosis with the concrete missing evidence. Do not prescribe
 an untested repair as established fact or start another diagnosis loop yourself.
 

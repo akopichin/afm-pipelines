@@ -21,7 +21,7 @@ for(const name of ['dev-pipeline','refactor','review']) {
   test(`${name} v2 resolves complete roles and options without installation`,t=>{
     const project=temporary(t),source=path.join(root,'pipelines',name),manifest=read(path.join(source,'pipeline.yaml'));
     const config=read(path.join(source,'agents.yaml')),flow=read(path.join(source,'flow.yaml'));
-    assert.equal(manifest.schema_version,2);assert.equal(manifest.version,'2.0.1');
+    assert.equal(manifest.schema_version,2);assert.equal(manifest.version,JSON.parse(fs.readFileSync(path.join(source,'package.json'),'utf8')).version);
     assert.deepEqual(Object.keys(config).sort(),['collaboration','docker']);
     for(const section of ['docker','collaboration']) assert.deepEqual(Object.keys(config[section]),[section==='docker'?'agents':'profiles']);
     const report=inspect(project,source);
@@ -51,6 +51,38 @@ test('Git loading pins a revision and includes runtime resources without catalog
   const commit=git('rev-parse','HEAD'),report=inspect(project,`file://${repo}//pipelines/${name}@${commit}`);
   assert.equal(report.commit,commit);assert.equal(report.package.schema_version,2);
   assert(report.snapshot.dir);assert(!fs.existsSync(path.join(project,'pipelines')));
+});
+test('dev escalation binds Fabula separately and bounds its change from verifier to writer',t=>{
+  const source=path.join(root,'pipelines/dev-pipeline');
+  const config=read(path.join(source,'agents.yaml')),flow=read(path.join(source,'flow.yaml'));
+  const report=inspect(temporary(t),source);
+  const role=report.roles.find(r=>r.id==='escalation_verifier');
+  assert(role,'inspect must expose the escalation verifier for pipeline options');
+  assert.equal(role.model,'claude-fable-5-1');
+  const recipe=config.docker.agents[role.command];
+  assert.equal(recipe.type,'claude');assert.equal(recipe.reasoning,'medium');
+  assert.deepEqual(recipe.auth,{from:'env:CLAUDE_CODE_OAUTH_TOKEN',to:'env:CLAUDE_CODE_OAUTH_TOKEN'});
+  const member=flow.team.find(m=>m.id==='fabula');
+  assert.equal(member.profile,'dev-pipeline-escalation-verifier');assert.equal(member.title,'Фабула');
+  assert.notEqual(member.profile,flow.team.find(m=>m.id==='rescue-architect').profile);
+  assert.notEqual(member.profile,flow.team.find(m=>m.id==='opus').profile);
+  assert.match(member.instruction,/Do not edit product files during verification/);
+  assert.match(member.instruction,/ONE\s+bounded repair/);
+  assert.match(member.instruction,/post_escalation_rejected_rounds >= 2/);
+  assert.match(member.instruction,/first escalation and the first rejected/);
+  assert.match(member.instruction,/fresh independent reviewers who did not author/);
+  const protocol=fs.readFileSync(path.join(source,'skills/afm-dev-coordinator/references/diagnosis.md'),'utf8');
+  assert.match(protocol,/review\.escalation_profiles\.findings_verifier/);
+  assert.match(protocol,/Set\s+`escalation\.fabula_repair_used` before dispatch/);
+  assert.match(protocol,/once per logical task across stages/);
+  assert.match(protocol,/Infrastructure failure alone does not activate the residual repair/);
+  assert.match(protocol,/Activate `fabula` ONLY when `escalation\.post_escalation_rejected_rounds >= 2`/);
+  assert.match(protocol,/On the FIRST rejected post-escalation candidate,[\s\S]*?Do not activate Fabula/);
+  assert.match(protocol,/Multiple\s+reviewers, findings or gates rejecting the same candidate count once/);
+  for(const id of ['plan','implement','live-run']) {
+    const stage=flow.stages.find(s=>s.id===id);
+    assert.match(stage.prompt,/fabula/);
+  }
 });
 test('dev bootstrap runs in a linked worktree with only AFM_PIPELINE_DIR',t=>{
   const project=temporary(t),run=path.join(project,'.afm/runs/test'),stage=path.join(run,'bootstrap');

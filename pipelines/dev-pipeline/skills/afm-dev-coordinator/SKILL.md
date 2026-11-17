@@ -20,6 +20,11 @@ before a third correction/review round. Initial work and first corrections use
 backend/frontend writers; reserve assignments require the accepted diagnosis and
 recorded ownership handoff, unless the user explicitly changes that route. These are workflow
 rules, not an automatic runtime watchdog or a grant of additional permissions.
+Activate Fabula's independent findings/design verification only after at least
+two rejected post-escalation candidate rounds for the same task, never on the
+first escalation or its first rejection. The diagnosis reference then permits
+one exceptional Fabula repair of concrete residual bugs, with ownership handoff
+and fresh independent acceptance; it does not permit repeated automatic rescue loops.
 
 ## Recover before dispatch
 

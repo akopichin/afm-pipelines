@@ -1,3 +1,14 @@
+## 2026-11-17
+
+### Improvement:
+
+- Add Фабула (Claude Fable 5.1, medium) to independently verify Astra's findings
+  and corrective design only after two rejected post-escalation candidate rounds
+  for the same task. Keep it idle on first escalation and the first rescue rejection.
+- Allow one exceptional bounded Fabula repair of concrete residual bugs after a
+  repeatedly rejected Astra/Opus rescue, preserving ownership, counters and fresh independent
+  acceptance. Further failures still require a user decision.
+
 ## 2026-11-15
 
 ### Improvement:

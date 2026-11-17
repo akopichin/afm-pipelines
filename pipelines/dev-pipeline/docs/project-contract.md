@@ -58,8 +58,22 @@ and budgets retain their existing flow-defined format.
 standing `rescue-architect` diagnosis agent. After two rejected candidate rounds
 or failed repairs for one logical task, the coordinator must obtain its accepted
 diagnosis and hand implementation to `opus` before another correction/review round.
-The task ledger preserves round/candidate identities, full diagnosis reply,
-ownership release and independent rescue acceptance across stages and resumes.
+`review.escalation_profiles.findings_verifier` names the installed profile
+`dev-pipeline-escalation-verifier` (Фабула, Claude Fable 5.1 `medium`). Activate it
+ONLY after `escalation.post_escalation_rejected_rounds >= 2`: at least two distinct
+post-escalation candidate rounds for the same logical task require corrections.
+The first escalation and its first rejection do not activate Fabula. The first
+rescue rejection needs a user decision before another bounded Astra/Opus attempt.
+Track candidate identities, linked replies, dispositions and rejection counters
+across stages and resumes; multiple findings/reviewers for one candidate count once.
+At the repeat threshold, Fabula independently verifies Astra's diagnosis, repeated
+findings and design. After accepted verification, one exceptional bounded Fabula
+repair may address concrete residual in-scope bugs with understood causes and
+exclusive file/test ownership. Record `escalation.fabula_repair_used` before
+dispatch; preserve it across stages and resumes. Fabula cannot approve its own
+edits: require fresh independent review, checks and affected live acceptance.
+Unclear causes, material redesign or failure of this last repair require a user
+decision. See the coordinator's [diagnosis protocol](../skills/afm-dev-coordinator/references/diagnosis.md).
 
 - `environment_id` identifies the actual toolchain/dependency environment. A
   receipt may be reused only after confirming the environment is unchanged.

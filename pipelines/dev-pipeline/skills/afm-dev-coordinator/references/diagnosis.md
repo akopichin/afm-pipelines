@@ -31,11 +31,12 @@ against durable AFM replies and reports, rather than trusting a stale number.
 ## Required route: Astra diagnosis, Opus implementation
 
 The standing diagnosis agent is team ID `rescue-architect` (default GPT-6 Astra
-`xhigh`); the reserve writer is team ID `opus` (default Opus 5.5 `xhigh`). Resolve
-participant IDs and actual model/command bindings from the run's roster and frozen
+`xhigh`); the independent findings verifier is team ID `fabula` (Фабула, default
+Claude Fable 5.1 `medium`); the reserve writer is team ID `opus` (default Opus 5.5
+`xhigh`). Resolve participant IDs and actual model/command bindings from the run's roster and frozen
 configuration. The historical IDs are not model identities. Use the configured
 bindings; report a missing role or incompatible access rather than silently
-substituting another writer. Both roles remain idle during ordinary work.
+substituting another writer. All three roles remain idle during ordinary work.
 
 At the threshold the route is mandatory, not an optional consultation followed
 by another fix from the original writer:
@@ -56,8 +57,9 @@ by another fix from the original writer:
    prototypes; it does not edit the product or weaken approved acceptance.
 4. Read and accept the diagnosis, including counterevidence and limitations.
    Store its request/reply IDs, artifact and acceptance in the same escalation
-   record. Acknowledgement or untested advice is not an accepted diagnosis. If
-   bounded experiments cannot distinguish the cause, report the concrete blocker.
+   record. An ACK or untested advice is insufficient. Keep Fabula idle on the
+   first escalation and the first rejected post-escalation candidate; its trigger
+   is the repeated post-escalation rejection defined below.
 5. Transfer the bounded implementation to `opus`, NEVER back to the original
    writer after this threshold. Record the new owner, file/test grant, diagnosis,
    canonical request ID and acceptance/check budget before waiting. The writer
@@ -65,7 +67,8 @@ by another fix from the original writer:
    the granted files untouched. Do not use a temporary read-only helper as writer.
 6. Obtain fresh independent review of the corrected candidate and regression
    evidence, then the required checks and affected live acceptance. Astra's
-   diagnosis, the writer's reply and green unit tests are not final acceptance.
+   diagnosis, Fabula's verification, the writer's reply and green unit tests are
+   not final acceptance.
    Preserve the logical task and counters throughout this rescue.
 
 An explicit user direction can override the route or assign implementation to
@@ -75,12 +78,53 @@ exception does not silently become the normal pipeline route.
 
 ## Bound the rescue
 
-One escalation permits one diagnosis and one specialist-guided implementation
-with independent acceptance. If that correction is rejected or fails the same
-invariant in live acceptance, report the concrete blocker through the flow's
-dialog protocol. Do not restart Astra -> Opus, return to an ordinary writer or
-reset counters automatically. A user-authorized retry records the new input and
-bounded budget on the same work item; unchanged failure alone is not permission.
+One escalation permits one Astra diagnosis and one Opus implementation with
+independent acceptance. Track `escalation.post_escalation_rejected_rounds` for
+this logical task: increment it once per distinct completed candidate batch
+requiring an in-scope correction AFTER an escalation implementation. Multiple
+reviewers, findings or gates rejecting the same candidate count once. Ordinary
+pre-escalation rejections, infrastructure failures, cancelled/inconclusive reviews
+and diagnostic experiments do not count. Preserve candidate identities and this
+counter across stages, verify, live acceptance, sessions and restarts.
+
+On the FIRST rejected post-escalation candidate, report the concrete blocker for
+a user decision before another bounded Astra/Opus attempt. Do not activate Fabula
+or automatically restart the rescue. A user-authorized retry records the original
+input, scope and finite budget on the same work item without resetting counters.
+
+Activate `fabula` ONLY when `escalation.post_escalation_rejected_rounds >= 2`:
+at least TWO distinct post-escalation candidate rounds for the same logical task
+have required corrections. Send one bounded read-only verification request with
+Astra's full linked diagnosis, repeated findings, prior attempts, frozen candidate
+and evidence. Verify its binding against
+`review.escalation_profiles.findings_verifier`. Require the exact review/check
+skill paths, distinguishing reproductions and a per-finding disposition. Fabula
+checks the findings, counterevidence, corrective design and adjacent producers;
+it separates product bugs, missing guards and harness faults. Reconcile both
+agents' full linked replies against evidence. Save request/reply IDs, candidate,
+artifacts, dispositions and acceptance in the same escalation record. An ACK is
+insufficient; an unresolved disagreement or inconclusive bounded verification is
+a concrete blocker, not permission to loop or bypass diagnosis.
+
+After this repeat threshold and accepted verification, there is one rare residual
+repair exception: the coordinator may hand concrete remaining in-scope bugs to
+Fabula when the cause is understood and the fix needs no material redesign.
+Record why this exception applies, all rejected evidence, unchanged counters,
+the prior writer's release and stopped modifying commands, an exclusive file/test
+grant, one canonical writer request and finite check/acceptance budgets. Set
+`escalation.fabula_repair_used` before dispatch and recover it on resume; the limit
+is once per logical task across stages, verify, live acceptance and restarts.
+For this separate assignment Fabula reads the writer/check skills, replacing its
+earlier read-only review assignment. Its earlier verification never approves its
+own changes. Require fresh independent review by non-authors, regression evidence,
+required checks and affected live acceptance after the repair.
+
+If the cause is unclear, scope/design must change, Fabula is unavailable, or this
+single repair fails acceptance, report the concrete blocker through the flow's
+dialog protocol. Do not restart Astra -> Opus or Fabula, return to an ordinary
+writer or reset counters automatically. Unchanged failure alone is not permission
+for another attempt.
+Infrastructure failure alone does not activate the residual repair.
 Task size, subsystem boundaries and spare capacity do not activate these roles.
 Routine escalation within the approved scope needs no additional user approval.
 
