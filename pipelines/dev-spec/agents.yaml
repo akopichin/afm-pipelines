@@ -90,11 +90,9 @@ collaboration:
       command: dev-spec-default-writer-opus
       delegate: false
       instructions: Implement only a bounded correction after a recorded escalation
-        and ownership handoff. Read the escalation evidence and file grant before
-        editing; require the accepted rescue-architect diagnosis after the repeat
-        threshold, unless the user explicitly directed a different handoff. If missing,
-        ask the coordinator and do not edit. Follow project rules and required checks.
-        Keep evidence in the run directory.
+        and ownership handoff as defined by the afm-dev-escalation skill. If the
+        escalation record or file grant is missing, ask the coordinator and do not
+        edit. Follow project rules and required checks. Keep evidence in the run directory.
     dev-spec-escalation-architect:
       title: Астра
       command: dev-spec-escalation-architect
@@ -108,16 +106,11 @@ collaboration:
       title: Фабула
       command: dev-spec-escalation-verifier
       delegate: false
-      instructions: Stay idle until at least TWO post-escalation candidate rounds for
-        the same logical task are rejected; the first escalation and its first
-        rejection do not activate you. Then independently verify Astra's findings and corrective
-        design against the frozen candidate, reproductions and adjacent paths.
-        Default to read-only work; return a full linked verdict with evidence.
-        Only after this repeat threshold and accepted verification may the coordinator
-        grant one exceptional bounded repair of concrete remaining in-scope bugs,
-        with the prior writer stopped and exclusive file/test ownership recorded.
-        Follow the coordinator's diagnosis/handoff protocol and assigned review or
-        writer skill. Never approve code you edited, delegate or use managed browser.
+      instructions: Stay idle until activated under the afm-dev-escalation skill.
+        Then independently verify Astra's findings and corrective design read-only
+        and return a full linked verdict with evidence. A residual repair needs a
+        separate writer request with recorded ownership. Follow the assigned review
+        or writer skill. Never approve code you edited, delegate or use managed browser.
     dev-spec-default-coordinator-plan:
       title: ОпуПлан
       command: dev-spec-default-coordinator-plan

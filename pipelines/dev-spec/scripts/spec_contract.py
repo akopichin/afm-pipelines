@@ -40,7 +40,7 @@ def parse_delta(raw):
         raise ValueError("delta.md requires ## ADDED, ## MODIFIED and ## REMOVED in order")
     if any(line.startswith("### ") for line in introduction.splitlines()):
         raise ValueError("delta requirements must be inside an operation")
-    changes, scenarios = {}, {}
+    changes, scenarios, domains = {}, {}, {}
     for (operation,), section in sections:
         intro, blocks = split_blocks(section.partition("\n")[2], DELTA_REQUIREMENT)
         if intro.strip() or (not blocks and section.partition("\n")[2].strip()):
@@ -49,6 +49,8 @@ def parse_delta(raw):
             key = (domain, requirement)
             if key in changes or sum(line.startswith("### ") for line in block.splitlines()) != 1:
                 raise ValueError(f"duplicate or malformed requirement near {domain}/{requirement}")
+            if domains.setdefault(requirement, domain) != domain:
+                raise ValueError(f"requirement ID {requirement} is used by two domains; IDs must be unique in the delta")
             if operation == "REMOVED" and not re.search(r"^Reason: \S", block, re.M):
                 raise ValueError(f"REMOVED {domain}/{requirement} needs a Reason")
             for sid in scenario_ids(block):
@@ -80,7 +82,10 @@ def load(plan, data):
     changes, scenarios = parse_delta(raw.decode("utf-8"))
     live = set()
     for criterion in data["acceptance"]["criteria"]:
-        sid = criterion.get("scenario")
+        # Without a scenario the criterion guards retained behavior outside the delta.
+        if "scenario" not in criterion:
+            continue
+        sid = criterion["scenario"]
         if not isinstance(sid, str) or sid not in scenarios or criterion["requirement"] != scenarios[sid]:
             raise ValueError(f"criterion {criterion['id']} needs a matching delta scenario and requirement")
         live.add(sid)
@@ -88,7 +93,13 @@ def load(plan, data):
     if (live & non_live.keys() or set(scenarios) != live | non_live.keys()
             or any(not isinstance(reason, str) or not reason.strip() for reason in non_live.values())):
         raise ValueError("map every delta scenario to live criteria or a non_live check and reason")
-    return raw, changes
+    return raw, changes, scenarios
+
+
+def deferred_requirements(data, scenarios, statuses):
+    """Return requirement IDs whose mapped live criteria did not pass."""
+    return {scenarios[c["scenario"]] for c in data["acceptance"]["criteria"]
+            if "scenario" in c and statuses.get(c["id"]) != "PASS"}
 
 
 def split_spec(text, name):
@@ -104,6 +115,7 @@ def split_spec(text, name):
 
 
 def safe_path(root, relative):
+    root = root.resolve()
     path = root / relative
     if path.resolve() != path or not path.is_relative_to(root):
         raise ValueError(f"spec path must stay inside the worktree and contain no symlinks: {relative}")
@@ -118,7 +130,22 @@ def baseline_file(root, head, path):
     return subprocess.check_output(["git", "-C", str(root), "show", f"{head}:{relative}"]).decode("utf-8")
 
 
-def project_updates(root, head, changes, pending=False, base_ref=None):
+def render_spec(domain, current, requirements):
+    """Rewrite only changed requirement blocks, keeping the rest byte for byte."""
+    prefix, blocks = split_blocks(current, REQUIREMENT)
+    if not current:
+        prefix = f"# {domain}\n\n## Requirements\n"
+    raw = {key[0]: block if block.endswith("\n\n") else block.rstrip() + "\n\n" for key, block in blocks}
+    parts = [prefix.rstrip() + "\n\n"]
+    for rid, body in requirements.items():
+        kept = raw.get(rid)
+        parts.append(kept if kept is not None and kept.rstrip() == body else body + "\n\n")
+    return "".join(parts).rstrip() + "\n"
+
+
+def project_updates(root, head, changes, pending=False, base_ref=None, deferred=frozenset()):
+    """Apply the delta to each domain spec; deferred requirement IDs stay at the baseline."""
+    root = root.resolve()
     updates = {}
     for domain in dict.fromkeys(domain for domain, _ in changes):
         path = safe_path(root, f"specs/{domain}/spec.md")
@@ -131,7 +158,7 @@ def project_updates(root, head, changes, pending=False, base_ref=None):
         _, original = split_spec(baseline, path)
         if base_ref:
             _, base = split_spec(baseline_file(root, base_ref, path), path)
-        prefix, requirements = split_spec(current, path)
+        _, requirements = split_spec(current, path)
         for (target, rid), (operation, body) in changes.items():
             if target != domain:
                 continue
@@ -139,6 +166,8 @@ def project_updates(root, head, changes, pending=False, base_ref=None):
             if (operation == "ADDED") != (before is None):
                 raise ValueError(f"{operation} does not match baseline requirement {domain}/{rid}")
             after = None if operation == "REMOVED" else body
+            if rid in deferred:
+                after = before
             if base_ref and base.get(rid) not in (before, after):
                 raise ValueError(f"base branch changed {domain}/{rid} independently; review before merge")
             if (pending and present != before) or (not pending and present not in (before, after)):
@@ -151,8 +180,7 @@ def project_updates(root, head, changes, pending=False, base_ref=None):
         if not pending:
             _, previous = split_spec(current, path)
             if requirements != previous:
-                prefix = prefix or f"# {domain}\n\n## Requirements\n"
-                updated = "\n\n".join([prefix.rstrip(), *requirements.values()]) + "\n"
+                updated = render_spec(domain, current, requirements)
         updates[path] = (current, updated)
     return updates
 

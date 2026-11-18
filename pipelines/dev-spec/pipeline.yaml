@@ -1,6 +1,6 @@
 schema_version: 2
 name: dev-spec
-version: 2.1.0
+version: 2.2.0
 description: Project-aware development with approved spec deltas, independent review,
   live acceptance, spec synchronization and optional merge.
 entrypoint: flow.yaml

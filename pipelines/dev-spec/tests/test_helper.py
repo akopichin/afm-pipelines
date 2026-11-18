@@ -622,6 +622,81 @@ class PipelineTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "base branch changed"):
             project_updates(root, head, changes, base_ref=base_ref)
 
+    def two_requirement_delta(self):
+        self.acceptance_contract()
+        delta = self.run / "plan/delta.md"
+        content = "# Two helpers\n\n## ADDED\n\n"
+        for n in ("1", "2"):
+            content += (f"### Requirement: helpers/HELPER-REQ-00{n} — Behavior {n}\n\nBehavior {n}.\n\n"
+                        f"#### Scenario: HELPER-SCN-00{n} — Scenario {n}\n"
+                        "- GIVEN a helper\n- WHEN it runs\n- THEN it behaves\n\n")
+        delta.write_text(content + "## MODIFIED\n\n## REMOVED\n")
+        first = self.project["acceptance"]["criteria"][0]
+        self.project["acceptance"]["criteria"] = [
+            dict(first, id="L1", scenario="HELPER-SCN-001", requirement="HELPER-REQ-001"),
+            dict(first, id="L2", scenario="HELPER-SCN-002", requirement="HELPER-REQ-002"),
+            dict(first, id="L3", requirement="RETAINED-REQ-001"),
+        ]
+        self.project["spec"] = {"slug": "two-helpers", "non_live": {},
+                                "delta_sha256": hashlib.sha256(delta.read_bytes()).hexdigest()}
+        self.save_contract()
+
+    def test_overridden_live_failure_defers_only_its_requirement(self):
+        self.two_requirement_delta()
+        self.invoke("spec-plan", expected=0)
+        path, result = self.accepted_live()
+        rows = [dict(result["criteria"][0], id=cid) for cid in ("L1", "L2", "L3")]
+        rows[1]["status"] = "FAIL"
+        stage = path.parent
+        question = {"id": "q1", "options": ["Override: continue with this recorded failure"],
+                    "question": f"tree {result['tree']} contract {result['contract_sha256']}"}
+        (stage / "q1.question.json").write_text(json.dumps(question))
+        (stage / "q1.answer.json").write_text(json.dumps(
+            {"id": "q1", "from_options": True, "answer": question["options"][0]}))
+        result.update(criteria=rows, verdict="FAIL", decision="override", answer_file="q1.answer.json")
+        path.write_text(json.dumps(result))
+        self.invoke("live-gate", expected=0)
+        self.assertIn("DEFERRED", self.invoke("spec-sync", expected=0).stdout)
+        spec = (self.root / "specs/helpers/spec.md").read_text()
+        self.assertIn("HELPER-REQ-001", spec)
+        self.assertNotIn("HELPER-REQ-002", spec)
+        archive, = (self.root / "specs/archive").iterdir()
+        handoff = json.loads((archive / "handoff.json").read_text())
+        self.assertEqual(handoff["deferred_requirements"], ["HELPER-REQ-002"])
+        self.assertEqual([c["id"] for c in handoff["criteria"]], ["L1", "L2"])
+        self.invoke("spec-verify", expected=0)
+
+    def test_requirement_ids_are_unique_across_domains(self):
+        from spec_contract import parse_delta
+
+        scenario = "#### Scenario: {0}-SCN-001 — S\n- GIVEN a\n- WHEN b\n- THEN c\n\n"
+        with self.assertRaisesRegex(ValueError, "two domains"):
+            parse_delta("## ADDED\n\n"
+                        "### Requirement: one/SHARED-REQ-001 — A\n\n" + scenario.format("ONE") +
+                        "### Requirement: two/SHARED-REQ-001 — B\n\n" + scenario.format("TWO") +
+                        "## MODIFIED\n\n## REMOVED\n")
+
+    def test_sync_keeps_untouched_requirements_byte_for_byte(self):
+        from spec_contract import parse_delta, project_updates
+
+        root = self.root.resolve()
+        spec = root / "specs/helpers/spec.md"
+        spec.parent.mkdir(parents=True)
+        original = ("# Helpers\n\n## Requirements\n\n"
+                    "### Requirement: HELP-REQ-001 — Return a result\n\nReturn a result.\n\n\n"
+                    "### Requirement: HELP-REQ-002 — Pause\n\nHonor pause.\n")
+        spec.write_text(original)
+        self.git("add", "specs")
+        self.git("commit", "-qm", "Add helper baseline")
+        changes, _ = parse_delta(
+            "## ADDED\n\n### Requirement: helpers/HELP-REQ-003 — Resume\n\nResume work.\n\n"
+            "#### Scenario: HELP-SCN-003 — Resume\n- GIVEN a pause\n- WHEN resumed\n- THEN work continues\n\n"
+            "## MODIFIED\n\n## REMOVED\n")
+        _, updated = project_updates(root, self.git("rev-parse", "HEAD"), changes)[spec]
+        self.assertEqual(updated, original + "\n### Requirement: HELP-REQ-003 — Resume\n\nResume work.\n\n"
+                         "#### Scenario: HELP-SCN-003 — Resume\n- GIVEN a pause\n- WHEN resumed\n"
+                         "- THEN work continues\n")
+
     def test_preflight_failure_never_produces_a_passing_receipt(self):
         self.project["checks"]["preflight"] = {
             "commands": [{"argv": [sys.executable, "-c", "raise SystemExit(7)"], "timeout": 5}]

@@ -43,6 +43,8 @@ On every completion path, including declined or unnecessary merge, explain the
 observable changes, summarize live scenarios/results, acceptance repairs, required
 check outcomes and remaining limitations. Reuse the live report instead of
 reconstructing unsupported claims. Preserve NOT RUN and overridden verdicts.
+Name the spec archive path; list its handoff.json `deferred_requirements` as
+behavior that shipped without accepted live evidence and stays unpublished.
 
 State actual commit/branch and merge outcome, and link the live report and key
 evidence. Distinguish the source exercised live from later merge validation;

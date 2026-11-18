@@ -18,16 +18,10 @@ boundaries. Split the work into sections with stable task IDs, one writer and a
 file grant per task. Specify observable acceptance, focused tests and the full
 project checks, including who runs each check. Define a real product scenario
 with setup, expected observations, evidence and cleanup.
-Assign initial sections to backend/frontend writers. Leave the reserve writer
-(team ID `opus`), diagnosis agent (`rescue-architect`) and findings verifier
-(`fabula`) idle for the mandatory
-escalation before a third correction/review round, even for complex work or
-changes spanning subsystems. Read-only architecture consultation does not grant
-the reserve an implementation task. Map the independent findings verifier in
-`review.escalation_profiles.findings_verifier`; budget its bounded verification
-of repeated findings only after TWO rejected post-escalation candidate rounds
-for the same task, and the protocol's single exceptional residual repair. Do not
-require Fabula on the first escalation or its first rejection.
+Assign initial sections to backend/frontend writers. Leave `opus`,
+`rescue-architect` and `fabula` unassigned, even for complex or cross-subsystem
+work: the afm-dev-escalation skill activates them. Map their profiles in
+`review.escalation_profiles` and reserve helper budget for that route.
 
 Explain WHAT changes and WHY for every implementation section/task, visual step,
 changed function, contract and planned check. Keep the current step's What/Why

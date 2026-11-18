@@ -38,9 +38,8 @@ Return one complete diagnosis with:
 - Smallest corrective design, affected files/interfaces and regression scenarios.
 - Remaining risks and the real acceptance steps required after implementation.
 
-The coordinator hands implementation to the separate reserve writer. Only after
-at least two post-escalation candidate rounds for the same task are rejected does
-it obtain Fabula's independent verification of the findings and corrective design.
+The coordinator hands implementation to the separate reserve writer under the
+afm-dev-escalation skill, which also defines any later Fabula verification.
 If the cause cannot be distinguished within the budget, report
 an inconclusive diagnosis with the concrete missing evidence. Do not prescribe
 an untested repair as established fact or start another diagnosis loop yourself.

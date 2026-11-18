@@ -43,8 +43,10 @@ When validation is enabled, the engine publishes only accepted results.
 ```
 
 Set project.json spec to {slug, delta_sha256, non_live}. Hash the exact delta
-bytes with SHA-256 and use a short unique lowercase slug. Each live criterion
-sets scenario and references that scenario's requirement. Map any remaining
+bytes with SHA-256 and use a short unique lowercase slug. Requirement IDs are
+unique across all domains of the delta. A live criterion that exercises a delta
+scenario sets scenario and references that scenario's requirement; a criterion
+without scenario guards retained behavior outside the delta. Map any remaining
 scenario ID in non_live to a concrete planned check and the reason for using it.
 Run the frozen helper's spec-plan before generating the approval presentation.
 Include the full generated c4-approval.md in the same AFM question and retain
@@ -63,10 +65,13 @@ project.json to link those results to the delta and report the scenario IDs.
 
 ## Docs, commit and merge
 
-After accepted live-run, run spec-sync in Docs using the frozen helper. A failed or waived
-mapped live criterion blocks spec publication until acceptance is resolved. It
-applies the approved delta by requirement ID and writes the delta with a
-sanitized acceptance summary under specs/archive/. Keep the originals in the
+After accepted live-run, run spec-sync in Docs using the frozen helper. It
+applies the approved delta by requirement ID, rewriting only changed requirement
+blocks, and writes the delta with a sanitized acceptance summary under
+specs/archive/. If live-run was accepted with a waiver or an explicit override,
+requirements with a non-PASS mapped criterion stay at their baseline and are
+listed as `deferred_requirements` in handoff.json; report them to the user as
+unpublished behavior instead of editing specs by hand. Keep the originals in the
 run directory for retries and audit. Include these files in the existing final
 checks and commit. Run spec-verify after integration with the local base. If
 the same requirement changed independently, reconcile through the existing

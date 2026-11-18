@@ -651,33 +651,26 @@ def spec_gate(args):
     if delta is None:
         print("No spec delta: " + data["spec"]["skip_reason"])
         return 0
-    raw, changes = delta
+    raw, changes, scenarios = delta
     metadata = read_json(run / "bootstrap" / "metadata.json")
-    pending = args.action == "spec-plan"
-    base_ref = f"refs/heads/{data['base_branch']}" if getattr(args, "against_base", False) else None
-    updates = spec_contract.project_updates(root, metadata["head"], changes, pending=pending, base_ref=base_ref)
-    if pending:
+    if args.action == "spec-plan":
+        spec_contract.project_updates(root, metadata["head"], changes, pending=True)
         print("PASS: delta matches the baseline and all scenarios have planned evidence")
         return 0
 
+    live, criteria = accepted_live_result(run, data, contract_hash)
+    # Requirements whose live criteria failed or were waived stay unpublished.
+    deferred = spec_contract.deferred_requirements(data, scenarios, criteria)
+    base_ref = f"refs/heads/{data['base_branch']}" if getattr(args, "against_base", False) else None
+    updates = spec_contract.project_updates(root, metadata["head"], changes, base_ref=base_ref, deferred=deferred)
     archive = spec_contract.archive_path(root, metadata, data["spec"]["slug"])
-    result_path = run / "live-run" / "result.json"
-    accepted = read_json(result_path.with_name("spec-acceptance.json"))
-    if accepted != {"result_sha256": digest(result_path), "contract_sha256": contract_hash}:
-        raise ValueError("live evidence changed after the acceptance gate")
-    live = read_json(result_path)
-    if (live.get("contract_sha256") != contract_hash or live.get("decision") != "continue"
-            or live.get("verdict") not in ("PASS", "NOT_APPLICABLE")):
-        raise ValueError("spec sync needs the accepted live result for the approved contract")
-    criteria = {row["id"]: row["status"] for row in live.get("criteria", [])}
-    expected_ids = {c["id"] for c in data["acceptance"]["criteria"]}
-    if criteria.keys() != expected_ids or any(status != "PASS" for status in criteria.values()):
-        raise ValueError("spec sync requires passing evidence for each mapped live criterion")
-    handoff = {"schema_version": 1, "baseline_head": metadata["head"],
+    handoff = {"schema_version": 2, "baseline_head": metadata["head"],
                "delta_sha256": data["spec"]["delta_sha256"], "acceptance": live["verdict"],
+               "decision": live["decision"],
                "criteria": [{"id": c["id"], "scenario": c["scenario"], "status": criteria[c["id"]]}
-                            for c in data["acceptance"]["criteria"]],
-               "non_live": sorted(data["spec"]["non_live"])}
+                            for c in data["acceptance"]["criteria"] if "scenario" in c],
+               "non_live": sorted(data["spec"]["non_live"]),
+               "deferred_requirements": sorted(deferred)}
     files = {"delta.md": raw, "handoff.json": (json.dumps(handoff, indent=2) + "\n").encode()}
     archives = {spec_contract.safe_path(root, archive.relative_to(root) / name): content
                 for name, content in files.items()}
@@ -688,6 +681,8 @@ def spec_gate(args):
         if any(before != after for before, after in updates.values()) or existing != archives:
             raise ValueError("approved spec delta or archive has not been applied; run spec-sync")
         print("PASS: current specs and archive match the approved delta")
+        if deferred:
+            print("DEFERRED (not accepted live, kept at baseline): " + ", ".join(sorted(deferred)))
         return 0
 
     for path, (before, after) in updates.items():
@@ -697,7 +692,24 @@ def spec_gate(args):
         if path not in existing:
             atomic_bytes(path, content)
     print("PASS: synced specs and archived at " + str(archive.relative_to(root)))
+    if deferred:
+        print("DEFERRED (not accepted live, kept at baseline): " + ", ".join(sorted(deferred)))
     return 0
+
+
+def accepted_live_result(run, data, contract_hash):
+    """Return the live result accepted by live-gate and its criterion statuses."""
+    result_path = run / "live-run" / "result.json"
+    accepted = read_json(result_path.with_name("spec-acceptance.json"))
+    if accepted != {"result_sha256": digest(result_path), "contract_sha256": contract_hash}:
+        raise ValueError("live evidence changed after the acceptance gate; rerun live-gate")
+    live = read_json(result_path)
+    if live.get("contract_sha256") != contract_hash:
+        raise ValueError("spec sync needs the accepted live result for the approved contract")
+    criteria = {row["id"]: row["status"] for row in live.get("criteria", [])}
+    if criteria.keys() != {c["id"] for c in data["acceptance"]["criteria"]}:
+        raise ValueError("spec sync needs a live status for each declared criterion")
+    return live, criteria
 
 
 def atomic_bytes(path, content):

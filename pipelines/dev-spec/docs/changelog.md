@@ -1,3 +1,22 @@
+## 2026-11-18
+
+### Fix:
+
+- Publish the accepted part of a spec delta after a live-run waiver or explicit
+  FAIL override instead of blocking Docs forever. Requirements with non-PASS
+  criteria stay at baseline and are listed in handoff.json `deferred_requirements`.
+- Allow live criteria without `scenario` for retained behavior outside the delta.
+- Require requirement IDs to be unique across all domains of one delta.
+- Rewrite only changed requirement blocks during spec-sync, keeping the rest of
+  each spec byte for byte.
+
+### Improvement:
+
+- Move the Astra -> Opus -> Fabula escalation route into the single
+  afm-dev-escalation skill used by coordinators, escalation agents and verify.
+- Move stage verify checklists into the afm-dev-stage-verify skill and replace the
+  workshop protocol copy in Plan with a reference to planning/README.md.
+
 ## 2026-11-17
 
 ### Improvement:

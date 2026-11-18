@@ -3,8 +3,8 @@
 Requires AFM 3.1.4+. This is a manifest-v2 package; no installation is needed.
 
 ```sh
-afm pipelines inspect github.com/akopichin/afm-pipelines//pipelines/dev-spec@v2.1.0
-afm run --pipeline github.com/akopichin/afm-pipelines//pipelines/dev-spec@v2.1.0 \
+afm pipelines inspect github.com/akopichin/afm-pipelines//pipelines/dev-spec@v2.2.0
+afm run --pipeline github.com/akopichin/afm-pipelines//pipelines/dev-spec@v2.2.0 \
   --worktree my-dev-spec --idle-timeout 24h
 ```
 
@@ -79,8 +79,9 @@ Two rejected candidate rounds or two failed repairs for one task
       and acceptance
 ```
 
-The [handoff protocol](skills/afm-dev-coordinator/references/diagnosis.md)
-defines escalation evidence, ownership and retry limits.
+The [escalation skill](skills/afm-dev-escalation/SKILL.md) is the single
+definition of escalation evidence, ownership and retry limits; stage prompts,
+agents and verify checklists refer to it.
 
 ## Specification workflow
 

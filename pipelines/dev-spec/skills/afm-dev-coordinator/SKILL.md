@@ -15,19 +15,11 @@ Read [temporary helpers](references/helpers.md) before spawning a helper and whe
 reconciling helpers before completion. Read [five-minute health checks](references/health.md)
 before waiting for delegated work; check progress every 300 seconds of waiting
 and recover confirmed failed agents before their task deadlines.
-Read [diagnosis and handoff](references/diagnosis.md)
-before assigning the reserve writer, when a defect repeats or an owner/tool becomes
-unavailable. After two rejected candidate rounds for one logical work item, route
-diagnosis to the standing rescue-architect and implementation to the reserve,
-before a third correction/review round. Initial work and first corrections use
-backend/frontend writers; reserve assignments require the accepted diagnosis and
-recorded ownership handoff, unless the user explicitly changes that route. These are workflow
-rules, not an automatic runtime watchdog or a grant of additional permissions.
-Activate Fabula's independent findings/design verification only after at least
-two rejected post-escalation candidate rounds for the same task, never on the
-first escalation or its first rejection. The diagnosis reference then permits
-one exceptional Fabula repair of concrete residual bugs, with ownership handoff
-and fresh independent acceptance; it does not permit repeated automatic rescue loops.
+Apply the afm-dev-escalation skill before dispatching any correction, when a
+defect repeats, before assigning `rescue-architect`, `opus` or `fabula`, or when an
+owner/tool becomes unavailable. It is the single source of thresholds, counters
+and handoff records. These are workflow rules, not an automatic runtime watchdog
+or a grant of additional permissions.
 
 ## Recover before dispatch
 

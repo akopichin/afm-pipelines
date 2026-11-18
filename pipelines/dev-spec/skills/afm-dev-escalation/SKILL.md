@@ -1,4 +1,23 @@
+---
+name: afm-dev-escalation
+description: Single source of the dev-spec repeated-failure route (Astra diagnosis, Opus implementation, Fabula verification and one residual repair). Use when counting rejected rounds, assigning or acting as rescue-architect/opus/fabula, or auditing that route in verify.
+---
+
 # Repeated defects and mandatory ownership handoff
+
+This skill is the only definition of the escalation route. Flows, stage prompts
+and other skills refer to it instead of restating thresholds.
+
+## Quick reference
+
+| Event for one logical task | Required action |
+| --- | --- |
+| Initial work, first correction | Ordinary backend/frontend writer |
+| 2 rejected candidate rounds or 2 failed repairs | Astra (`rescue-architect`) diagnoses, then Opus (`opus`) implements; never a third ordinary correction |
+| 1st rejected post-escalation candidate | User decision before another bounded Astra/Opus attempt; Fabula stays idle |
+| `escalation.post_escalation_rejected_rounds >= 2` | Fabula (`fabula`) verifies findings/design read-only |
+| After accepted Fabula verification | At most ONE bounded Fabula residual repair (`escalation.fabula_repair_used`), then fresh independent acceptance |
+| Anything further, unclear cause, redesign | Concrete blocker through the flow's dialog; no automatic restart |
 
 ## Count the work, not the reviewers
 
@@ -132,7 +151,7 @@ Routine escalation within the approved scope needs no additional user approval.
 
 Authentication errors, missing commands and unreachable participants call for an
 infrastructure response. Record the actual error and inspect roster/capabilities.
-Follow [five-minute health checks](health.md): long diagnosis/implementation
+Follow the coordinator's [five-minute health checks](../afm-dev-coordinator/references/health.md): long diagnosis/implementation
 budgets use wait windows of at most 300 seconds, and confirmed terminal failures
 trigger recovery before the full task deadline. Silence alone is not proof of death.
 Select a reachable replacement with the needed access and independence only after
@@ -141,3 +160,37 @@ sending to a failed participant or replace required independent review with
 self-review. With no suitable replacement, report the missing capability and
 remaining work. Own only processes you started; no kills by name or pattern,
 shared-environment changes, token borrowing or parent-run state mutations.
+
+## Your role in this route
+
+- **Coordinator:** owns counting, records and dispatch as described above. Keep
+  `rescue-architect`, `opus` and `fabula` unassigned in plans and initial work;
+  complexity or subsystem boundaries alone never justify them.
+- **Astra (`rescue-architect`):** stay idle until a bounded diagnosis request
+  arrives. Follow afm-dev-diagnosis; product files are read-only; no managed
+  browser or delegation. Return a full linked diagnosis, not an ACK or a patch.
+- **Opus (`opus`):** before editing, confirm the recorded escalation: trigger and
+  counters (or explicit user handoff), accepted diagnosis, previous owner's
+  release, file/test grant and check/acceptance budget. If anything is missing,
+  ask the coordinator and do not edit. Never take initial work or restart your loop.
+- **Fabula (`fabula`):** stay idle until the threshold above. Verification is
+  read-only under afm-review-work and returns one linked pass/needs_changes/
+  inconclusive result. The single residual repair is a separate writer request
+  under afm-dev-writer; your verification never approves your own patch.
+- All roles: no commits, pushes, delegation or managed browser; preserve the
+  logical task's counters and evidence in every reply.
+
+## Audit checklist for verify and review
+
+Reconcile the complete candidate-round history of each logical task across
+stages, verify and live runs, counting each rejected batch once. Reject:
+
+- initial or first-repair ownership assigned to `opus`, `rescue-architect` or `fabula`;
+- a third ordinary-writer correction after the threshold, or Opus edits without a
+  recorded escalation, accepted diagnosis, ownership release and bounded grant;
+- diagnoses without full canonical linked replies (standing agents do not have
+  helper-result IDs) or bindings that do not match `review.escalation_profiles`;
+- Fabula activity before `post_escalation_rejected_rounds >= 2`, more than one
+  Fabula repair, or a Fabula repair without fresh non-author acceptance;
+- an automatically restarted rescue loop, unless the original user instruction
+  explicitly authorized that exception.

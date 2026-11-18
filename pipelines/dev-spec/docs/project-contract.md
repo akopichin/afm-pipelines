@@ -55,35 +55,12 @@ Required fields: `base_branch`, `environment_id`, `input_paths`, `checks`, `live
 `acceptance` and `review`. Review selection, role mappings, escalation profiles
 and budgets retain their existing flow-defined format.
 `review.escalation_profiles.repeated_failure` names the installed profile of the
-standing `rescue-architect` diagnosis agent. After two rejected candidate rounds
-or failed repairs for one logical task, the coordinator must obtain its accepted
-diagnosis and hand implementation to `opus` before another correction/review round.
-`review.escalation_profiles.findings_verifier` names the installed profile
-`dev-spec-escalation-verifier` (Фабула, Claude Fable 5.1 `medium`). Activate it
-ONLY after `escalation.post_escalation_rejected_rounds >= 2`: at least two distinct
-post-escalation candidate rounds for the same logical task require corrections.
-The first escalation and its first rejection do not activate Fabula. The first
-rescue rejection needs a user decision before another bounded Astra/Opus attempt.
-Track candidate identities, linked replies, dispositions and rejection counters
-across stages and resumes; multiple findings/reviewers for one candidate count once.
-At the repeat threshold, Fabula independently verifies Astra's diagnosis, repeated
-findings and design. After accepted verification, one exceptional bounded Fabula
-repair may address concrete residual in-scope bugs with understood causes and
-exclusive file/test ownership. Record `escalation.fabula_repair_used` before
-dispatch; preserve it across stages and resumes. Fabula cannot approve its own
-edits: require fresh independent review, checks and affected live acceptance.
-Unclear causes, material redesign or failure of this last repair require a user
-decision. See the coordinator's [diagnosis protocol](../skills/afm-dev-coordinator/references/diagnosis.md).
-
-Delegated work keeps its absolute `task_deadline` separate from AFM wait windows,
-which are at most 300 seconds (`min(300, remaining task budget)`, never zero).
-The task ledger saves assignee/request IDs, last health-check time and observed
-status/activity, evidence, and replacement attempts. Every window checks roster,
-committed helper results and recent granted logs/activity. Confirmed terminal
-failure triggers safe recovery before the task deadline; window expiry and
-infrastructure failure do not count as product rejection rounds. Record stopped
-prior writers/commands, exclusive ownership and superseding request IDs before
-handoff. See [health checks](../skills/afm-dev-coordinator/references/health.md).
+standing `rescue-architect` (`dev-spec-escalation-architect`) and
+`review.escalation_profiles.findings_verifier` the profile of `fabula`
+(`dev-spec-escalation-verifier`). Thresholds, counters and handoff records are
+defined only in the [escalation skill](../skills/afm-dev-escalation/SKILL.md).
+Wait windows and recovery of failed agents follow the coordinator's
+[health checks](../skills/afm-dev-coordinator/references/health.md).
 
 - `environment_id` identifies the actual toolchain/dependency environment. A
   receipt may be reused only after confirming the environment is unchanged.
@@ -156,7 +133,10 @@ interaction fix does not automatically require prototype/theme sweeps.
 }
 ```
 
-Place this object in `acceptance`. Interfaces: `api`, `cli`, `library`, `ui`,
+Place this object in `acceptance`. With a spec delta, a criterion that exercises
+a delta scenario sets `scenario` to its ID and `requirement` to that scenario's
+requirement ID. A criterion without `scenario` guards retained behavior outside
+the delta. Interfaces: `api`, `cli`, `library`, `ui`,
 `docs`. Set UI mode to `none`, `behavior`, `visual` or `prototype`, with a reason.
 For non-none modes also list concrete `surfaces`, such as `People drawer at 390`
 and `wide People panel after toggle`. Prototype mode includes approved `references`
@@ -251,6 +231,9 @@ launching product review. Keep broad suites in the existing gates.
 
 After the accepted live stage, `helper spec-sync` applies the operations and
 archives the original delta and a sanitized handoff with acceptance statuses.
-A failed or waived mapped criterion needs resolution before publishing the spec.
+When live-run was accepted with a waiver or an explicit FAIL override, every
+requirement with a non-PASS mapped criterion stays at its baseline and is listed
+in `handoff.json` `deferred_requirements`; the rest of the delta is published.
+Requirement IDs are unique across all domains of one delta.
 `helper spec-verify` checks the tree and archive without writing. The merge
 coordinator uses `--against-base` before requesting fast-forward approval.
