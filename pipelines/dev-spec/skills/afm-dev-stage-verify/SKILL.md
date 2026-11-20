@@ -62,8 +62,7 @@ contract, plus linked team-review and check evidence.
 - The selected risk-based review policy ran; unselected reviewers are not missing work.
 - UI selected: inspect `ui-preview.json`, actual observations and selected
   prototype/reference pairs. Backend-only work needs no previews.
-- A baseline defect violating an approved criterion remains blocking;
-  correctness defects remain blocking even if dismissed as out of scope.
+- Apply the afm-review-work threshold to baseline and newly reported defects.
 - Temporary reviews/diagnoses have committed helper results and IDs; canonical
   request IDs have linked replies. Board completion does not prove a reply_to
   wait was answered. Recorded cancellations need accepted evidence and must not

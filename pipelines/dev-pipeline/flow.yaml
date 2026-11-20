@@ -542,8 +542,7 @@ stages:
             not proof that a reply_to wait was answered. Recorded cancellations
             need accepted evidence and must not hide outstanding review work;
             unselected reviewers are not missing work. Apply the assigned review
-            and evidence skills; correctness defects remain blocking even if
-            dismissed as out of scope.
+            and evidence skills to decide which findings block acceptance.
       max_failures: 3
       review_patience: 0
 

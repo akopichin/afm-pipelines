@@ -1,3 +1,10 @@
+## 2026-11-21
+
+### Improvement:
+
+- Apply one evidence-based critical/major threshold across review perspectives.
+  Focus correction rounds on the original defect and the affected paths.
+
 ## 2026-11-18
 
 ### Fix:

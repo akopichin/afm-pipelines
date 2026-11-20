@@ -3,8 +3,8 @@
 Requires AFM 3.1.4+. This is a manifest-v2 package; no installation is needed.
 
 ```sh
-afm pipelines inspect github.com/akopichin/afm-pipelines//pipelines/dev-spec@v2.2.0
-afm run --pipeline github.com/akopichin/afm-pipelines//pipelines/dev-spec@v2.2.0 \
+afm pipelines inspect github.com/akopichin/afm-pipelines//pipelines/dev-spec@v2.2.1
+afm run --pipeline github.com/akopichin/afm-pipelines//pipelines/dev-spec@v2.2.1 \
   --worktree my-dev-spec --idle-timeout 24h
 ```
 
