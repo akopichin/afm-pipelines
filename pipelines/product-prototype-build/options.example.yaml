@@ -1,0 +1,22 @@
+# Скопируйте файл и оставьте только переопределяемые записи.
+docker:
+  agents:
+    product-prototype-build-analyst: {type: codex, model: gpt-6.1-sol, reasoning: medium}
+    product-prototype-build-designer: {type: codex, model: gpt-6.1-sol, reasoning: medium}
+    product-prototype-build-frontend: {type: codex, model: gpt-6.1-sol, reasoning: medium}
+    product-prototype-build-writer: {type: codex, model: gpt-6.1-sol, reasoning: medium}
+    product-prototype-build-verify:
+      type: claude
+      model: claude-sonnet-5-5
+      reasoning: medium
+      auth:
+        from: env:CLAUDE_CODE_OAUTH_TOKEN
+        to: env:CLAUDE_CODE_OAUTH_TOKEN
+    product-prototype-build-visual:
+      type: claude
+      model: claude-sonnet-5-5
+      reasoning: medium
+      auth:
+        from: env:CLAUDE_CODE_OAUTH_TOKEN
+        to: env:CLAUDE_CODE_OAUTH_TOKEN
+    product-prototype-build-polish: {type: codex, model: gpt-6.1-sol, reasoning: medium}

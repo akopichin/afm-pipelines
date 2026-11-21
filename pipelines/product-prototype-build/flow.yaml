@@ -1,0 +1,86 @@
+name: product-prototype-build
+description: "Интервью, выбор дизайна, интерактивный прототип и передача исходников"
+skills_dir: ./skills
+prompt: |
+  Общайся по-русски. Для вопросов и утверждений используй интерактивный диалог AFM.
+  При возобновлении прочитай артефакты и реальные ответы пользователя. Не принимай
+  молчание за утверждение. Работай в AFM_STAGE_DIR, предыдущие этапы находятся рядом.
+  Запиши решения и ссылки на ответы. После содержательных правок покажи новую версию.
+stages:
+  - id: brief
+    name: Продуктовое интервью
+    command: product-prototype-build-analyst
+    interactive: true
+    agents: [auto]
+    skills: [product-workshop]
+    artifacts:
+      - {name: scenarios, path: ./brief.md}
+    prompt: Выполни раздел «Интервью» product-workshop. Получи подтверждение brief.md.
+    verify:
+      steps:
+        - command: product-prototype-build-verify
+          prompt: Прочитай $AFM_PIPELINE_DIR/skills/product-review/SKILL.md и проверь раздел «Сценарии».
+  - id: design
+    name: Выбор визуального направления
+    depends_on: [brief]
+    command: product-prototype-build-designer
+    interactive: true
+    agents: [auto]
+    skills: [product-workshop]
+    artifacts:
+      - {name: design, path: ./design.md}
+      - {name: directions, path: ./directions.html, inline: false}
+    prompt: Выполни раздел «Дизайн» product-workshop для ../brief/brief.md.
+    verify:
+      steps:
+        - command: product-prototype-build-verify
+          prompt: Прочитай $AFM_PIPELINE_DIR/skills/product-review/SKILL.md и проверь раздел «Дизайн».
+  - id: prototype
+    name: Прототип и визуальные комментарии
+    depends_on: [design]
+    command: product-prototype-build-frontend
+    interactive: true
+    agents: [auto]
+    skills: [product-workshop]
+    artifacts:
+      - {name: prototype, path: ./site/index.html, inline: false}
+      - {name: acceptance, path: ./acceptance.md}
+    prompt: Выполни раздел «Мастерская» product-workshop до явного утверждения текущей версии.
+  - id: live-qa
+    name: "Этап 3 · независимый проход через CDP"
+    depends_on: [prototype]
+    command: product-prototype-build-verify
+    agents: [auto]
+    interactive: true
+    skills: [product-workshop]
+    artifacts:
+      - {name: live-evidence, path: ./live.md}
+    prompt: Выполни раздел «Живой QA» product-workshop для утверждённой сборки.
+    verify:
+      steps:
+        - command: product-prototype-build-verify
+          prompt: Прочитай $AFM_PIPELINE_DIR/skills/product-review/SKILL.md и выполни «Функциональное ревью».
+        - command: product-prototype-build-visual
+          prompt: Прочитай $AFM_PIPELINE_DIR/skills/product-review/SKILL.md и выполни «Визуальное ревью».
+  - id: delivery
+    name: Спецификации и исходники
+    depends_on: [live-qa]
+    command: product-prototype-build-writer
+    agents: [auto]
+    interactive: true
+    skills: [product-workshop]
+    artifacts:
+      - {name: behavior, path: ./behavior.md}
+      - {name: design-system, path: ./design-system.md}
+      - {name: prototype, path: ./prototype/index.html, inline: false}
+      - {name: catalog, path: ./design-system/index.html, inline: false}
+    prompt: Выполни раздел «Передача» product-workshop и получи утверждение комплекта.
+    verify:
+      steps:
+        - run: |
+            set -eu
+            cd "$AFM_STAGE_DIR"
+            for file in behavior.md design-system.md prototype/index.html design-system/index.html; do test -s "$file"; done
+            diff -qr ../prototype/site prototype
+        - command: product-prototype-build-verify
+          prompt: Прочитай $AFM_PIPELINE_DIR/skills/product-review/SKILL.md и выполни «Передача».
