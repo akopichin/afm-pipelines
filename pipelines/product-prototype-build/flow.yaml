@@ -26,11 +26,14 @@ stages:
     command: product-prototype-build-designer
     interactive: true
     agents: [auto]
-    skills: [product-workshop]
+    skills: [product-workshop, frontend-design, product-visual-design]
     artifacts:
       - {name: design, path: ./design.md}
       - {name: directions, path: ./directions.html, inline: false}
-    prompt: Выполни раздел «Дизайн» product-workshop для ../brief/brief.md.
+    prompt: |
+      Выполни раздел «Дизайн» product-workshop для ../brief/brief.md.
+      Примени frontend-design и product-visual-design к поиску референсов,
+      выбору визуального характера и проверке концептов перед показом.
     verify:
       steps:
         - command: product-prototype-build-verify
@@ -41,11 +44,14 @@ stages:
     command: product-prototype-build-frontend
     interactive: true
     agents: [auto]
-    skills: [product-workshop]
+    skills: [product-workshop, frontend-design, product-visual-design]
     artifacts:
       - {name: prototype, path: ./site/index.html, inline: false}
       - {name: acceptance, path: ./acceptance.md}
-    prompt: Выполни раздел «Мастерская» product-workshop до явного утверждения текущей версии.
+    prompt: |
+      Выполни раздел «Мастерская» product-workshop до явного утверждения текущей версии.
+      Перенеси выбранное направление из ../design/design.md и проверь рендер
+      по frontend-design и разделу «Разбор результата» product-visual-design.
   - id: live-qa
     name: "Этап 3 · независимый проход через CDP"
     depends_on: [prototype]

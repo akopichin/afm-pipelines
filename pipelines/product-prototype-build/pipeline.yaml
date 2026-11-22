@@ -1,6 +1,6 @@
 schema_version: 2
 name: product-prototype-build
-version: 0.1.0
+version: 0.2.0
 description: "От продуктового интервью до проверенного HTML-прототипа и дизайн-системы"
 entrypoint: flow.yaml
 agents: agents.yaml
