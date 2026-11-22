@@ -6,10 +6,10 @@
 
 Нужны AFM с поддержкой пакетов v2, Docker autoShim, управляемый браузер, Python 3, авторизованный Codex с доступом к `gpt-6.1-sol` и переменная окружения `CLAUDE_CODE_OAUTH_TOKEN` с доступом к `claude-sonnet-5-5`. AFM Desktop открывает управляемый браузер во вкладке. При запуске из CLI используется Chrome.
 
-В рабочей папке продукта проверьте пакет и запустите его с Git-тега `v2.3.0`.
+В рабочей папке продукта проверьте пакет и запустите его с Git-тега `v2.3.1`.
 
 ```sh
-pipeline='github.com/akopichin/afm-pipelines//pipelines/product-prototype-build@v2.3.0'
+pipeline='github.com/akopichin/afm-pipelines//pipelines/product-prototype-build@v2.3.1'
 AFM_COLLABORATION=1 afm pipelines inspect "$pipeline"
 AFM_COLLABORATION=1 afm run --pipeline "$pipeline"
 ```

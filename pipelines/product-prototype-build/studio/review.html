@@ -1,15 +1,219 @@
-<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Ревью прототипа</title><style>
-*{box-sizing:border-box}body{margin:0;font:16px system-ui;height:100dvh;display:flex;flex-direction:column}
-header{display:flex;align-items:center;gap:.5rem;padding:.5rem;background:#eff2f5;flex-wrap:wrap}
-button,input{font:inherit;padding:.4rem}button[aria-pressed=true]{background:#182c48;color:white}
-main{position:relative;flex:1}iframe,svg{position:absolute;inset:0;border:0;width:100%;height:100%}
-svg{touch-action:none;cursor:crosshair}svg[hidden]{display:none}input{min-width:10em;flex:1}
-</style><header><button id="pen" aria-pressed="false">✎ Разметка</button>
-<select id="shape" aria-label="Инструмент разметки"><option value="line">Стрелка</option><option value="ellipse">Обводка</option></select>
-<input id="comment" aria-label="Комментарий" placeholder="Комментарий к стрелке или экрану">
-<button id="add">Добавить</button><button id="send" disabled>Отправить</button>
-<button id="approve">Утвердить версию</button><span id="status" role="status"></span></header>
-<main><iframe id="app" title="Прототип" src="/index.html"></iframe><svg id="overlay" hidden>
-<defs><marker id="tip" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#ce2455"/></marker></defs></svg></main>
-<script src="/__capture.js"></script><script src="/__review.js"></script></html>
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ревью прототипа</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      font: 14px/1.4 system-ui, sans-serif;
+      color: #edf2fa;
+      background: #161d2a;
+    }
+
+    header {
+      --surface: #202a3a;
+      --border: #54647d;
+      --muted: #aab8cc;
+      display: grid;
+      gap: 10px;
+      padding: 10px 16px 12px;
+      background: #161d2a;
+      border-bottom: 1px solid #38465d;
+    }
+
+    .review-meta, .review-title, .tools, .actions, form {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .review-meta {
+      justify-content: space-between;
+      flex-wrap: wrap;
+      column-gap: 16px;
+      row-gap: 4px;
+      font-size: 13px;
+      min-height: 24px;
+    }
+
+    .review-title { gap: 10px; font-weight: 650; }
+
+    #revision {
+      padding: 2px 7px;
+      border: 1px solid #42516a;
+      border-radius: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 500;
+      overflow-wrap: anywhere;
+    }
+
+    #status {
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+    #status[data-tone="success"] { color: #8be6bd; }
+    #status[data-tone="error"] { color: #ffb2b8; }
+    #status[data-tone="success"]::before,
+    #status[data-tone="error"]::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      flex: 0 0 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .review-controls {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px 16px;
+    }
+
+    button, select, input {
+      min-height: 42px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      color: inherit;
+      font: inherit;
+    }
+
+    button, select {
+      padding: 0 12px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    button:enabled:hover, select:hover { background: #303e54; }
+    button:enabled:active { transform: translateY(1px); }
+
+    button:disabled {
+      background: #202838;
+      border-color: #3b485d;
+      color: #95a2b7;
+      cursor: default;
+    }
+
+    :is(button, input, select):focus-visible {
+      outline: 2px solid #a9c7ff;
+      outline-offset: 2px;
+    }
+
+    #pen[aria-pressed="true"] {
+      color: #e4edff;
+      background: #314a79;
+      border-color: #92b5f7;
+    }
+    #pen[aria-pressed="true"]:hover { background: #3a5689; }
+
+    .shape-picker { position: relative; min-width: 0; }
+    .shape-picker::after {
+      content: "";
+      position: absolute;
+      right: 13px;
+      top: 50%;
+      width: 6px;
+      height: 6px;
+      border: solid var(--muted);
+      border-width: 0 1.5px 1.5px 0;
+      transform: translateY(-70%) rotate(45deg);
+      pointer-events: none;
+    }
+
+    select {
+      appearance: none;
+      width: 100%;
+      padding-right: 32px;
+      color-scheme: dark;
+    }
+
+    input {
+      flex: 1;
+      min-width: 0;
+      padding: 0 12px;
+      background: #101724;
+    }
+
+    input::placeholder { color: var(--muted); }
+
+    #send:enabled {
+      background: #8de3be;
+      color: #112d23;
+      border-color: #8de3be;
+    }
+
+    #send:enabled:hover { background: #a9efd1; }
+    #approve { background: transparent; }
+    #approve:hover { background: #303e54; }
+
+    @media (max-width: 960px) {
+      .review-controls { grid-template-columns: auto minmax(0, 1fr); }
+      .actions { grid-column: 1 / -1; justify-content: flex-end; }
+    }
+
+    @media (max-width: 540px) {
+      header { padding-inline: 12px; }
+      .review-controls { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+      .tools > *, .actions > * { flex: 1; }
+      input { font-size: 16px; }
+    }
+
+    main { position: relative; flex: 1; min-height: 0; background: white; }
+    iframe, #overlay { position: absolute; inset: 0; border: 0; width: 100%; height: 100%; }
+    #overlay { touch-action: none; cursor: crosshair; }
+    #overlay[hidden] { display: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="review-meta">
+      <div class="review-title">Ревью прототипа <span id="revision" hidden></span></div>
+      <span id="status" role="status"></span>
+    </div>
+    <div class="review-controls">
+      <div class="tools" role="group" aria-label="Разметка">
+        <button id="pen" type="button" aria-pressed="false">Разметка</button>
+        <div class="shape-picker">
+          <select id="shape" aria-label="Инструмент разметки">
+            <option value="line">Стрелка</option>
+            <option value="ellipse">Обводка</option>
+          </select>
+        </div>
+      </div>
+      <form id="compose">
+        <input id="comment" aria-label="Комментарий" placeholder="Опишите замечание">
+        <button id="add" disabled>Добавить</button>
+      </form>
+      <div class="actions" role="group" aria-label="Действия с ревью">
+        <button id="send" type="button" disabled>Отправить</button>
+        <button id="approve" type="button">Утвердить версию</button>
+      </div>
+    </div>
+  </header>
+  <main>
+    <iframe id="app" title="Прототип" src="/index.html"></iframe>
+    <svg id="overlay" aria-hidden="true" hidden>
+      <defs>
+        <marker id="tip" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+          <path d="M0 0L10 5L0 10z" fill="#ce2455"/>
+        </marker>
+      </defs>
+    </svg>
+  </main>
+  <script src="/__capture.js"></script>
+  <script src="/__review.js"></script>
+</body>
+</html>

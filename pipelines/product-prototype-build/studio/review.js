@@ -1,12 +1,35 @@
 const el = id => document.getElementById(id);
 const overlay = el("overlay");
 const app = el("app");
+const controls = document.querySelector(".review-controls");
+const main = document.querySelector("main");
+const comment = el("comment");
+const send = el("send");
+const status = el("status");
+const revision = new URLSearchParams(location.search).get("revision");
 const notes = [];
 let line, start, end, drawing, batchId;
+
+if (revision) {
+  el("revision").textContent = "Версия " + revision;
+  el("revision").hidden = false;
+}
+
+function showStatus(message, tone = "neutral") {
+  status.dataset.tone = tone;
+  status.textContent = message;
+}
+
+function updateControls() {
+  const hasDraft = start || comment.value.trim();
+  el("add").disabled = !hasDraft || drawing;
+  send.disabled = !(notes.length || hasDraft) || drawing;
+}
 
 function clearLine() {
   line?.remove();
   line = start = end = drawing = null;
+  updateControls();
 }
 function point(event) {
   const box = overlay.getBoundingClientRect();
@@ -30,6 +53,7 @@ overlay.onpointerdown = event => {
   if (shape === "line") line.setAttribute("marker-end", "url(#tip)");
   overlay.append(line);
   updateShape();
+  updateControls();
 };
 function updateShape() {
   const [x, y] = start, [u, v] = end;
@@ -42,10 +66,14 @@ overlay.onpointermove = event => {
   end = point(event);
   updateShape();
 };
-overlay.onpointerup = () => { drawing = false; el("send").disabled = false; };
+overlay.onpointerup = () => {
+  drawing = false;
+  updateControls();
+};
+overlay.onpointercancel = clearLine;
 app.addEventListener("load", clearLine);
 async function add() {
-  const text = el("comment").value.trim();
+  const text = comment.value.trim();
   if (!start && !text) return;
   const doc = app.contentDocument;
   const target = end && doc?.elementFromPoint(...end);
@@ -56,48 +84,54 @@ async function add() {
   notes.push({shape:line?.localName, screenshot:canvas.toDataURL("image/jpeg", 0.65), text, start, end, url: app.contentWindow.location.href,
     viewport: [app.clientWidth, app.clientHeight], scroll: [app.contentWindow.scrollX, app.contentWindow.scrollY],
     target: target?.outerHTML.slice(0, 350), screen: doc?.body.innerText.slice(0, 2000)});
-  el("comment").value = "";
+  comment.value = "";
   clearLine();
-  el("send").disabled = false;
-  el("status").textContent = "В списке: " + notes.length;
+  showStatus("В списке: " + notes.length);
 }
 async function locked(action) {
-  const header = document.querySelector("header");
-  if (header.inert) return;
-  header.inert = true;
-  document.querySelector("main").inert = true;
+  if (controls.inert) return;
+  const focused = document.activeElement;
+  controls.inert = true;
+  main.inert = true;
   try { await action(); }
-  catch { el("status").textContent = "Ошибка сохранения. Повторите."; }
-  finally { header.inert = false; document.querySelector("main").inert = false; }
+  catch { showStatus("Ошибка сохранения. Повторите.", "error"); }
+  finally {
+    controls.inert = false;
+    main.inert = false;
+    updateControls();
+    if (controls.contains(focused) && document.activeElement === document.body) {
+      (focused.disabled ? comment : focused).focus();
+    }
+  }
 }
-el("add").onclick = () => locked(add);
-el("send").onclick = () => locked(async () => {
+el("compose").onsubmit = event => {
+  event.preventDefault();
+  if (!el("add").disabled) locked(add);
+};
+send.onclick = () => locked(async () => {
   await add();
   if (!notes.length) return;
-  el("send").disabled = true;
   batchId ||= crypto.randomUUID();
   try {
     const response = await fetch("/__feedback", {method:"POST", headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({id:batchId, revision:new URLSearchParams(location.search).get("revision"), notes})});
+      body:JSON.stringify({id:batchId, revision, notes})});
     if (!response.ok) throw Error();
     notes.length = 0;
     batchId = null;
-    el("status").textContent = "Отправлено агенту";
+    showStatus("Отправлено агенту", "success");
   } catch {
-    el("status").textContent = "Ошибка отправки. Повторите.";
-    el("send").disabled = false;
+    showStatus("Ошибка отправки. Повторите.", "error");
   }
 });
 
 el("approve").onclick = () => locked(async () => {
-  if (notes.length || start || el("comment").value.trim()) {
-    el("status").textContent = "Сначала отправьте замечания.";
+  if (notes.length || start || comment.value.trim()) {
+    showStatus("Сначала отправьте замечания.", "error");
     return;
   }
-  const revision = new URLSearchParams(location.search).get("revision");
   const response = await fetch("/__feedback", {method:"POST", headers:{"Content-Type":"application/json"},
     body:JSON.stringify({id:crypto.randomUUID(), revision, kind:"approval", notes:[]})});
   if (!response.ok) throw Error();
-  el("status").textContent = "Версия утверждена";
+  showStatus("Версия утверждена", "success");
 });
-el("comment").oninput = () => { el("send").disabled = !(notes.length || start || el("comment").value.trim()); };
+comment.oninput = updateControls;
