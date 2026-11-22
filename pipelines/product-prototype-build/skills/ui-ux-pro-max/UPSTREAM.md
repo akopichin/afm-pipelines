@@ -1,0 +1,3 @@
+# UI/UX Pro Max
+
+AFM адаптирует точку входа `SKILL.md` для однофайлового HTML-прототипа. Python CLI, справочники и данные для генерации дизайн-системы и поиска по HTML/Tailwind поставляются из коммита `6ec2bb58334ca3014573c4cbd4834ee3a40afd9d`. Выборка рассчитана на стек пакета. Каталоги других стеков и отдельные каталоги иконок и шрифтов не включены. Запросы выполняются локально на Python 3. [Исходный навык](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill/tree/6ec2bb58334ca3014573c4cbd4834ee3a40afd9d/.claude/skills/ui-ux-pro-max) · [Лицензия MIT](LICENSE) · [Источники данных](data/data-provenance.json)

@@ -26,14 +26,15 @@ stages:
     command: product-prototype-build-designer
     interactive: true
     agents: [auto]
-    skills: [product-workshop, frontend-design, product-visual-design]
+    skills: [product-workshop, frontend-design, product-visual-design, ui-ux-pro-max, high-craft-html-prototyping]
     artifacts:
       - {name: design, path: ./design.md}
       - {name: directions, path: ./directions.html, inline: false}
     prompt: |
       Выполни раздел «Дизайн» product-workshop для ../brief/brief.md.
-      Примени frontend-design и product-visual-design к поиску референсов,
-      выбору визуального характера и проверке концептов перед показом.
+      Запусти локальный поиск ui-ux-pro-max по брифу. Подготовь сравнимые
+      варианты по product-visual-design и проверь визуальные правила
+      high-craft-html-prototyping перед показом.
     verify:
       steps:
         - command: product-prototype-build-verify
@@ -44,21 +45,22 @@ stages:
     command: product-prototype-build-frontend
     interactive: true
     agents: [auto]
-    skills: [product-workshop, frontend-design, product-visual-design]
+    skills: [product-workshop, frontend-design, product-visual-design, ui-ux-pro-max, high-craft-html-prototyping, product-interface-polish]
     artifacts:
       - {name: prototype, path: ./site/index.html, inline: false}
       - {name: acceptance, path: ./acceptance.md}
     prompt: |
       Выполни раздел «Мастерская» product-workshop до явного утверждения текущей версии.
-      Перенеси выбранное направление из ../design/design.md и проверь рендер
-      по frontend-design и разделу «Разбор результата» product-visual-design.
+      Перенеси выбранное направление из ../design/design.md в один HTML по
+      high-craft-html-prototyping. Пройди сценарии в CDP и примени
+      product-interface-polish перед показом кандидата на утверждение.
   - id: live-qa
     name: "Этап 3 · независимый проход через CDP"
     depends_on: [prototype]
     command: product-prototype-build-verify
     agents: [auto]
     interactive: true
-    skills: [product-workshop]
+    skills: [product-workshop, high-craft-html-prototyping, product-interface-polish]
     artifacts:
       - {name: live-evidence, path: ./live.md}
     prompt: Выполни раздел «Живой QA» product-workshop для утверждённой сборки.
@@ -74,7 +76,7 @@ stages:
     command: product-prototype-build-writer
     agents: [auto]
     interactive: true
-    skills: [product-workshop]
+    skills: [product-workshop, high-craft-html-prototyping, product-interface-polish]
     artifacts:
       - {name: behavior, path: ./behavior.md}
       - {name: design-system, path: ./design-system.md}
@@ -87,6 +89,11 @@ stages:
             set -eu
             cd "$AFM_STAGE_DIR"
             for file in behavior.md design-system.md prototype/index.html design-system/index.html; do test -s "$file"; done
+            extras=$(find prototype -mindepth 1 ! -path prototype/index.html -print)
+            if [ -n "$extras" ]; then
+              printf 'Prototype must be a single HTML file. Extra paths:\n%s\n' "$extras" >&2
+              exit 1
+            fi
             diff -qr ../prototype/site prototype
         - command: product-prototype-build-verify
           prompt: Прочитай $AFM_PIPELINE_DIR/skills/product-review/SKILL.md и выполни «Передача».
