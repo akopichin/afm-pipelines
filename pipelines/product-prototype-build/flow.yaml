@@ -97,3 +97,9 @@ stages:
             diff -qr ../prototype/site prototype
         - command: product-prototype-build-verify
           prompt: Прочитай $AFM_PIPELINE_DIR/skills/product-review/SKILL.md и выполни «Передача».
+  - id: export-delivery
+    name: Сохранение результатов в папке проекта
+    depends_on: [delivery]
+    script: |
+      set -eu
+      python3 "$AFM_PIPELINE_DIR/scripts/export-delivery.py" "$(dirname "$AFM_STAGE_DIR")"

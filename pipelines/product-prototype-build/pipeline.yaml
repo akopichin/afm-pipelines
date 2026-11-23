@@ -1,10 +1,10 @@
 schema_version: 2
 name: product-prototype-build
-version: 0.3.0
+version: 0.3.1
 description: "От продуктового интервью до проверенного HTML-прототипа и дизайн-системы"
 entrypoint: flow.yaml
 agents: agents.yaml
-resources: [package.json, README.md, options.example.yaml, skills, studio]
+resources: [package.json, README.md, options.example.yaml, skills, studio, scripts]
 requirements:
   docker_auto_shim: true
   browser: true
