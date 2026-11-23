@@ -1,5 +1,13 @@
 # dev-spec v2
 
+[Add to AFM Desktop](afm://library/install?source=https%3A%2F%2Fgithub.com%2Fakopichin%2Fafm-pipelines%2F%2Fpipelines%2Fdev-spec%40v2.6.0)
+
+macOS command when viewing on GitHub.
+
+```sh
+open 'afm://library/install?source=https%3A%2F%2Fgithub.com%2Fakopichin%2Fafm-pipelines%2F%2Fpipelines%2Fdev-spec%40v2.6.0'
+```
+
 Requires AFM 3.1.4+. This is a manifest-v2 package; no installation is needed.
 
 ```sh

@@ -1,5 +1,13 @@
 # Review
 
+[Add to AFM Desktop](afm://library/install?source=https%3A%2F%2Fgithub.com%2Fakopichin%2Fafm-pipelines%2F%2Fpipelines%2Freview%40v2.6.0)
+
+macOS command when viewing on GitHub.
+
+```sh
+open 'afm://library/install?source=https%3A%2F%2Fgithub.com%2Fakopichin%2Fafm-pipelines%2F%2Fpipelines%2Freview%40v2.6.0'
+```
+
 A read-only review in three stages: agree on the scope, collect five independent
 stage-helper reviews, then deduplicate and rank the findings in `report.md`.
 Requires AFM 3.1.4+, Git, Python 3.9+, collaboration and configured provider access.

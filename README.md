@@ -12,6 +12,7 @@ assembles recipes/profiles in memory without editing your configuration.
 | [review](pipelines/review/README.md) | Five independent review perspectives, deduplicated findings and a ranked report. |
 | [refactor](pipelines/refactor/README.md) | Two-architect analysis and a user-approved architecture workshop; does not implement changes. |
 | [product-prototype-build](pipelines/product-prototype-build/README.md) | Groom product scenarios and visual design, validate an interactive HTML prototype, and hand off the design system and sources. |
+| [figma-to-web](pipelines/figma-to-web/README.md) | Implement agreed Figma frames in static HTML, compare them in Chrome, and export the approved site. |
 
 ```sh
 afm pipelines inspect github.com/akopichin/afm-pipelines//pipelines/dev-pipeline@v2.2.1

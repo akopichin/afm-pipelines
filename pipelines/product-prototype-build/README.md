@@ -1,15 +1,23 @@
 # Product Prototype Build
 
+[Добавить в AFM Desktop](afm://library/install?source=https%3A%2F%2Fgithub.com%2Fakopichin%2Fafm-pipelines%2F%2Fpipelines%2Fproduct-prototype-build%40v2.6.0)
+
+Команда для macOS при просмотре на GitHub.
+
+```sh
+open 'afm://library/install?source=https%3A%2F%2Fgithub.com%2Fakopichin%2Fafm-pipelines%2F%2Fpipelines%2Fproduct-prototype-build%40v2.6.0'
+```
+
 Интерактивный пакет AFM формата v2. Пользователь подтверждает сценарии, выбирает визуальное направление, комментирует работающий прототип и утверждает комплект для передачи разработчику.
 
 ## Запуск
 
 Нужны AFM с поддержкой пакетов v2, Docker autoShim, управляемый браузер, Python 3, авторизованный Codex с доступом к `gpt-6.1-sol` и переменная окружения `CLAUDE_CODE_OAUTH_TOKEN` с доступом к `claude-sonnet-5-5`. AFM Desktop открывает управляемый браузер во вкладке. При запуске из CLI используется Chrome.
 
-В рабочей папке продукта проверьте и запустите пакет версии `0.3.1` с Git-тега `v2.5.1`.
+В рабочей папке продукта проверьте и запустите пакет версии `0.3.1` с Git-тега `v2.6.0`.
 
 ```sh
-pipeline='github.com/akopichin/afm-pipelines//pipelines/product-prototype-build@v2.5.1'
+pipeline='github.com/akopichin/afm-pipelines//pipelines/product-prototype-build@v2.6.0'
 AFM_COLLABORATION=1 afm pipelines inspect "$pipeline"
 AFM_COLLABORATION=1 afm run --pipeline "$pipeline"
 ```

@@ -1,5 +1,13 @@
 # Figma → Web
 
+[Добавить в AFM Desktop](afm://library/install?source=https%3A%2F%2Fgithub.com%2Fakopichin%2Fafm-pipelines%2F%2Fpipelines%2Ffigma-to-web%40v2.6.0)
+
+Команда для macOS при просмотре на GitHub.
+
+```sh
+open 'afm://library/install?source=https%3A%2F%2Fgithub.com%2Fakopichin%2Fafm-pipelines%2F%2Fpipelines%2Ffigma-to-web%40v2.6.0'
+```
+
 Пакет AFM v2 переносит выбранные страницы и состояния Figma в статический HTML. На этапе вёрстки используется [frontend-design](skills/frontend-design/UPSTREAM.md). Источник визуальных решений и значений CSS — согласованные фреймы Figma.
 
 ## Запуск
