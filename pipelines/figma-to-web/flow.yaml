@@ -1,0 +1,89 @@
+name: figma-to-web
+description: "Доступ к Figma, согласование объёма, вёрстка, независимый QA, приёмка и экспорт"
+worktrees: false
+skills_dir: ./skills
+prompt: |
+  Общайся по-русски. Используй подходящий раздел скилла figma-handoff.
+  Файлы стадий лежат в AFM_STAGE_DIR, соседние стадии доступны через ../ от этого каталога.
+  Пути к скиллам и скриптам пакета начинаются с AFM_PIPELINE_DIR.
+  Учитывай сообщения пользователя в чате текущей стадии. Во время QA применяй
+  уточнения к проверкам, а запросы на изменение сборки передавай в отчёт для приёмки.
+stages:
+  - id: brief
+    name: Доступ к Figma и согласование задания
+    command: figma-to-web-intake
+    agents: [auto]
+    interactive: true
+    skills: [figma-handoff]
+    artifacts:
+      - {name: brief, path: ./brief.md}
+      - {name: figma, path: ./figma.md, inline: false}
+    prompt: Выполни «Доступ к Figma» и «Согласование и эталоны» в одной сессии Chrome.
+    verify:
+      run: |
+        set -eu
+        test -s "$AFM_STAGE_DIR/brief.md"
+        test -s "$AFM_STAGE_DIR/figma.md"
+        python3 "$AFM_PIPELINE_DIR/scripts/delivery.py" verify-brief "$AFM_STAGE_DIR"
+
+  - id: build
+    name: Вёрстка по Figma
+    depends_on: [brief]
+    inputs: [brief.brief, brief.figma]
+    command: figma-to-web-frontend
+    agents: [auto]
+    interactive: true
+    skills: [frontend-design, figma-handoff]
+    artifacts:
+      - {name: prototype, path: ./site/index.html, inline: false}
+    prompt: Выполни «Вёрстка». Бриф, значения и визуальные эталоны Figma имеют приоритет.
+    verify:
+      run: python3 "$AFM_PIPELINE_DIR/scripts/delivery.py" revision "$AFM_STAGE_DIR/site"
+
+  - id: qa-functional
+    name: QA · реальные пользовательские сценарии
+    depends_on: [brief, build]
+    inputs: [brief.brief, brief.figma, build.prototype]
+    command: figma-to-web-functional-qa
+    agents: [auto]
+    interactive: true
+    skills: [figma-handoff]
+    artifacts:
+      - {name: report, path: ./report.md, inline: false}
+    prompt: Выполни «Независимый QA», специализация «Сценарии».
+    verify:
+      run: python3 "$AFM_PIPELINE_DIR/scripts/delivery.py" verify-qa "$AFM_STAGE_DIR"
+
+  - id: qa-visual
+    name: QA · визуальное и числовое сравнение с Figma
+    depends_on: [brief, build, qa-functional]
+    inputs: [brief.brief, brief.figma, build.prototype]
+    command: figma-to-web-visual-qa
+    agents: [auto]
+    interactive: true
+    skills: [figma-handoff]
+    artifacts:
+      - {name: report, path: ./report.md, inline: false}
+    prompt: Выполни «Независимый QA», специализация «Визуальное сравнение». Проведи собственное ревью той же сборки.
+    verify:
+      run: python3 "$AFM_PIPELINE_DIR/scripts/delivery.py" verify-qa "$AFM_STAGE_DIR"
+
+  - id: acceptance
+    name: Интерактивный просмотр и правки
+    depends_on: [brief, build, qa-functional, qa-visual]
+    inputs: [brief.brief, brief.figma, build.prototype, qa-functional.report, qa-visual.report]
+    command: figma-to-web-frontend
+    agents: [auto]
+    interactive: true
+    skills: [frontend-design, figma-handoff]
+    artifacts:
+      - {name: accepted, path: ./site/index.html, inline: false}
+      - {name: acceptance, path: ./acceptance.md}
+    prompt: Выполни «Приёмка». Дай пользователю прокликать страницы и повторяй показ после правок до утверждения текущей версии.
+    verify:
+      run: python3 "$AFM_PIPELINE_DIR/scripts/delivery.py" verify-acceptance "$AFM_STAGE_DIR"
+
+  - id: export
+    name: Сохранение утверждённых HTML-страниц
+    depends_on: [acceptance]
+    script: python3 "$AFM_PIPELINE_DIR/scripts/delivery.py" export "$AFM_STAGE_DIR"

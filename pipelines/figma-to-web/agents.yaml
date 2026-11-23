@@ -1,0 +1,6 @@
+docker:
+  agents:
+    figma-to-web-intake: {type: codex, model: gpt-6.1-sol, reasoning: high}
+    figma-to-web-frontend: {type: codex, model: gpt-6.1-sol, reasoning: high}
+    figma-to-web-functional-qa: {type: codex, model: gpt-6.1-sol, reasoning: medium}
+    figma-to-web-visual-qa: {type: codex, model: gpt-6.1-sol, reasoning: high}

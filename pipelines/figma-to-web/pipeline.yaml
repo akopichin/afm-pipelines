@@ -1,0 +1,17 @@
+schema_version: 2
+name: figma-to-web
+version: 0.1.0
+description: "Из макета Figma в проверенные статические HTML-страницы"
+entrypoint: flow.yaml
+agents: agents.yaml
+resources: [README.md, skills, scripts]
+requirements:
+  docker_auto_shim: true
+  browser: true
+  collaboration: true
+  tools: [python3]
+roles:
+  intake: {command: figma-to-web-intake}
+  frontend: {command: figma-to-web-frontend}
+  functional_qa: {command: figma-to-web-functional-qa}
+  visual_qa: {command: figma-to-web-visual-qa}
